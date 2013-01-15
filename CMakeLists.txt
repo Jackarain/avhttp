@@ -16,4 +16,4 @@ include_directories(${Boost_INCLUDE_DIRS})
 include_directories(include)
 
 add_executable(avhttp example/multi_download.cpp)
-target_link_libraries(avhttp ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${OPENSSL_LIBRARIES})
+target_link_libraries(avhttp ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${OPENSSL_LIBRARIES} ${CMAKE_DL_LIBS})
