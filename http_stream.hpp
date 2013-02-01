@@ -3,12 +3,13 @@
 
 #pragma once
 
-#include <boost/noncopyable.hpp>
-#ifdef WIN32
-#pragma warning(disable: 4267)	// ½ûÓÃVC¾¯¸æ.
-#endif // WIN32
-#include <boost/asio.hpp>
+#include "detail/abi_prefix.hpp"
 
+#include <boost/asio.hpp>
+#include <boost/bind.hpp>
+#include <boost/noncopyable.hpp>
+
+#include "url.hpp"
 #include "options.hpp"
 
 namespace avhttp {
@@ -27,18 +28,25 @@ public:
 
 public:
 
+	void open(const url& u) // throw
+	{
+
+	}
+
 	// request
 	// open
+	// async_open
 	// read_some
 	// async_read_some
 
 
 protected:
 	boost::asio::io_service &m_io_service;
-	options m_opts;
+	option_set m_opts;
 };
 
 }
 
+#include "detail/abi_suffix.hpp"
 
 #endif // __HTTP_STREAM_HPP__
