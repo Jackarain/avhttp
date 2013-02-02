@@ -35,7 +35,46 @@ public:
 
 public:
 
-	void open(const url& u) // throw
+	///打开一个指定的url.
+	// 失败将抛出一个boost::system::system_error异常.
+	// @param u 将要打开的URL.
+	// @begin example
+	//   avhttp::http_stream h_stream(io_service);
+	//   try
+	//   {
+	//     h_stream.open("http://www.boost.org");
+	//   }
+	//   catch (boost::system::error_code& e)
+	//   {
+	//     std::cerr << e.waht() << std::endl;
+	//   }
+	// @end example
+	void open(const url &u)
+	{
+
+	}
+
+	///打开一个指定的url.
+	// 通过ec引用获得执行状态.
+	// @param u 将要打开的URL.
+	// @begin example
+	//   avhttp::http_stream h_stream(io_service);
+	//   try
+	//   {
+	//     h_stream.open("http://www.boost.org");
+	//   }
+	//   catch (boost::system::error_code& e)
+	//   {
+	//     std::cerr << e.waht() << std::endl;
+	//   }
+	// @end example
+	void open(const url &u, boost::system::error_code &ec)
+	{
+
+	}
+
+	template <typename Handler>
+	void async_open(const url &u, Handler handler)
 	{
 
 	}
