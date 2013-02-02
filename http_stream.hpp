@@ -1,3 +1,10 @@
+//
+// http_stream.hpp
+// ~~~~~~~~~~~~~~~
+//
+// Copyright (c) 2011 Jack (jack.wgm@gmail.com)
+//
+
 #ifndef __HTTP_STREAM_HPP__
 #define __HTTP_STREAM_HPP__
 

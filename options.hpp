@@ -1,3 +1,10 @@
+//
+// options.hpp
+// ~~~~~~~~~~~
+//
+// Copyright (c) 2011 Jack (jack.wgm@gmail.com)
+//
+
 #ifndef __OPTIONS_H__
 #define __OPTIONS_H__
 
