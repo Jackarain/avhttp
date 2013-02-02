@@ -49,7 +49,8 @@ public:
 
 protected:
 	boost::asio::io_service &m_io_service;
-	option_set m_opts;
+	request_opts m_req_opts;						// 向http服务器请求的头信息.
+	response_opts m_resp_opts;						// http服务器返回的http头信息.
 };
 
 }
