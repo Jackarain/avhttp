@@ -55,15 +55,13 @@ public:
 	}
 
 	///打开一个指定的url.
-	// 通过ec引用获得执行状态.
 	// @param u 将要打开的URL.
+	// 通过ec引用获得执行状态.
 	// @begin example
 	//   avhttp::http_stream h_stream(io_service);
-	//   try
-	//   {
-	//     h_stream.open("http://www.boost.org");
-	//   }
-	//   catch (boost::system::error_code& e)
+	//   boost::system::error_code ec;
+	//   h_stream.open("http://www.boost.org", ec);
+	//   if (ec)
 	//   {
 	//     std::cerr << e.waht() << std::endl;
 	//   }
@@ -73,6 +71,28 @@ public:
 
 	}
 
+	///异步打开一个指定的URL.
+	// @param u 将要打开的URL.
+	// @param handler 将被调用在打开完成时. 它必须满足以下条件:
+	// @begin code
+	//  void handler(
+	//    const boost::system::error_code& ec // 用于返回操作状态.
+	//  );
+	// @end code
+	// @begin example
+	//  void open_handler(const boost::system::error_code& ec)
+	//  {
+	//    if (!ec)
+	//    {
+	//      // 打开成功!
+	//    }
+	//  }
+	//  ...
+	//  avhttp::http_stream h_stream(io_service);
+	//  h_stream.async_open("http://www.boost.org", open_handler);
+	// @end example
+	// @备注: handler也可以使用boost.bind来绑定一个符合规定的函数作
+	// 为async_open的参数handler.
 	template <typename Handler>
 	void async_open(const url &u, Handler handler)
 	{
