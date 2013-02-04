@@ -106,6 +106,15 @@ public:
 	// async_read_some
 
 
+
+	///判断是否打开.
+	// @返回是否打开.
+	bool is_open() const
+	{
+		return false;
+	}
+
+
 protected:
 	boost::asio::io_service &m_io_service;
 	request_opts m_req_opts;						// 向http服务器请求的头信息.
