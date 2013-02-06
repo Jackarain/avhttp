@@ -8,9 +8,9 @@
 // 
 // 
 
-#include "url.hpp"
+#include "avhttp/url.hpp"
 #include "avhttp.hpp"
-#include "detail/error_codec.hpp"
+#include "avhttp/detail/error_codec.hpp"
 
 
 int main(int argc, char* argv[])

@@ -10,6 +10,7 @@
 #ifndef __URL_HPP__
 #define __URL_HPP__
 
+#include <cstring>
 #include <string>
 #include <cctype>
 
