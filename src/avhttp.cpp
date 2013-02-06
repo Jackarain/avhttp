@@ -8,7 +8,6 @@
 // 
 // 
 
-#include "avhttp/url.hpp"
 #include "avhttp.hpp"
 #include "avhttp/detail/error_codec.hpp"
 

@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "avhttp/url.hpp"
 #include "avhttp/http_stream.hpp"
 
 #endif // __AVHTTP_H__
