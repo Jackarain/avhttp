@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "avhttp/detail/error_codec.hpp"
+
 #include "avhttp/url.hpp"
 #include "avhttp/http_stream.hpp"
 
