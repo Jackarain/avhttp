@@ -12,6 +12,11 @@
 
 #include "detail/abi_prefix.hpp"
 
+#include <vector>
+
+#include <boost/format.hpp>
+#include <boost/algorithm/string.hpp>
+
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <boost/noncopyable.hpp>
@@ -26,6 +31,7 @@ using boost::asio::ip::tcp;
 #include "url.hpp"
 #include "options.hpp"
 #include "detail/parsers.hpp"
+#include "detail/error_codec.hpp"
 
 namespace avhttp {
 
@@ -42,6 +48,8 @@ public:
 		, m_ssl_socket(m_io_service, m_ssl_context)
 #endif
 		, m_keep_alive(false)
+		, m_status_code(-1)
+		, m_content_length(0)
 	{}
 
 	virtual ~http_stream()
@@ -70,6 +78,12 @@ public:
 
 		// 保存url.
 		m_url = u;
+
+		// 清空一些选项.
+		m_response_opts.clear();
+		m_request_opts.clear();
+		m_content_type = "";
+		m_status_code = 0;
 
 		if (protocol == "http")
 		{
@@ -130,8 +144,65 @@ public:
 				}
 
 				// 检查http状态码.
+				int version_major = 0;
+				int version_minor = 0;
+				if (!detail::parse_http_status_line(
+					std::istreambuf_iterator<char>(&m_response),
+					std::istreambuf_iterator<char>(),
+					version_major, version_minor, m_status_code))
+				{
+					boost::system::system_error ex(avhttp::errc::malformed_status_line);
+					boost::throw_exception(ex);
+				}
+
+				// "continue"表示我们需要继续等待接收状态.
+				if (m_status_code != avhttp::errc::continue_request)
+					break;
+			} // end for.
+
+			// 添加状态码.
+			m_response_opts.insert("status_code", boost::str(boost::format("%d") % m_status_code));
+
+			// 接收掉所有Http Header.
+			std::size_t bytes_transferred = boost::asio::read_until(m_socket, m_response, "\r\n\r\n", ec);
+			if (ec)
+			{
+				boost::throw_exception(boost::system::system_error(ec));
+			}
+
+			std::string header_string;
+			std::string header_line;
+			std::istream response_stream(&m_response);
+
+			// 解析到m_response_opts.
+			while (std::getline(response_stream, header_line) && header_line != "\r")
+			{
+				header_string += header_line + "\n";
+				std::vector<std::string> item;
+				boost::split(item, header_line, boost::is_any_of(":"), boost::token_compress_on);
+				if (item.size() == 2)
+				{
+					boost::trim(item[0]);
+					boost::trim(item[1]);
+					m_response_opts.insert(item[0], item[1]);
+				}
+			}
+			header_string += "\r\n";
+
+			// 解析Http Header.
+			if (!detail::parse_http_headers(header_string.begin(), header_string.end(),
+				m_content_type, m_content_length, m_location))
+			{
+				boost::system::system_error ex(avhttp::errc::malformed_response_headers);
+				boost::throw_exception(ex);
+			}
+
+			// 判断是否需要跳转.
+			if (ec == avhttp::errc::moved_permanently || ec == avhttp::errc::found)
+			{
 
 			}
+
 
 		}
 #ifdef HTTP_ENABLE_OPENSSL
@@ -366,6 +437,10 @@ protected:
 	std::string m_protocol;							// 协议类型(http/https).
 	url m_url;										// 保存当前请求的url.
 	bool m_keep_alive;								// 获得connection选项, 同时受m_response_opts影响.
+	int m_status_code;								// http返回状态码.
+	std::string m_content_type;						// 数据类型.
+	std::size_t m_content_length;					// 数据内容长度.
+	std::string m_location;							// 重定向的地址.
 	boost::asio::streambuf m_request;				// 请求缓冲.
 	boost::asio::streambuf m_response;				// 回复缓冲.
 };
