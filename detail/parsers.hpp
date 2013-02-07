@@ -14,6 +14,10 @@
 #ifndef __PARSERS_H__
 #define __PARSERS_H__
 
+#include <map>
+#include <string>
+#include <boost/algorithm/string.hpp>
+
 #pragma once
 
 namespace avhttp {
@@ -265,7 +269,134 @@ bool parse_http_headers(Iterator begin, Iterator end,
 				name.push_back(c);
 			break;
 		case space_before_header_value:
-			state = (c == ' ') ? header_value : fail;
+			if (c == ' ')
+				state = header_value;
+			else if (is_ctl(c))
+				state = fail;
+			else
+			{
+				value.push_back(c);
+				state = header_value;
+			}
+			break;
+		case header_value:
+			if (c == '\r')
+				state = linefeed;
+			else if (is_ctl(c))
+				state = fail;
+			else
+				value.push_back(c);
+			break;
+		case linefeed:
+			state = (c == '\n') ? header_line_start : fail;
+			break;
+		case final_linefeed:
+			return (c == '\n');
+		default:
+			return false;
+		}
+	}
+	return false;
+}
+
+typedef std::map<std::string, std::string> http_headers;
+
+template <typename Iterator>
+bool parse_http_headers(Iterator begin, Iterator end,
+	std::string& content_type, std::size_t& content_length,
+	std::string& location, http_headers& headers)
+{
+	enum
+	{
+		first_header_line_start,
+		header_line_start,
+		header_lws,
+		header_name,
+		space_before_header_value,
+		header_value,
+		linefeed,
+		final_linefeed,
+		fail
+	} state = first_header_line_start;
+
+	Iterator iter = begin;
+	std::string reason;
+	std::string name;
+	std::string value;
+	while (iter != end && state != fail)
+	{
+		char c = *iter++;
+		switch (state)
+		{
+		case first_header_line_start:
+			if (c == '\r')
+				state = final_linefeed;
+			else if (!is_char(c) || is_ctl(c) || is_tspecial(c))
+				state = fail;
+			else
+			{
+				name.push_back(c);
+				state = header_name;
+			}
+			break;
+		case header_line_start:
+			if (c == '\r')
+			{
+				check_header(name, value, content_type, content_length, location);
+				boost::trim(name);
+				boost::trim(value);
+				headers.insert(std::make_pair(name, value));
+				name.clear();
+				value.clear();
+				state = final_linefeed;
+			}
+			else if (c == ' ' || c == '\t')
+				state = header_lws;
+			else if (!is_char(c) || is_ctl(c) || is_tspecial(c))
+				state = fail;
+			else
+			{
+				check_header(name, value, content_type, content_length, location);
+				boost::trim(name);
+				boost::trim(value);
+				headers.insert(std::make_pair(name, value));
+				name.clear();
+				value.clear();
+				name.push_back(c);
+				state = header_name;
+			}
+			break;
+		case header_lws:
+			if (c == '\r')
+				state = linefeed;
+			else if (c == ' ' || c == '\t')
+				; // Discard character.
+			else if (is_ctl(c))
+				state = fail;
+			else
+			{
+				state = header_value;
+				value.push_back(c);
+			}
+			break;
+		case header_name:
+			if (c == ':')
+				state = space_before_header_value;
+			else if (!is_char(c) || is_ctl(c) || is_tspecial(c))
+				state = fail;
+			else
+				name.push_back(c);
+			break;
+		case space_before_header_value:
+			if (c == ' ')
+				state = header_value;
+			else if (is_ctl(c))
+				state = fail;
+			else
+			{
+				value.push_back(c);
+				state = header_value;
+			}
 			break;
 		case header_value:
 			if (c == '\r')

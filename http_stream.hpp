@@ -191,27 +191,12 @@ public:
 			}
 
 			std::string header_string;
-			std::string header_line;
-			std::istream response_stream(&m_response);
-
-			// 解析到m_response_opts.
-			while (std::getline(response_stream, header_line) && header_line != "\r")
-			{
-				header_string += header_line + "\n";
-				std::vector<std::string> item;
-				boost::split(item, header_line, boost::is_any_of(":"), boost::token_compress_on);
-				if (item.size() == 2)
-				{
-					boost::trim(item[0]);
-					boost::trim(item[1]);
-					m_response_opts.insert(item[0], item[1]);
-				}
-			}
-			header_string += "\r\n";
+			header_string.resize(bytes_transferred);
+			m_response.sgetn(&header_string[0], bytes_transferred);
 
 			// 解析Http Header.
 			if (!detail::parse_http_headers(header_string.begin(), header_string.end(),
-				m_content_type, m_content_length, m_location))
+				m_content_type, m_content_length, m_location, m_response_opts.option_all()))
 			{
 				ec = avhttp::errc::malformed_response_headers;
 				return;
