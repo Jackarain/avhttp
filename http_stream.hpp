@@ -151,6 +151,9 @@ public:
 				return;
 			}
 
+			// http状态代码.
+			boost::system::error_code http_code;
+
 			// 发出请求.
 			request(m_request_opts);
 
@@ -173,6 +176,12 @@ public:
 				{
 					ec = avhttp::errc::malformed_status_line;
 					return;
+				}
+
+				if (m_status_code != avhttp::errc::ok &&
+					m_status_code != avhttp::errc::partial_content)
+				{
+					http_code = make_error_code(static_cast<avhttp::errc::errc_t>(m_status_code));
 				}
 
 				// "continue"表示我们需要继续等待接收状态.
@@ -203,10 +212,10 @@ public:
 			}
 
 			// 判断是否需要跳转.
-			if (ec == avhttp::errc::moved_permanently || ec == avhttp::errc::found)
+			if (http_code == avhttp::errc::moved_permanently || http_code == avhttp::errc::found)
 			{
 				http_socket().close(ec);
-				open(u, ec);
+				open(m_location, ec);
 				if (ec)
 				{
 					return;
