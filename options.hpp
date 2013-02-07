@@ -14,7 +14,7 @@
 
 namespace avhttp {
 
-// Ñ¡Ïî±í.
+// é€‰é¡¹è¡¨.
 typedef std::map<std::string, std::string> option_item;
 
 class option
@@ -25,13 +25,13 @@ public:
 
 public:
 
-	// Ìí¼ÓÑ¡Ïî, ÓÉkey/valueĞÎÊ½Ìí¼Ó.
+	// æ·»åŠ é€‰é¡¹, ç”±key/valueå½¢å¼æ·»åŠ .
 	void insert(const std::string &key, const std::string &val)
 	{
 		m_opts[key] = val;
 	}
 
-	// É¾³ıÑ¡Ïî.
+	// åˆ é™¤é€‰é¡¹.
 	void remove(const std::string &key)
 	{
 		option_item::iterator f = m_opts.find(key);
@@ -39,13 +39,13 @@ public:
 			m_opts.erase(f);
 	}
 
-	// Çå¿Õ.
+	// æ¸…ç©º.
 	void clear()
 	{
 		m_opts.clear();
 	}
 
-	// ·µ»ØËùÓĞoption.
+	// è¿”å›æ‰€æœ‰option.
 	option_item& option_all()
 	{
 		return m_opts;
@@ -55,8 +55,8 @@ protected:
 	option_item m_opts;
 };
 
-typedef option request_opts;	// ÇëÇóÊ±µÄhttpÑ¡Ïî.
-typedef option response_opts;	// http·şÎñÆ÷·µ»ØµÄhttpÑ¡Ïî.
+typedef option request_opts;	// è¯·æ±‚æ—¶çš„httpé€‰é¡¹.
+typedef option response_opts;	// httpæœåŠ¡å™¨è¿”å›çš„httpé€‰é¡¹.
 
 }
 

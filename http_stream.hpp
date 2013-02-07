@@ -21,7 +21,7 @@
 
 namespace avhttp {
 
-// Ò»¸öhttpÁ÷ÀàÊµÏÖ, ÓÃÓÚÍ¬²½»òÒì²½·ÃÎÊhttpÊı¾İ.
+// ä¸€ä¸ªhttpæµç±»å®ç°, ç”¨äºåŒæ­¥æˆ–å¼‚æ­¥è®¿é—®httpæ•°æ®.
 // 
 class http_stream : public boost::noncopyable
 {
@@ -35,9 +35,9 @@ public:
 
 public:
 
-	///´ò¿ªÒ»¸öÖ¸¶¨µÄurl.
-	// Ê§°Ü½«Å×³öÒ»¸öboost::system::system_errorÒì³£.
-	// @param u ½«Òª´ò¿ªµÄURL.
+	///æ‰“å¼€ä¸€ä¸ªæŒ‡å®šçš„url.
+	// å¤±è´¥å°†æŠ›å‡ºä¸€ä¸ªboost::system::system_errorå¼‚å¸¸.
+	// @param u å°†è¦æ‰“å¼€çš„URL.
 	// @begin example
 	//   avhttp::http_stream h_stream(io_service);
 	//   try
@@ -54,9 +54,9 @@ public:
 
 	}
 
-	///´ò¿ªÒ»¸öÖ¸¶¨µÄurl.
-	// @param u ½«Òª´ò¿ªµÄURL.
-	// Í¨¹ıecÒıÓÃ»ñµÃÖ´ĞĞ×´Ì¬.
+	///æ‰“å¼€ä¸€ä¸ªæŒ‡å®šçš„url.
+	// @param u å°†è¦æ‰“å¼€çš„URL.
+	// é€šè¿‡ecå¼•ç”¨è·å¾—æ‰§è¡ŒçŠ¶æ€.
 	// @begin example
 	//   avhttp::http_stream h_stream(io_service);
 	//   boost::system::error_code ec;
@@ -71,12 +71,12 @@ public:
 
 	}
 
-	///Òì²½´ò¿ªÒ»¸öÖ¸¶¨µÄURL.
-	// @param u ½«Òª´ò¿ªµÄURL.
-	// @param handler ½«±»µ÷ÓÃÔÚ´ò¿ªÍê³ÉÊ±. Ëü±ØĞëÂú×ãÒÔÏÂÌõ¼ş:
+	///å¼‚æ­¥æ‰“å¼€ä¸€ä¸ªæŒ‡å®šçš„URL.
+	// @param u å°†è¦æ‰“å¼€çš„URL.
+	// @param handler å°†è¢«è°ƒç”¨åœ¨æ‰“å¼€å®Œæˆæ—¶. å®ƒå¿…é¡»æ»¡è¶³ä»¥ä¸‹æ¡ä»¶:
 	// @begin code
 	//  void handler(
-	//    const boost::system::error_code& ec // ÓÃÓÚ·µ»Ø²Ù×÷×´Ì¬.
+	//    const boost::system::error_code& ec // ç”¨äºè¿”å›æ“ä½œçŠ¶æ€.
 	//  );
 	// @end code
 	// @begin example
@@ -84,15 +84,15 @@ public:
 	//  {
 	//    if (!ec)
 	//    {
-	//      // ´ò¿ª³É¹¦!
+	//      // æ‰“å¼€æˆåŠŸ!
 	//    }
 	//  }
 	//  ...
 	//  avhttp::http_stream h_stream(io_service);
 	//  h_stream.async_open("http://www.boost.org", open_handler);
 	// @end example
-	// @±¸×¢: handlerÒ²¿ÉÒÔÊ¹ÓÃboost.bindÀ´°ó¶¨Ò»¸ö·ûºÏ¹æ¶¨µÄº¯Êı×÷
-	// Îªasync_openµÄ²ÎÊıhandler.
+	// @å¤‡æ³¨: handlerä¹Ÿå¯ä»¥ä½¿ç”¨boost.bindæ¥ç»‘å®šä¸€ä¸ªç¬¦åˆè§„å®šçš„å‡½æ•°ä½œ
+	// ä¸ºasync_opençš„å‚æ•°handler.
 	template <typename Handler>
 	void async_open(const url &u, Handler handler)
 	{
@@ -107,8 +107,8 @@ public:
 
 
 
-	///ÅĞ¶ÏÊÇ·ñ´ò¿ª.
-	// @·µ»ØÊÇ·ñ´ò¿ª.
+	///åˆ¤æ–­æ˜¯å¦æ‰“å¼€.
+	// @è¿”å›æ˜¯å¦æ‰“å¼€.
 	bool is_open() const
 	{
 		return false;
@@ -117,8 +117,8 @@ public:
 
 protected:
 	boost::asio::io_service &m_io_service;
-	request_opts m_req_opts;						// Ïòhttp·şÎñÆ÷ÇëÇóµÄÍ·ĞÅÏ¢.
-	response_opts m_resp_opts;						// http·şÎñÆ÷·µ»ØµÄhttpÍ·ĞÅÏ¢.
+	request_opts m_req_opts;						// å‘httpæœåŠ¡å™¨è¯·æ±‚çš„å¤´ä¿¡æ¯.
+	response_opts m_resp_opts;						// httpæœåŠ¡å™¨è¿”å›çš„httpå¤´ä¿¡æ¯.
 };
 
 }
