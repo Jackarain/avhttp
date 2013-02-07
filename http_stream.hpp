@@ -16,18 +16,31 @@
 #include <boost/bind.hpp>
 #include <boost/noncopyable.hpp>
 
+#ifdef HTTP_ENABLE_OPENSSL
+#include <boost/asio/ssl.hpp>
+#include <openssl/x509v3.h>
+#endif
+
+using boost::asio::ip::tcp;
+
 #include "url.hpp"
 #include "options.hpp"
 
 namespace avhttp {
 
 // 一个http流类实现, 用于同步或异步访问http数据.
-// 
+//
 class http_stream : public boost::noncopyable
 {
 public:
 	http_stream(boost::asio::io_service &io)
 		: m_io_service(io)
+		, m_socket(io)
+#ifdef HTTP_ENABLE_OPENSSL
+		, m_ssl_context(m_io_service, boost::asio::ssl::context::sslv23)
+		, m_ssl_socket(m_io_service, m_ssl_context)
+#endif
+		, m_keep_alive(false)
 	{}
 
 	virtual ~http_stream()
@@ -51,7 +64,115 @@ public:
 	// @end example
 	void open(const url &u)
 	{
+		boost::system::error_code ec;
+		const std::string protocol = u.protocol();
+		option_item opts = m_request_opts.option_all();
 
+		// 得到request_method.
+		std::string request_method = "GET";
+		option_item::iterator val = opts.find("request_method");
+		if (val != opts.end())
+		{
+			if (val->second == "GET" || val->second == "HEAD" || val->second == "POST")
+				request_method = val->second;
+			opts.erase(val);	// 删除处理过的选项.
+		}
+
+		// 得到Host信息.
+		std::string host = u.to_string(url::host_component | url::port_component);
+		val = opts.find("Host");
+		if (val != opts.end())
+		{
+			host = val->second;	// 使用选项设置中的主机信息.
+			opts.erase(val);	// 删除处理过的选项.
+		}
+
+		// 得到Accept信息.
+		std::string accept = "*/*";
+		val = opts.find("Accept");
+		if (val != opts.end())
+		{
+			accept = val->second;
+			opts.erase(val);		// 删除处理过的选项.
+		}
+
+		// 循环构造其它选项.
+		std::string other_option_string;
+		for (val = opts.begin(); val != opts.end(); val++)
+		{
+			other_option_string = val->first + ": " + val->second + "\r\n";
+		}
+
+		// 整合各选项到Http请求字符串中.
+		std::string request_string;
+		m_request.consume(m_request.size());
+		std::ostream request_stream(&m_request);
+		request_stream << request_method << " ";
+		request_stream << u.to_string(url::path_component | url::query_component);
+		request_stream << " HTTP/1.0\r\n";
+		request_stream << "Host: " << host << "\r\n";
+		request_stream << "Accept: " << accept << "\r\n";
+		request_stream << other_option_string << "\r\n";
+
+		if (protocol == "http")
+		{
+			// 保存协议类型.
+			m_protocol = "http";
+
+			// 开始进行连接.
+			if (!http_socket().is_open())
+			{
+				// 开始解析端口和主机名.
+				tcp::resolver resolver(m_io_service);
+				std::ostringstream port_string;
+				port_string << u.port();
+				tcp::resolver::query query(u.host(), port_string.str());
+				tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
+				tcp::resolver::iterator end;
+
+				// 尝试连接解析出来的服务器地址.
+				ec = boost::asio::error::host_not_found;
+				while (ec && endpoint_iterator != end)
+				{
+					http_socket().close(ec);
+					http_socket().connect(*endpoint_iterator++, ec);
+				}
+				if (ec)
+				{
+					// 出错抛出异常.
+					boost::system::system_error ex(ec);
+					boost::throw_exception(ex);
+				}
+				// 禁用Nagle在socket上.
+				http_socket().set_option(tcp::no_delay(true), ec);
+				if (ec)
+				{
+					// 出错抛出异常.
+					boost::system::system_error ex(ec);
+					boost::throw_exception(ex);
+				}
+			}
+			else
+			{
+				// socket已经打开, 抛出错误异常.
+				boost::system::system_error ex(boost::asio::error::already_open);
+				boost::throw_exception(ex);
+			}
+
+
+		}
+#ifdef HTTP_ENABLE_OPENSSL
+		else if (protocol == "https")
+		{
+			m_protocol = "https";
+		}
+#endif
+		else
+		{
+			ec = boost::asio::error::operation_not_supported;
+			boost::system::system_error ex(ec);
+			boost::throw_exception(ex);
+		}
 	}
 
 	///打开一个指定的url.
@@ -114,11 +235,86 @@ public:
 		return false;
 	}
 
+	///设置请求时的http选项.
+	// @param options 为http的选项. 目前有以下几项特定选项:
+	//  request_method, 取值 "GET/POST/HEAD", 默认为"GET".
+	//  Host, 取值为http服务器, 默认为http服务器.
+	//  Accept, 取值任意, 默认为"*/*".
+	// @begin example
+	//  avhttp::http_stream h_stream(io_service);
+	//  request_opts options;
+	//  options.insert("request_method", "POST"); // 默认为GET方式.
+	//  h_stream.request_options(options);
+	//  ...
+	// @end example
+	void request_options(const request_opts& options)
+	{
+		m_request_opts = options;
+	}
+
+	///返回请求时的http选项.
+	// @begin example
+	//  avhttp::http_stream h_stream(io_service);
+	//  request_opts options;
+	//  options = h_stream.request_options();
+	//  ...
+	// @end example
+	request_opts request_options(void) const
+	{
+		return m_request_opts;
+	}
+
+	///得到底层引用.
+	// @函数返回底层socket的引用, 失败将抛出一个boost::system::system_error异常.
+	// @begin example
+	//  avhttp::http_stream h_stream(io_service);
+	//  tcp::socket &sock = h_stream.lowest_layer("http");
+	//  ...
+	// @end example
+	tcp::socket& lowest_layer(const std::string &protocol)
+	{
+		if (protocol == "http")
+		{
+			return m_socket;
+		}
+#ifdef HTTP_ENABLE_OPENSSL
+		if (protocol == "https")
+		{
+			return m_ssl_socket.lowest_layer();
+		}
+#endif
+		// 未知的协议, 抛出operation_not_supported异常.
+		boost::system::system_error ex(boost::asio::error::operation_not_supported);
+		boost::throw_exception(ex);
+	}
+
+	///得到socket的引用.
+	// @函数返回底层socket的引用, 失败将抛出一个boost::system::system_error异常.
+	// @begin example
+	//  avhttp::http_stream h_stream(io_service);
+	//  tcp::socket &sock = h_stream.http_socket();
+	//  ...
+	// @end example
+	inline tcp::socket& http_socket()
+	{
+		return lowest_layer(m_protocol);
+	}
 
 protected:
-	boost::asio::io_service &m_io_service;
-	request_opts m_req_opts;						// 向http服务器请求的头信息.
-	response_opts m_resp_opts;						// http服务器返回的http头信息.
+	boost::asio::io_service &m_io_service;			// io_service引用.
+	tcp::socket m_socket;							// socket.
+
+#ifdef HTTP_ENABLE_OPENSSL
+	boost::asio::ssl::context m_ssl_context;		// SSL上下文.
+	boost::asio::ssl::stream<
+		boost::asio::ip::tcp::socket> m_ssl_socket;	// SSL连接.
+#endif
+
+	request_opts m_request_opts;					// 向http服务器请求的头信息.
+	response_opts m_response_opts;					// http服务器返回的http头信息.
+	std::string m_protocol;							// 协议类型(http/https).
+	bool m_keep_alive;								// 获得connection选项, 同时受m_resp_opts影响.
+	boost::asio::streambuf m_request;				// 请求缓冲.
 };
 
 }

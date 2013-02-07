@@ -55,7 +55,12 @@ protected:
 	option_item m_opts;
 };
 
-typedef option request_opts;	// 请求时的http选项.
+// 请求时的http选项.
+// 以下选项为必http必选项.
+// request_method, 取值 "GET/POST/HEAD", 默认为"GET".
+// Host, 取值为http服务器, 默认为http服务器.
+// Accept, 取值任意, 默认为"*/*".
+typedef option request_opts;
 typedef option response_opts;	// http服务器返回的http选项.
 
 }
