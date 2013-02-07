@@ -25,6 +25,7 @@ using boost::asio::ip::tcp;
 
 #include "url.hpp"
 #include "options.hpp"
+#include "detail/parsers.hpp"
 
 namespace avhttp {
 
@@ -119,7 +120,18 @@ public:
 			request(m_request_opts);
 
 			// 循环读取.
+			for (;;)
+			{
+				boost::asio::read_until(http_socket(), m_response, "\r\n", ec);
+				if (ec)
+				{
+					boost::system::system_error ex(ec);
+					boost::throw_exception(ex);
+				}
 
+				// 检查http状态码.
+
+			}
 
 		}
 #ifdef HTTP_ENABLE_OPENSSL
@@ -355,6 +367,7 @@ protected:
 	url m_url;										// 保存当前请求的url.
 	bool m_keep_alive;								// 获得connection选项, 同时受m_response_opts影响.
 	boost::asio::streambuf m_request;				// 请求缓冲.
+	boost::asio::streambuf m_response;				// 回复缓冲.
 };
 
 }
