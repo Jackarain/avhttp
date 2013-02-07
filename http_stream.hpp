@@ -21,7 +21,7 @@
 #include <boost/bind.hpp>
 #include <boost/noncopyable.hpp>
 
-#ifdef HTTP_ENABLE_OPENSSL
+#ifdef AVHTTP_ENABLE_OPENSSL
 #include <boost/asio/ssl.hpp>
 #include <openssl/x509v3.h>
 #endif
@@ -43,7 +43,7 @@ public:
 	http_stream(boost::asio::io_service &io)
 		: m_io_service(io)
 		, m_socket(io)
-#ifdef HTTP_ENABLE_OPENSSL
+#ifdef AVHTTP_ENABLE_OPENSSL
 		, m_ssl_context(m_io_service, boost::asio::ssl::context::sslv23)
 		, m_ssl_socket(m_io_service, m_ssl_context)
 #endif
@@ -229,7 +229,7 @@ public:
 			// 打开成功.
 			ec = boost::system::error_code();
 		}
-#ifdef HTTP_ENABLE_OPENSSL
+#ifdef AVHTTP_ENABLE_OPENSSL
 		else if (protocol == "https")
 		{
 			m_protocol = "https";
@@ -327,7 +327,7 @@ public:
 		{
 			return m_socket;
 		}
-#ifdef HTTP_ENABLE_OPENSSL
+#ifdef AVHTTP_ENABLE_OPENSSL
 		if (protocol == "https")
 		{
 			return m_ssl_socket.lowest_layer();
@@ -432,7 +432,7 @@ protected:
 	boost::asio::io_service &m_io_service;			// io_service引用.
 	tcp::socket m_socket;							// socket.
 
-#ifdef HTTP_ENABLE_OPENSSL
+#ifdef AVHTTP_ENABLE_OPENSSL
 	boost::asio::ssl::context m_ssl_context;		// SSL上下文.
 	boost::asio::ssl::stream<
 		boost::asio::ip::tcp::socket> m_ssl_socket;	// SSL连接.
