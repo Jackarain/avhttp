@@ -49,6 +49,7 @@ public:
 #endif
 		, m_keep_alive(false)
 		, m_status_code(-1)
+		, m_redirects(0)
 		, m_content_length(0)
 	{}
 
@@ -215,7 +216,10 @@ public:
 			if (http_code == avhttp::errc::moved_permanently || http_code == avhttp::errc::found)
 			{
 				http_socket().close(ec);
-				open(m_location, ec);
+				if (++m_redirects <= AVHTTP_MAX_REDIRECTS)
+				{
+					open(m_location, ec);
+				}
 				if (ec)
 				{
 					return;
@@ -440,6 +444,7 @@ protected:
 	url m_url;										// 保存当前请求的url.
 	bool m_keep_alive;								// 获得connection选项, 同时受m_response_opts影响.
 	int m_status_code;								// http返回状态码.
+	std::size_t m_redirects;						// 重定向次数计数.
 	std::string m_content_type;						// 数据类型.
 	std::size_t m_content_length;					// 数据内容长度.
 	std::string m_location;							// 重定向的地址.

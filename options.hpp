@@ -14,6 +14,12 @@
 
 namespace avhttp {
 
+// 如果没有定义最大重定向次数, 则默认为5次最大重定向.
+#ifndef AVHTTP_MAX_REDIRECTS
+#define AVHTTP_MAX_REDIRECTS 5
+#endif
+
+
 // 选项表.
 typedef std::map<std::string, std::string> option_item;
 
