@@ -66,53 +66,9 @@ public:
 	{
 		boost::system::error_code ec;
 		const std::string protocol = u.protocol();
-		option_item opts = m_request_opts.option_all();
 
-		// 得到request_method.
-		std::string request_method = "GET";
-		option_item::iterator val = opts.find("request_method");
-		if (val != opts.end())
-		{
-			if (val->second == "GET" || val->second == "HEAD" || val->second == "POST")
-				request_method = val->second;
-			opts.erase(val);	// 删除处理过的选项.
-		}
-
-		// 得到Host信息.
-		std::string host = u.to_string(url::host_component | url::port_component);
-		val = opts.find("Host");
-		if (val != opts.end())
-		{
-			host = val->second;	// 使用选项设置中的主机信息.
-			opts.erase(val);	// 删除处理过的选项.
-		}
-
-		// 得到Accept信息.
-		std::string accept = "*/*";
-		val = opts.find("Accept");
-		if (val != opts.end())
-		{
-			accept = val->second;
-			opts.erase(val);		// 删除处理过的选项.
-		}
-
-		// 循环构造其它选项.
-		std::string other_option_string;
-		for (val = opts.begin(); val != opts.end(); val++)
-		{
-			other_option_string = val->first + ": " + val->second + "\r\n";
-		}
-
-		// 整合各选项到Http请求字符串中.
-		std::string request_string;
-		m_request.consume(m_request.size());
-		std::ostream request_stream(&m_request);
-		request_stream << request_method << " ";
-		request_stream << u.to_string(url::path_component | url::query_component);
-		request_stream << " HTTP/1.0\r\n";
-		request_stream << "Host: " << host << "\r\n";
-		request_stream << "Accept: " << accept << "\r\n";
-		request_stream << other_option_string << "\r\n";
+		// 保存url.
+		m_url = u;
 
 		if (protocol == "http")
 		{
@@ -125,8 +81,8 @@ public:
 				// 开始解析端口和主机名.
 				tcp::resolver resolver(m_io_service);
 				std::ostringstream port_string;
-				port_string << u.port();
-				tcp::resolver::query query(u.host(), port_string.str());
+				port_string << m_url.port();
+				tcp::resolver::query query(m_url.host(), port_string.str());
 				tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
 				tcp::resolver::iterator end;
 
@@ -158,6 +114,11 @@ public:
 				boost::system::system_error ex(boost::asio::error::already_open);
 				boost::throw_exception(ex);
 			}
+
+			// 发出请求.
+			request(m_request_opts);
+
+			// 循环读取.
 
 
 		}
@@ -300,6 +261,84 @@ public:
 		return lowest_layer(m_protocol);
 	}
 
+	///向http服务器发起一个请求.
+	// @向http服务器发起一个请求, 如果失败抛出异常.
+	// @param opt是向服务器发起请求的选项信息.
+	// @begin example
+	//  avhttp::http_stream h_stream(io_service);
+	//  ...
+	//  request_opts opt;
+	//  opt.insert("cookie", "name=admin;passwd=#@aN@2*242;");
+	//  ...
+	//  h_stream.request(opt);
+	// @end example
+	void request(request_opts &opt)
+	{
+		boost::system::error_code ec;
+		option_item opts = opt.option_all();
+
+		// 判断socket是否打开.
+		if (!http_socket().is_open())
+		{
+			boost::system::system_error ex(boost::asio::error::network_reset);
+			boost::throw_exception(ex);
+		}
+
+		// 得到request_method.
+		std::string request_method = "GET";
+		option_item::iterator val = opts.find("request_method");
+		if (val != opts.end())
+		{
+			if (val->second == "GET" || val->second == "HEAD" || val->second == "POST")
+				request_method = val->second;
+			opts.erase(val);	// 删除处理过的选项.
+		}
+
+		// 得到Host信息.
+		std::string host = m_url.to_string(url::host_component | url::port_component);
+		val = opts.find("Host");
+		if (val != opts.end())
+		{
+			host = val->second;	// 使用选项设置中的主机信息.
+			opts.erase(val);	// 删除处理过的选项.
+		}
+
+		// 得到Accept信息.
+		std::string accept = "*/*";
+		val = opts.find("Accept");
+		if (val != opts.end())
+		{
+			accept = val->second;
+			opts.erase(val);	// 删除处理过的选项.
+		}
+
+		// 循环构造其它选项.
+		std::string other_option_string;
+		for (val = opts.begin(); val != opts.end(); val++)
+		{
+			other_option_string = val->first + ": " + val->second + "\r\n";
+		}
+
+		// 整合各选项到Http请求字符串中.
+		std::string request_string;
+		m_request.consume(m_request.size());
+		std::ostream request_stream(&m_request);
+		request_stream << request_method << " ";
+		request_stream << m_url.to_string(url::path_component | url::query_component);
+		request_stream << " HTTP/1.0\r\n";
+		request_stream << "Host: " << host << "\r\n";
+		request_stream << "Accept: " << accept << "\r\n";
+		request_stream << other_option_string << "\r\n";
+
+		// 发送请求.
+		boost::asio::write(http_socket(), m_request, ec);
+		if (ec)
+		{
+			// 发送请求失败!
+			boost::throw_exception(boost::system::system_error(ec));
+		}
+	}
+
 protected:
 	boost::asio::io_service &m_io_service;			// io_service引用.
 	tcp::socket m_socket;							// socket.
@@ -313,6 +352,7 @@ protected:
 	request_opts m_request_opts;					// 向http服务器请求的头信息.
 	response_opts m_response_opts;					// http服务器返回的http头信息.
 	std::string m_protocol;							// 协议类型(http/https).
+	url m_url;										// 保存当前请求的url.
 	bool m_keep_alive;								// 获得connection选项, 同时受m_response_opts影响.
 	boost::asio::streambuf m_request;				// 请求缓冲.
 };
