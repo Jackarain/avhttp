@@ -15,7 +15,11 @@
 #define __PARSERS_H__
 
 #include <map>
+#include <algorithm>
+#include <cctype>
+#include <cstdlib>
 #include <string>
+
 #include <boost/algorithm/string.hpp>
 
 #pragma once
