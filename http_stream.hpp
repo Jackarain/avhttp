@@ -189,7 +189,7 @@ public:
 				return;
 			}
 
-			// 检查http状态码.
+			// 检查http状态码, version_major和version_minor是http协议的版本号.
 			int version_major = 0;
 			int version_minor = 0;
 			if (!detail::parse_http_status_line(
@@ -201,6 +201,9 @@ public:
 				return;
 			}
 
+			// 如果http状态代码不是ok或partial_content, 根据status_code构造一个http_code, 后面
+			// 需要判断http_code是不是302等跳转, 如果是, 则将进入跳转逻辑; 如果是http发生了错误, 则
+			// 直接返回这个状态构造的.
 			if (m_status_code != avhttp::errc::ok &&
 				m_status_code != avhttp::errc::partial_content)
 			{
@@ -241,15 +244,20 @@ public:
 			if (++m_redirects <= AVHTTP_MAX_REDIRECTS)
 			{
 				open(m_location, ec);
-			}
-			if (ec)
-			{
 				return;
 			}
 		}
 
-		// 打开成功.
-		ec = boost::system::error_code();
+		if (http_code)
+		{
+			// 根据http状态码来构造
+			ec = http_code;
+		}
+		else
+		{
+			// 打开成功.
+			ec = boost::system::error_code();
+		}
 	}
 
 	///异步打开一个指定的URL.
