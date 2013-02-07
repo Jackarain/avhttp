@@ -292,6 +292,16 @@ public:
 	// @返回是否打开.
 	bool is_open() const
 	{
+		if (m_protocol == "http")
+		{
+			return m_socket.is_open();
+		}
+#ifdef AVHTTP_ENABLE_OPENSSL
+		if (m_protocol == "https")
+		{
+			return m_ssl_socket.lowest_layer().is_open();
+		}
+#endif
 		return false;
 	}
 
