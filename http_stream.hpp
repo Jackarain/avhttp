@@ -105,6 +105,10 @@ public:
 		m_request_opts.clear();
 		m_content_type = "";
 		m_status_code = 0;
+		m_content_length = 0;
+		m_content_type = "";
+		m_request.consume(m_request.size());
+		m_response.consume(m_response.size());
 
 		if (protocol == "http")
 		{
@@ -218,9 +222,14 @@ public:
 			{
 				http_socket().close(ec);
 				open(u, ec);
+				if (ec)
+				{
+					return;
+				}
 			}
 
-
+			// 打开成功.
+			ec = boost::system::error_code();
 		}
 #ifdef HTTP_ENABLE_OPENSSL
 		else if (protocol == "https")
