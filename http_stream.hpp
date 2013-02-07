@@ -313,7 +313,7 @@ protected:
 	request_opts m_request_opts;					// 向http服务器请求的头信息.
 	response_opts m_response_opts;					// http服务器返回的http头信息.
 	std::string m_protocol;							// 协议类型(http/https).
-	bool m_keep_alive;								// 获得connection选项, 同时受m_resp_opts影响.
+	bool m_keep_alive;								// 获得connection选项, 同时受m_response_opts影响.
 	boost::asio::streambuf m_request;				// 请求缓冲.
 };
 
