@@ -35,12 +35,6 @@
     <ClInclude Include="url.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="abi_prefix.hpp">
-      <Filter>头文件\detail</Filter>
-    </ClInclude>
-    <ClInclude Include="abi_suffix.hpp">
-      <Filter>头文件\detail</Filter>
-    </ClInclude>
     <ClInclude Include="detail\error_codec.hpp">
       <Filter>头文件\detail</Filter>
     </ClInclude>
@@ -48,6 +42,12 @@
       <Filter>头文件\detail</Filter>
     </ClInclude>
     <ClInclude Include="detail\parsers.hpp">
+      <Filter>头文件\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="detail\abi_prefix.hpp">
+      <Filter>头文件\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="detail\abi_suffix.hpp">
       <Filter>头文件\detail</Filter>
     </ClInclude>
   </ItemGroup>

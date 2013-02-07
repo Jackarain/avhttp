@@ -88,9 +88,9 @@
     <ClCompile Include="avhttp.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="abi_prefix.hpp" />
-    <ClInclude Include="abi_suffix.hpp" />
     <ClInclude Include="avhttp.hpp" />
+    <ClInclude Include="detail\abi_prefix.hpp" />
+    <ClInclude Include="detail\abi_suffix.hpp" />
     <ClInclude Include="detail\error_codec.hpp" />
     <ClInclude Include="detail\parsers.hpp" />
     <ClInclude Include="http_stream.hpp" />
