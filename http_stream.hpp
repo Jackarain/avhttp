@@ -74,6 +74,27 @@ public:
 	void open(const url &u)
 	{
 		boost::system::error_code ec;
+		open(u, ec);
+		if (ec)
+		{
+			boost::throw_exception(boost::system::system_error(ec));
+		}
+	}
+
+	///打开一个指定的url.
+	// @param u 将要打开的URL.
+	// 通过ec引用获得执行状态.
+	// @begin example
+	//   avhttp::http_stream h_stream(io_service);
+	//   boost::system::error_code ec;
+	//   h_stream.open("http://www.boost.org", ec);
+	//   if (ec)
+	//   {
+	//     std::cerr << e.waht() << std::endl;
+	//   }
+	// @end example
+	void open(const url &u, boost::system::error_code &ec)
+	{
 		const std::string protocol = u.protocol();
 
 		// 保存url.
@@ -110,24 +131,20 @@ public:
 				}
 				if (ec)
 				{
-					// 出错抛出异常.
-					boost::system::system_error ex(ec);
-					boost::throw_exception(ex);
+					return;
 				}
 				// 禁用Nagle在socket上.
 				http_socket().set_option(tcp::no_delay(true), ec);
 				if (ec)
 				{
-					// 出错抛出异常.
-					boost::system::system_error ex(ec);
-					boost::throw_exception(ex);
+					return;
 				}
 			}
 			else
 			{
-				// socket已经打开, 抛出错误异常.
-				boost::system::system_error ex(boost::asio::error::already_open);
-				boost::throw_exception(ex);
+				// socket已经打开.
+				ec = boost::asio::error::already_open;
+				return;
 			}
 
 			// 发出请求.
@@ -139,8 +156,7 @@ public:
 				boost::asio::read_until(http_socket(), m_response, "\r\n", ec);
 				if (ec)
 				{
-					boost::system::system_error ex(ec);
-					boost::throw_exception(ex);
+					return;
 				}
 
 				// 检查http状态码.
@@ -151,8 +167,8 @@ public:
 					std::istreambuf_iterator<char>(),
 					version_major, version_minor, m_status_code))
 				{
-					boost::system::system_error ex(avhttp::errc::malformed_status_line);
-					boost::throw_exception(ex);
+					ec = avhttp::errc::malformed_status_line;
+					return;
 				}
 
 				// "continue"表示我们需要继续等待接收状态.
@@ -164,10 +180,10 @@ public:
 			m_response_opts.insert("status_code", boost::str(boost::format("%d") % m_status_code));
 
 			// 接收掉所有Http Header.
-			std::size_t bytes_transferred = boost::asio::read_until(m_socket, m_response, "\r\n\r\n", ec);
+			std::size_t bytes_transferred = boost::asio::read_until(http_socket(), m_response, "\r\n\r\n", ec);
 			if (ec)
 			{
-				boost::throw_exception(boost::system::system_error(ec));
+				return;
 			}
 
 			std::string header_string;
@@ -193,14 +209,15 @@ public:
 			if (!detail::parse_http_headers(header_string.begin(), header_string.end(),
 				m_content_type, m_content_length, m_location))
 			{
-				boost::system::system_error ex(avhttp::errc::malformed_response_headers);
-				boost::throw_exception(ex);
+				ec = avhttp::errc::malformed_response_headers;
+				return;
 			}
 
 			// 判断是否需要跳转.
 			if (ec == avhttp::errc::moved_permanently || ec == avhttp::errc::found)
 			{
-
+				http_socket().close(ec);
+				open(u, ec);
 			}
 
 
@@ -214,26 +231,8 @@ public:
 		else
 		{
 			ec = boost::asio::error::operation_not_supported;
-			boost::system::system_error ex(ec);
-			boost::throw_exception(ex);
+			return;
 		}
-	}
-
-	///打开一个指定的url.
-	// @param u 将要打开的URL.
-	// 通过ec引用获得执行状态.
-	// @begin example
-	//   avhttp::http_stream h_stream(io_service);
-	//   boost::system::error_code ec;
-	//   h_stream.open("http://www.boost.org", ec);
-	//   if (ec)
-	//   {
-	//     std::cerr << e.waht() << std::endl;
-	//   }
-	// @end example
-	void open(const url &u, boost::system::error_code &ec)
-	{
-
 	}
 
 	///异步打开一个指定的URL.
