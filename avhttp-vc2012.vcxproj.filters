@@ -44,6 +44,9 @@
     <ClInclude Include="error_codec.hpp">
       <Filter>头文件\detail</Filter>
     </ClInclude>
+    <ClInclude Include="detail\parsers.hpp">
+      <Filter>头文件\detail</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />

@@ -91,6 +91,7 @@
     <ClInclude Include="abi_prefix.hpp" />
     <ClInclude Include="abi_suffix.hpp" />
     <ClInclude Include="avhttp.hpp" />
+    <ClInclude Include="detail\parsers.hpp" />
     <ClInclude Include="error_codec.hpp" />
     <ClInclude Include="http_stream.hpp" />
     <ClInclude Include="options.hpp" />
