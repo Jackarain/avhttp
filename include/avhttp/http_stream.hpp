@@ -153,7 +153,7 @@ public:
 		}
 
 		// 开始进行连接.
-		if (!http_socket().is_open())
+		if (!http_socket(ec).is_open())
 		{
 			// 开始解析端口和主机名.
 			tcp::resolver resolver(m_io_service);
@@ -167,15 +167,15 @@ public:
 			ec = boost::asio::error::host_not_found;
 			while (ec && endpoint_iterator != end)
 			{
-				http_socket().close(ec);
-				http_socket().connect(*endpoint_iterator++, ec);
+				http_socket(ec).close(ec);
+				http_socket(ec).connect(*endpoint_iterator++, ec);
 			}
 			if (ec)
 			{
 				return;
 			}
 			// 禁用Nagle在socket上.
-			http_socket().set_option(tcp::no_delay(true), ec);
+			http_socket(ec).set_option(tcp::no_delay(true), ec);
 			if (ec)
 			{
 				return;
@@ -184,7 +184,7 @@ public:
 #ifdef AVHTTP_ENABLE_OPENSSL
 			if (m_protocol == "https")
 			{
-				http_socket().handshake(boost::asio::ssl::stream_base::client, ec);
+				http_socket(ec).handshake(boost::asio::ssl::stream_base::client, ec);
 				if (ec)
 				{
 					return;
@@ -210,7 +210,7 @@ public:
 		// 循环读取.
 		for (;;)
 		{
-			boost::asio::read_until(http_socket(), m_response, "\r\n", ec);
+			boost::asio::read_until(http_socket(ec), m_response, "\r\n", ec);
 			if (ec)
 			{
 				return;
@@ -246,7 +246,7 @@ public:
 		m_response_opts.insert("status_code", boost::str(boost::format("%d") % m_status_code));
 
 		// 接收掉所有Http Header.
-		std::size_t bytes_transferred = boost::asio::read_until(http_socket(), m_response, "\r\n\r\n", ec);
+		std::size_t bytes_transferred = boost::asio::read_until(http_socket(ec), m_response, "\r\n\r\n", ec);
 		if (ec)
 		{
 			return;
@@ -267,7 +267,7 @@ public:
 		// 判断是否需要跳转.
 		if (http_code == avhttp::errc::moved_permanently || http_code == avhttp::errc::found)
 		{
-			http_socket().close(ec);
+			http_socket(ec).close(ec);
 			if (++m_redirects <= AVHTTP_MAX_REDIRECTS)
 			{
 				open(m_location, ec);
