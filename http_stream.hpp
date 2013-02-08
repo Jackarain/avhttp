@@ -301,7 +301,12 @@ public:
 	// boost::asio::error::operation_aborted错误.
 	void close()
 	{
-
+		boost::system::error_code ec;
+		close(ec);
+		if (ec)
+		{
+			boost::throw_exception(boost::system::system_error(ec));
+		}
 	}
 
 	///关闭http_stream.
