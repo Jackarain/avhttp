@@ -290,11 +290,48 @@ public:
 
 	// request
 	// open
+	// close
 	// async_open
 	// read_some
 	// async_read_some
 
+	///关闭http_stream.
+	// @失败抛出asio::system_error异常.
+	// @备注: 停止所有正在进行的读写操作, 正在进行的异步调用将回调
+	// boost::asio::error::operation_aborted错误.
+	void close()
+	{
 
+	}
+
+	///关闭http_stream.
+	// @param ec保存失败信息.
+	// @备注: 停止所有正在进行的读写操作, 正在进行的异步调用将回调
+	// boost::asio::error::operation_aborted错误.
+	void close(boost::system::error_code& ec)
+	{
+		ec = boost::system::error_code();
+
+		if (is_open())
+		{
+			if (m_protocol == "http")
+			{
+				m_socket.close(ec);
+			}
+#ifdef AVHTTP_ENABLE_OPENSSL
+			else if (m_protocol == "https")
+			{
+				m_ssl_socket.lowest_layer().close(ec);
+			}
+#endif
+			// 清空内部的各种缓冲信息.
+			m_request.consume(m_request.size());
+			m_response.consume(m_response.size());
+			m_content_type.clear();
+			m_location.clear();
+			m_protocol.clear();
+		}
+	}
 
 	///判断是否打开.
 	// @返回是否打开.
