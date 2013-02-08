@@ -338,6 +338,52 @@ public:
 		}
 	}
 
+	///从这个http_stream读取一些数据.
+	// @param buffers一个或多个用于读取数据的缓冲区, 这个类型必须满足
+	// MutableBufferSequence, MutableBufferSequence的定义在boost.asio
+	// 文档中.
+	// @param ec在发生错误时, 将传回错误信息.
+	// @函数返回读取到的数据大小.
+	// @备注: 该函数将会阻塞到一直等待有数据或发生错误时才返回.
+	// read_some不能读取指定大小的数据.
+	// @begin example
+	//  boost::system::error_code ec;
+	//  std::size bytes_transferred = s.read_some(boost::asio::buffer(data, size), ec);
+	//  ...
+	// @end example
+	// 关于示例中的boost::asio::buffer用法可以参考boost中的文档. 它可以接受一个
+	// boost.array或std.vector作为数据容器.
+	template <typename MutableBufferSequence>
+	std::size_t read_some(const MutableBufferSequence& buffers,
+		boost::system::error_code& ec)
+	{
+		// 如果还有数据在m_response中, 先读取m_response中的数据.
+		if (m_response.size() > 0)
+		{
+			std::size_t bytes_transferred = 0;
+			typename MutableBufferSequence::const_iterator iter = buffers.begin();
+			typename MutableBufferSequence::const_iterator end = buffers.end();
+			for (; iter != end && m_response.size() > 0; ++iter)
+			{
+				boost::asio::mutable_buffer buffer(*iter);
+				size_t length = boost::asio::buffer_size(buffer);
+				if (length > 0)
+				{
+					bytes_transferred += m_response.sgetn(
+						boost::asio::buffer_cast<char*>(buffer), length);
+				}
+			}
+			ec = boost::system::error_code();
+			return bytes_transferred;
+		}
+
+		// 再从socket中读取数据.
+		std::size_t bytes_transferred = http_socket().read_some(buffers, ec);
+		if (ec == boost::asio::error::shut_down)
+			ec = boost::asio::error::eof;
+		return bytes_transferred;
+	}
+
 	///判断是否打开.
 	// @返回是否打开.
 	bool is_open() const
