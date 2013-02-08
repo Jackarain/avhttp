@@ -10,18 +10,20 @@
 typedef boost::coroutines::coroutine< void() >   coro_t;
 typedef boost::coroutines::coroutine< void() >   int_coro_t;
 
-void echo(coro_t::caller_type &ca, int i)
+template <typename T>
+void echo(coro_t::caller_type &ca, T i)
 {
 	std::cout << i; 
 	ca();
 }
 
-void runit(coro_t::caller_type & ca)
+template <typename T>
+void runit(coro_t::caller_type & ca, T i)
 {
 	std::cout << "started! ";
-	for ( int i = 0; i < 10; ++i)
+	for (T i = 0; i < 10; ++i)
 	{
-		int_coro_t c(boost::bind(echo, _1, i));
+		int_coro_t c(boost::bind(echo<int>, _1, i));
 // 		while ( c)
 // 			c();
 		ca();
@@ -52,11 +54,33 @@ void handle_open(avhttp::http_stream &h, const boost::system::error_code &ec)
 	}
 }
 
+template <typename H>
+void test_handler_0(coro_t::caller_type &ca, H h, int v)
+{
+	h(v);
+	ca();
+}
+
+template <typename H>
+void test_handler_1(H h)
+{
+	coro_t c(boost::bind(&test_handler_0<H>, _1, boost::ref(h), 1045));
+}
+
+void test(int a)
+{
+	printf("%d", a);
+}
+
 int main(int argc, char* argv[])
 {
+	if (0)
 	{
 		{
-			int_coro_t c(boost::bind(&runit, _1));
+			boost::function<void(int)> fu = boost::bind(&test, _1);
+			test_handler_1(boost::bind(&test, _1));
+
+			int_coro_t c(boost::bind(&runit<int>, _1, 100));
 			while (c) {
 				std::cout << "-";
 				c();

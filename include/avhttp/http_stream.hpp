@@ -352,9 +352,8 @@ public:
 			return;
 		}
 
-		typedef boost::function<void(boost::system::error_code)> async_open_callback;
-		m_resolver_coro = resolver_coro(
-			boost::bind(&http_stream::async_open_coro<async_open_callback>, this, _1, async_open_callback(handler)));
+		m_resolver_coro = coro_t(
+			boost::bind(&http_stream::async_open_coro<Handler>, this, _1, boost::ref(handler)));
 	}
 
 	// request
@@ -687,16 +686,16 @@ public:
 	template <typename Handler>
 	void async_request(request_opts &opt, Handler handler)
 	{
-		typedef boost::function<void (boost::system::error_code, std::size_t)> request_callback;
-		m_io_coro = io_coro(
-			boost::bind(&http_stream::async_request_coro<request_callback>, request_callback(handler)));
+// 		typedef boost::function<void (boost::system::error_code, std::size_t)> request_callback;
+// 		m_io_coro = io_coro(
+// 			boost::bind(&http_stream::async_request_coro<request_callback>, request_callback(handler)));
 	}
 
 
 protected:
 	// 使用协程完成异步打开操作.
 	template <typename Handler>
-	void async_open_coro(resolver_coro::caller_type &ca, Handler handler)
+	void async_open_coro(coro_t::caller_type &ca, Handler handler)
 	{
 		std::ostringstream port_string;
 		port_string << m_url.port();
@@ -714,12 +713,12 @@ protected:
 		// 得到查询结果.
 		boost::system::error_code ec;
 		tcp::resolver::iterator endpoint_iterator;
-		boost::tie(ec, endpoint_iterator) = ca.get();
-		if (ec)
-		{
-			handler(ec);
-			ca();
-		}
+// 		boost::tie(ec, endpoint_iterator) = ca.get();
+// 		if (ec)
+// 		{
+// 			handler(ec);
+// 			ca();
+// 		}
 
 		// 检查连接是否已经存在.
 		if (http_socket(ec).is_open())
@@ -743,39 +742,39 @@ protected:
 
 			// 获得连接信息, bind返回的endpoint参数信息已经被丢弃.
 			tcp::resolver::iterator temp_endpoint;
-			boost::tie(ec, temp_endpoint) = ca.get();
+//			boost::tie(ec, temp_endpoint) = ca.get();
 		}
 
-		// 如果连接失败, 则回调通知.
-		if (ec)
-		{
-			handler(ec);
-			ca();
-		}
-
-		// 如果是https, 则还需要进行ssl握手.
-		if (m_protocol == "https")
-		{
-
-		}
-
-		// 到此, 连接成功, 执行异步请求.
-		m_request_coro = io_coro(boost::bind(&http_stream::request_coro, this, _1, boost::ref(ec)));
-//		m_request_coro();
-
-// 		// 发送请求.
-// 		boost::asio::async_write(http_socket(ec), m_request,
-// 			boost::bind(&io_coro::operator(), &m_io_coro, _1, _2));
+// 		// 如果连接失败, 则回调通知.
+// 		if (ec)
+// 		{
+// 			handler(ec);
+// 			ca();
+// 		}
 // 
-// 		// ca();
-// 		io_coro::caller_type ioca;
-// 		m_io_coro(ioca);
-
-// 		std::size_t bytes_transferred = 0;
-// 		boost::tie(ec, bytes_transferred) = ca.get();
-
-		// 到此, 已经完成打开操作, 返回状态.
-		handler(ec);
+// 		// 如果是https, 则还需要进行ssl握手.
+// 		if (m_protocol == "https")
+// 		{
+// 
+// 		}
+// 
+// 		// 到此, 连接成功, 执行异步请求.
+// 		m_request_coro = io_coro(boost::bind(&http_stream::request_coro, this, _1, boost::ref(ec)));
+// //		m_request_coro();
+// 
+// // 		// 发送请求.
+// // 		boost::asio::async_write(http_socket(ec), m_request,
+// // 			boost::bind(&io_coro::operator(), &m_io_coro, _1, _2));
+// // 
+// // 		// ca();
+// // 		io_coro::caller_type ioca;
+// // 		m_io_coro(ioca);
+// 
+// // 		std::size_t bytes_transferred = 0;
+// // 		boost::tie(ec, bytes_transferred) = ca.get();
+// 
+// 		// 到此, 已经完成打开操作, 返回状态.
+// 		handler(ec);
 	}
 
 	void request_coro(io_coro::caller_type &ca, boost::system::error_code &ec)
@@ -786,79 +785,79 @@ protected:
 // 		ca();
 	}
 
-	template <typename Handler>
-	void async_request_coro(io_coro::caller_type &ca, request_opts &opt, Handler handler)
-	{
-		boost::system::error_code ec;
-		option_item opts = opt.option_all();
-
-		// 判断socket是否打开.
-		if (!http_socket(ec).is_open())
-		{
-			handler(boost::asio::error::network_reset, 0);
-			ca();
-		}
-
-		// 得到request_method.
-		std::string request_method = "GET";
-		option_item::iterator val = opts.find("request_method");
-		if (val != opts.end())
-		{
-			if (val->second == "GET" || val->second == "HEAD" || val->second == "POST")
-				request_method = val->second;
-			opts.erase(val);	// 删除处理过的选项.
-		}
-
-		// 得到Host信息.
-		std::string host = m_url.to_string(url::host_component | url::port_component);
-		val = opts.find("Host");
-		if (val != opts.end())
-		{
-			host = val->second;	// 使用选项设置中的主机信息.
-			opts.erase(val);	// 删除处理过的选项.
-		}
-
-		// 得到Accept信息.
-		std::string accept = "*/*";
-		val = opts.find("Accept");
-		if (val != opts.end())
-		{
-			accept = val->second;
-			opts.erase(val);	// 删除处理过的选项.
-		}
-
-		// 循环构造其它选项.
-		std::string other_option_string;
-		for (val = opts.begin(); val != opts.end(); val++)
-		{
-			other_option_string = val->first + ": " + val->second + "\r\n";
-		}
-
-		// 整合各选项到Http请求字符串中.
-		std::string request_string;
-		m_request.consume(m_request.size());
-		std::ostream request_stream(&m_request);
-		request_stream << request_method << " ";
-		request_stream << m_url.to_string(url::path_component | url::query_component);
-		request_stream << " HTTP/1.0\r\n";
-		request_stream << "Host: " << host << "\r\n";
-		request_stream << "Accept: " << accept << "\r\n";
-		request_stream << other_option_string << "\r\n";
-
-		// 发送请求.
-		boost::asio::async_write(http_socket(ec), m_request,
-			boost::bind(&io_coro::operator(), &m_io_coro, _1, _2));
-
-		ca();
-
-		std::size_t bytes_transferred = 0;
-		boost::tie(ec, bytes_transferred) = ca.get();
-
-		// 回调对应的回调函数.
-		handler(ec, bytes_transferred);
-
-		ca();
-	}
+// 	template <typename Handler>
+// 	void async_request_coro(io_coro::caller_type &ca, request_opts &opt, Handler handler)
+// 	{
+// 		boost::system::error_code ec;
+// 		option_item opts = opt.option_all();
+// 
+// 		// 判断socket是否打开.
+// 		if (!http_socket(ec).is_open())
+// 		{
+// 			handler(boost::asio::error::network_reset, 0);
+// 			ca();
+// 		}
+// 
+// 		// 得到request_method.
+// 		std::string request_method = "GET";
+// 		option_item::iterator val = opts.find("request_method");
+// 		if (val != opts.end())
+// 		{
+// 			if (val->second == "GET" || val->second == "HEAD" || val->second == "POST")
+// 				request_method = val->second;
+// 			opts.erase(val);	// 删除处理过的选项.
+// 		}
+// 
+// 		// 得到Host信息.
+// 		std::string host = m_url.to_string(url::host_component | url::port_component);
+// 		val = opts.find("Host");
+// 		if (val != opts.end())
+// 		{
+// 			host = val->second;	// 使用选项设置中的主机信息.
+// 			opts.erase(val);	// 删除处理过的选项.
+// 		}
+// 
+// 		// 得到Accept信息.
+// 		std::string accept = "*/*";
+// 		val = opts.find("Accept");
+// 		if (val != opts.end())
+// 		{
+// 			accept = val->second;
+// 			opts.erase(val);	// 删除处理过的选项.
+// 		}
+// 
+// 		// 循环构造其它选项.
+// 		std::string other_option_string;
+// 		for (val = opts.begin(); val != opts.end(); val++)
+// 		{
+// 			other_option_string = val->first + ": " + val->second + "\r\n";
+// 		}
+// 
+// 		// 整合各选项到Http请求字符串中.
+// 		std::string request_string;
+// 		m_request.consume(m_request.size());
+// 		std::ostream request_stream(&m_request);
+// 		request_stream << request_method << " ";
+// 		request_stream << m_url.to_string(url::path_component | url::query_component);
+// 		request_stream << " HTTP/1.0\r\n";
+// 		request_stream << "Host: " << host << "\r\n";
+// 		request_stream << "Accept: " << accept << "\r\n";
+// 		request_stream << other_option_string << "\r\n";
+// 
+// 		// 发送请求.
+// 		boost::asio::async_write(http_socket(ec), m_request,
+// 			boost::bind(&io_coro::operator(), &m_io_coro, _1, _2));
+// 
+// 		ca();
+// 
+// 		std::size_t bytes_transferred = 0;
+// 		boost::tie(ec, bytes_transferred) = ca.get();
+// 
+// 		// 回调对应的回调函数.
+// 		handler(ec, bytes_transferred);
+// 
+// 		ca();
+// 	}
 
 protected:
 	boost::asio::io_service &m_io_service;			// io_service引用.
@@ -882,9 +881,9 @@ protected:
 	std::string m_location;							// 重定向的地址.
 	boost::asio::streambuf m_request;				// 请求缓冲.
 	boost::asio::streambuf m_response;				// 回复缓冲.
-	io_coro m_io_coro;								// 数据IO协程.
-	resolver_coro m_resolver_coro;					// 解析HOST协程.
-	io_coro m_request_coro;							// 数据Request协程.
+	coro_t m_io_coro;								// 数据IO协程.
+	coro_t m_resolver_coro;							// 解析HOST协程.
+	coro_t m_request_coro;							// 数据Request协程.
 };
 
 }
