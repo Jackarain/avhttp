@@ -405,7 +405,7 @@ public:
 		}
 
 		// 再从socket中读取数据.
-		std::size_t bytes_transferred = http_socket().read_some(buffers, ec);
+		std::size_t bytes_transferred = http_socket(ec).read_some(buffers, ec);
 		if (ec == boost::asio::error::shut_down)
 			ec = boost::asio::error::eof;
 		return bytes_transferred;
@@ -458,13 +458,15 @@ public:
 	}
 
 	///得到底层引用.
-	// @函数返回底层socket的引用, 失败将抛出一个boost::system::system_error异常.
+	// @param ec用于保存操作失败的错误代码.
+	// @函数返回底层socket的引用, 失败信息保存于参数ec中.
 	// @begin example
 	//  avhttp::http_stream h_stream(io_service);
-	//  tcp::socket &sock = h_stream.lowest_layer("http");
+	//  boost::system::error_code ec;
+	//  tcp::socket &sock = h_stream.lowest_layer("http", ec);
 	//  ...
 	// @end example
-	tcp::socket& lowest_layer(const std::string &protocol)
+	tcp::socket& lowest_layer(const std::string &protocol, boost::system::error_code& ec)
 	{
 		if (protocol == "http")
 		{
@@ -476,9 +478,33 @@ public:
 			return m_ssl_socket.lowest_layer();
 		}
 #endif
-		// 未知的协议, 抛出operation_not_supported异常.
-		boost::system::system_error ex(boost::asio::error::operation_not_supported);
-		boost::throw_exception(ex);
+		// 未知的协议.
+		ec = boost::asio::error::operation_not_supported;
+	}
+
+	///得到底层引用.
+	// @函数返回底层socket的引用, 失败将抛出一个boost::system::system_error异常.
+	// @begin example
+	//  avhttp::http_stream h_stream(io_service);
+	//  try
+	//  {
+	//    tcp::socket &sock = h_stream.lowest_layer("http");
+	//  }
+	//  catch (std::exception& e)
+	//  {
+	//    std::cout << e.what() << std::endl;
+	//  }
+	//  ...
+	// @end example
+	tcp::socket& lowest_layer(const std::string &protocol)
+	{
+		boost::system::error_code ec;
+		tcp::socket& sock = lowest_layer(protocol, ec);
+		if (ec)
+		{
+			boost::throw_exception(boost::system::system_error(ec));
+		}
+		return sock;
 	}
 
 	///得到socket的引用.
@@ -492,6 +518,21 @@ public:
 	{
 		return lowest_layer(m_protocol);
 	}
+
+	///得到socket的引用.
+	// @函数返回底层socket的引用, 失败信息保存于参数ec中.
+	// @param ec用于保存操作失败的错误代码.
+	// @begin example
+	//  avhttp::http_stream h(io_service);
+	//  boost::system::error_code ec;
+	//  tcp::socket &sock = h.http_socket(ec);
+	//  ...
+	// @end example
+	inline tcp::socket& http_socket(boost::system::error_code &ec)
+	{
+		return lowest_layer(m_protocol, ec);
+	}
+
 
 	///向http服务器发起一个请求.
 	// @向http服务器发起一个请求, 如果失败抛出异常.
