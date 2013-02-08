@@ -22,6 +22,7 @@
 # pragma warning (disable:4996)
 # pragma warning (disable:4267)
 # pragma warning (disable:4819)
+# pragma warning (disable:4244)
 #endif // defined(_MSC_VER)
 
 // Force external visibility of all types.

@@ -1,5 +1,6 @@
 #include <iostream>
 #include <boost/thread.hpp>
+#include <boost/array.hpp>
 
 // 异步, 
 // 同步,

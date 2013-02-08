@@ -13,45 +13,48 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
     </Filter>
-    <Filter Include="头文件\detail">
+    <Filter Include="头文件\avhttp">
+      <UniqueIdentifier>{1508c6bd-50ea-431b-9ec1-49ad436c1ff0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\avhttp\detail">
       <UniqueIdentifier>{42627b62-82ed-4c48-8a1a-0c23c989ad21}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="avhttp.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="avhttp.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="http_stream.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="options.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="url.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="detail\error_codec.hpp">
-      <Filter>头文件\detail</Filter>
-    </ClInclude>
     <ClInclude Include="detail\parsers.hpp">
       <Filter>头文件\detail</Filter>
     </ClInclude>
-    <ClInclude Include="detail\parsers.hpp">
-      <Filter>头文件\detail</Filter>
+    <ClInclude Include="..\include\avhttp.hpp">
+      <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="detail\abi_prefix.hpp">
-      <Filter>头文件\detail</Filter>
+    <ClInclude Include="..\include\avhttp\http_stream.hpp">
+      <Filter>头文件\avhttp</Filter>
     </ClInclude>
-    <ClInclude Include="detail\abi_suffix.hpp">
-      <Filter>头文件\detail</Filter>
+    <ClInclude Include="..\include\avhttp\options.hpp">
+      <Filter>头文件\avhttp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\avhttp\url.hpp">
+      <Filter>头文件\avhttp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\avhttp\detail\abi_suffix.hpp">
+      <Filter>头文件\avhttp\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\avhttp\detail\error_codec.hpp">
+      <Filter>头文件\avhttp\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\avhttp\detail\parsers.hpp">
+      <Filter>头文件\avhttp\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\avhttp\detail\abi_prefix.hpp">
+      <Filter>头文件\avhttp\detail</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\avhttp.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

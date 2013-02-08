@@ -61,6 +61,7 @@
       <PrecompiledHeader />
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <AdditionalIncludeDirectories>../include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -75,6 +76,7 @@
       <PrecompiledHeader />
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AdditionalIncludeDirectories>../include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -85,20 +87,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="avhttp.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="avhttp.hpp" />
-    <ClInclude Include="detail\abi_prefix.hpp" />
-    <ClInclude Include="detail\abi_suffix.hpp" />
-    <ClInclude Include="detail\error_codec.hpp" />
-    <ClInclude Include="detail\parsers.hpp" />
-    <ClInclude Include="http_stream.hpp" />
-    <ClInclude Include="options.hpp" />
-    <ClInclude Include="url.hpp" />
-  </ItemGroup>
-  <ItemGroup>
     <Text Include="ReadMe.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\include\avhttp.hpp" />
+    <ClInclude Include="..\include\avhttp\detail\abi_prefix.hpp" />
+    <ClInclude Include="..\include\avhttp\detail\abi_suffix.hpp" />
+    <ClInclude Include="..\include\avhttp\detail\error_codec.hpp" />
+    <ClInclude Include="..\include\avhttp\detail\parsers.hpp" />
+    <ClInclude Include="..\include\avhttp\http_stream.hpp" />
+    <ClInclude Include="..\include\avhttp\options.hpp" />
+    <ClInclude Include="..\include\avhttp\url.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\avhttp.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
