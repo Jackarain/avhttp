@@ -458,6 +458,13 @@ public:
 		return m_request_opts;
 	}
 
+	///http服务器回复选项.
+	// @返回服务器回复的所有选项信息, key/value形式.
+	response_opts response_options(void) const
+	{
+		return m_response_opts;
+	}
+
 	///得到底层引用.
 	// @param ec用于保存操作失败的错误代码.
 	// @函数返回底层socket的引用, 失败信息保存于参数ec中.
