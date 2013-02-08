@@ -215,6 +215,10 @@
 					RelativePath=".\detail\error_codec.hpp"
 					>
 				</File>
+				<File
+					RelativePath=".\detail\parsers.hpp"
+					>
+				</File>
 			</Filter>
 		</Filter>
 		<Filter

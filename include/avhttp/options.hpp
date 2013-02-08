@@ -14,29 +14,30 @@
 
 namespace avhttp {
 
-// ·ÃÎÊhttpÑ¡ÏîÀà. ¸ÃÉèÖÃ¿ÉÄÜÓ°Ïìhttp·ÃÎÊÁ÷³Ì, Ö÷ÒªÓÃÓÚ¶¨ÒåHttp Header.
-// ÓÉkey/valueµÄ·½Ê½Éè¶¨. ÒÔÏÂÊÇÌØ¶¨µÄÑ¡Ïî:
-// "request" {"GET" | "POST" | "HEAD"} default is "GET"
-class option_set
+// å¦‚æœæ²¡æœ‰å®šä¹‰æœ€å¤§é‡å®šå‘æ¬¡æ•°, åˆ™é»˜è®¤ä¸º5æ¬¡æœ€å¤§é‡å®šå‘.
+#ifndef AVHTTP_MAX_REDIRECTS
+#define AVHTTP_MAX_REDIRECTS 5
+#endif
+
+
+// é€‰é¡¹è¡¨.
+typedef std::map<std::string, std::string> option_item;
+
+class option
 {
 public:
-
-	// httpÑ¡Ïî.
-	typedef std::map<std::string, std::string> option_item;
-
-public:
-	option_set () {}
-	~option_set () {}
+	option() {}
+	~option() {}
 
 public:
 
-	// Ìí¼ÓhttpÑ¡Ïî, ÓÉkey/valueĞÎÊ½Ìí¼Ó.
+	// æ·»åŠ é€‰é¡¹, ç”±key/valueå½¢å¼æ·»åŠ .
 	void insert(const std::string &key, const std::string &val)
 	{
 		m_opts[key] = val;
 	}
 
-	// É¾³ıhttpÑ¡Ïî.
+	// åˆ é™¤é€‰é¡¹.
 	void remove(const std::string &key)
 	{
 		option_item::iterator f = m_opts.find(key);
@@ -44,13 +45,13 @@ public:
 			m_opts.erase(f);
 	}
 
-	// Çå¿ÕhttpÑ¡Ïî.
+	// æ¸…ç©º.
 	void clear()
 	{
 		m_opts.clear();
 	}
 
-	// ·µ»ØËùÓĞoption_item.
+	// è¿”å›æ‰€æœ‰option.
 	option_item& option_all()
 	{
 		return m_opts;
@@ -59,6 +60,21 @@ public:
 protected:
 	option_item m_opts;
 };
+
+// è¯·æ±‚æ—¶çš„httpé€‰é¡¹.
+// ä»¥ä¸‹é€‰é¡¹ä¸ºå¿…httpå¿…é€‰é¡¹:
+// request_method, å–å€¼ "GET/POST/HEAD", é»˜è®¤ä¸º"GET".
+// Host, å–å€¼ä¸ºhttpæœåŠ¡å™¨, é»˜è®¤ä¸ºhttpæœåŠ¡å™¨.
+// Accept, å–å€¼ä»»æ„, é»˜è®¤ä¸º"*/*".
+typedef option request_opts;
+
+// httpæœåŠ¡å™¨è¿”å›çš„httpé€‰é¡¹.
+// ä¸€èˆ¬ä¼šåŒ…æ‹¬ä»¥ä¸‹å‡ ä¸ªé€‰é¡¹:
+// status_code, httpè¿”å›çŠ¶æ€.
+// Server, æœåŠ¡å™¨åç§°.
+// Content-Length, æ•°æ®å†…å®¹é•¿åº¦.
+// Connection, è¿æ¥çŠ¶æ€æ ‡è¯†.
+typedef option response_opts;
 
 }
 
