@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include "detail/abi_prefix.hpp"
+// #include "detail/abi_prefix.hpp"
 
 #include <vector>
 
@@ -638,6 +638,6 @@ protected:
 
 }
 
-#include "detail/abi_suffix.hpp"
+// #include "detail/abi_suffix.hpp"
 
 #endif // __HTTP_STREAM_HPP__
