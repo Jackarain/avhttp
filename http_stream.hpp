@@ -202,8 +202,8 @@ public:
 			}
 
 			// 如果http状态代码不是ok或partial_content, 根据status_code构造一个http_code, 后面
-			// 需要判断http_code是不是302等跳转, 如果是, 则将进入跳转逻辑; 如果是http发生了错误, 则
-			// 直接返回这个状态构造的.
+			// 需要判断http_code是不是302等跳转, 如果是, 则将进入跳转逻辑; 如果是http发生了错误
+			// , 则直接返回这个状态构造的.
 			if (m_status_code != avhttp::errc::ok &&
 				m_status_code != avhttp::errc::partial_content)
 			{
@@ -250,7 +250,7 @@ public:
 
 		if (http_code)
 		{
-			// 根据http状态码来构造
+			// 根据http状态码来构造.
 			ec = http_code;
 		}
 		else
