@@ -19,6 +19,7 @@
 #include <boost/bind.hpp>
 #include <boost/bind/protect.hpp>
 #include <boost/noncopyable.hpp>
+#include <boost/coroutine/all.hpp>
 
 #ifdef AVHTTP_ENABLE_OPENSSL
 #include <boost/asio/ssl.hpp>
@@ -66,6 +67,97 @@ namespace avhttp {
 // @end example
 class http_stream : public boost::noncopyable
 {
+private:
+	template <typename Handler>
+	class open_coro
+	{
+		typedef boost::coroutines::coroutine<void(boost::system::error_code, std::size_t)> io_coro_t;
+		typedef boost::coroutines::coroutine<void(tcp::resolver::iterator, boost::system::error_code)> resolver_coro_t;
+
+	public:
+		open_coro(Handler handler, http_stream &stream)
+			: m_handler(handler)
+			, m_http_stream(stream)
+			, m_coro_t()
+			, m_resolver_coro_t()
+		{}
+		~open_coro()
+		{}
+
+	public:
+
+		void async_open(const url &u)
+		{
+			const std::string protocol = u.protocol();
+			// 保存url.
+			m_http_stream.m_url = u;
+
+			// 清空一些选项.
+			m_http_stream.m_response_opts.clear();
+			m_http_stream.m_status_code = 0;
+			m_http_stream.m_content_length = 0;
+			m_http_stream.m_content_type = "";
+			m_http_stream.m_request.consume(m_http_stream.m_request.size());
+			m_http_stream.m_response.consume(m_http_stream.m_response.size());
+			m_http_stream.m_protocol = "";
+
+			// 获得请求的url类型.
+			if (protocol == "http")
+				m_http_stream.m_protocol = "http";
+#ifdef AVHTTP_ENABLE_OPENSSL
+			else if (protocol == "https")
+				m_http_stream.m_protocol = "https";
+#endif
+			else
+			{
+				m_handler(boost::asio::error::operation_not_supported);
+				return;
+			}
+
+			m_resolver_coro_t = resolver_coro_t(boost::bind(&open_coro<Handler>::coro_async_request, this, _1));
+		}
+
+		void operator()(io_coro_t::caller_type &ca)
+		{
+			// m_coro_t = io_coro_t(boost::bind(&open_coro<Handler>::operator(), this, _1));
+		}
+
+		void coro_async_request(resolver_coro_t::caller_type &ca)
+		{
+			// 构造异步查询HOST.
+			std::ostringstream port_string;
+			port_string << m_http_stream.m_url.port();
+			tcp::resolver::query query(m_http_stream.m_url.host(), port_string.str());
+
+			// 开始异步查询HOST信息.
+// 			m_http_stream.m_resolver.async_resolve(query,
+// 				boost::bind(&resolver_coro_t::operator(), &m_resolver_coro_t, _1, _2));
+
+			ca();
+
+			// 获得协程中异步调用的结果.
+			boost::system::error_code ec;
+			tcp::resolver::iterator endpoint_iterator;
+
+			boost::tie(endpoint_iterator, ec) = ca.get();
+			if (ec)
+			{
+				m_handler(ec);
+				ca();
+			}
+
+			// 开始异步连接.
+
+
+		}
+
+	private:
+		Handler m_handler;
+		http_stream &m_http_stream;
+		io_coro_t m_coro_t;
+		resolver_coro_t m_resolver_coro_t;
+	};
+
 public:
 	http_stream(boost::asio::io_service &io)
 		: m_io_service(io)
@@ -319,6 +411,9 @@ public:
 	template <typename Handler>
 	void async_open(const url &u, Handler handler)
 	{
+		open_coro<Handler>(handler, *this).async_open(u);
+
+
 		const std::string protocol = u.protocol();
 
 		// 保存url.

@@ -6,6 +6,7 @@
 
 #include "avhttp.hpp"
 
+
 void handle_open(avhttp::http_stream &h, const boost::system::error_code &ec)
 {
 	if (!ec)
