@@ -447,7 +447,7 @@ public:
 		}
 		catch (const boost::system::system_error &e)
 		{
-			ec = e;
+			ec = e.code();
 			return bytes_transferred;
 		}
 	}
