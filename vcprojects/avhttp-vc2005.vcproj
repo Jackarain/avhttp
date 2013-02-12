@@ -217,6 +217,10 @@
 						>
 					</File>
 					<File
+						RelativePath="..\include\avhttp\detail\bind_protect.hpp"
+						>
+					</File>
+					<File
 						RelativePath="..\include\avhttp\detail\error_codec.hpp"
 						>
 					</File>
