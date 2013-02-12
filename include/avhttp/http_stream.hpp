@@ -178,7 +178,7 @@ public:
 						return;
 					}
 
-					// 检查证书, 略...
+					// TODO: 认证证书...
 				}
 #endif
 			}
@@ -786,8 +786,20 @@ protected:
 	{
 		if (!err)
 		{
-			// 发起异步请求.
-			async_request(m_request_opts, handler);
+			if (m_protocol == "https")
+			{
+#ifdef AVHTTP_ENABLE_OPENSSL
+				// TODO: 发起异步认证证书.
+#else
+				handler(boost::asio::error::operation_not_supported);
+				return;
+#endif
+			}
+			else if (m_protocol == "http")
+			{
+				// 发起异步请求.
+				async_request(m_request_opts, handler);
+			}
 		}
 		else
 		{
