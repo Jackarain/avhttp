@@ -95,6 +95,7 @@
     <ClInclude Include="..\include\avhttp.hpp" />
     <ClInclude Include="..\include\avhttp\detail\abi_prefix.hpp" />
     <ClInclude Include="..\include\avhttp\detail\abi_suffix.hpp" />
+    <ClInclude Include="..\include\avhttp\detail\bind_protect.hpp" />
     <ClInclude Include="..\include\avhttp\detail\error_codec.hpp" />
     <ClInclude Include="..\include\avhttp\detail\parsers.hpp" />
     <ClInclude Include="..\include\avhttp\http_stream.hpp" />
