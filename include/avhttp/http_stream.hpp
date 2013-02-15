@@ -662,12 +662,11 @@ public:
 	// @param handler 将被调用在打开完成时. 它必须满足以下条件:
 	// @begin code
 	//  void handler(
-	//    const boost::system::error_code& ec,	// 用于返回操作状态.
-	//    std::size_t bytes_transferred			// 用于返回完成的字节数.
+	//    const boost::system::error_code& ec	// 用于返回操作状态.
 	//  );
 	// @end code
 	// @begin example
-	//  void request_handler(const boost::system::error_code& ec, std::size_t bytes_transferred)
+	//  void request_handler(const boost::system::error_code& ec)
 	//  {
 	//    if (!ec)
 	//    {
@@ -679,8 +678,7 @@ public:
 	//  ...
 	//  request_opts opt;
 	//  opt.insert("cookie", "name=admin;passwd=#@aN@2*242;");
-	//  h.async_request(opt, boost::bind(&request_handler,
-	//    boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+	//  h.async_request(opt, boost::bind(&request_handler, boost::asio::placeholders::error));
 	// @end example
 	template <typename Handler>
 	void async_request(request_opts &opt, Handler handler)
@@ -744,10 +742,10 @@ public:
 		// 异步发送请求.
 		try
 		{
-			typedef avhttp::detail::bind_protected_t<Handler> HandlerWrapper;
-			HandlerWrapper clone_handler(handler);
+			typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
 			boost::asio::async_write(http_socket(), m_request,
-				boost::bind(&http_stream::handle_request<HandlerWrapper>, this, clone_handler, boost::asio::placeholders::error));
+				boost::bind(&http_stream::handle_request<HandlerWrapper>, this,
+				HandlerWrapper(handler), boost::asio::placeholders::error));
 		}
 		catch (const boost::system::system_error &e)
 		{
