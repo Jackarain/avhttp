@@ -3,8 +3,9 @@
 #include <boost/array.hpp>
 #include "avhttp.hpp"
 
-void handle_open(avhttp::http_stream &h, const boost::system::error_code &ec)
+void handle_open(avhttp::http_stream &h/*, const boost::system::error_code &ec*/)
 {
+	boost::system::error_code ec;
  	if (!ec)
  	{
  		std::cout << "open succeed!\n";
@@ -36,8 +37,8 @@ int main(int argc, char* argv[])
 
 	// h.open("http://w.qq.com/cgi-bin/get_group_pic?pic={64A234EE-8657-DA63-B7F4-C7718460F461}.gif");
 
-	h.async_open("http://www.boost.org/LICENSE_1_0.txt",
-		boost::bind(&handle_open, boost::ref(h), boost::asio::placeholders::error));
+	h.async_open("http://w.qq.com/cgi-bin/get_group_pic?pic={64A234EE-8657-DA63-B7F4-C7718460F461}.gif"/*"http://www.boost.org/LICENSE_1_0.txt"*/,
+		boost::bind(&handle_open, boost::ref(h)/*, boost::asio::placeholders::error*/));
 
 	io.run();
 

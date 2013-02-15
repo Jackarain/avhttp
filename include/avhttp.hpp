@@ -31,6 +31,7 @@
 
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
+#include <boost/function.hpp>
 #include <boost/noncopyable.hpp>
 
 #ifdef AVHTTP_ENABLE_OPENSSL
@@ -43,7 +44,6 @@ using boost::asio::ip::tcp;
 
 #include "avhttp/detail/abi_prefix.hpp"
 
-#include "avhttp/detail/bind_protect.hpp"
 #include "avhttp/detail/error_codec.hpp"
 #include "avhttp/url.hpp"
 #include "avhttp/http_stream.hpp"

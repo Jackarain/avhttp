@@ -19,7 +19,6 @@
 #include "options.hpp"
 #include "detail/parsers.hpp"
 #include "detail/error_codec.hpp"
-#include "detail/bind_protect.hpp"
 
 namespace avhttp {
 
@@ -342,11 +341,10 @@ public:
 		tcp::resolver::query query(m_url.host(), port_string.str());
 
 		// 开始异步查询HOST信息.
-		typedef avhttp::detail::bind_protected_t<Handler> HandlerWrapper;
-		HandlerWrapper clone_handler(handler);
+		typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
 		m_resolver.async_resolve(query,
 			boost::bind(&http_stream::handle_resolve<HandlerWrapper>, this,
-			boost::asio::placeholders::error, boost::asio::placeholders::iterator, clone_handler));
+			boost::asio::placeholders::error, boost::asio::placeholders::iterator, HandlerWrapper(handler)));
 	}
 
 	// request
@@ -873,10 +871,6 @@ protected:
 				return;
 			}
 
-			// 如果http状态代码不是ok或partial_content, 根据status_code构造一个http_code, 后面
-			// 需要判断http_code是不是302等跳转, 如果是, 则将进入跳转逻辑; 如果是http发生了错误
-			// , 则直接返回这个状态构造的.
-			boost::system::error_code http_code = make_error_code(static_cast<avhttp::errc::errc_t>(m_status_code));
 			// "continue"表示我们需要继续等待接收状态.
 			if (m_status_code == avhttp::errc::continue_request)
 			{
@@ -890,7 +884,8 @@ protected:
 
 				// 异步读取所有Http header部分.
 				boost::asio::async_read_until(http_socket(), m_response, "\r\n\r\n",
-					boost::bind(&http_stream::handle_header<Handler>, this, handler, boost::asio::placeholders::error));
+					boost::bind(&http_stream::handle_header<Handler>, this, handler,
+					boost::asio::placeholders::bytes_transferred, boost::asio::placeholders::error));
 			}
 		}
 		catch (boost::system::system_error &e)
@@ -900,9 +895,48 @@ protected:
 	}
 
 	template <typename Handler>
-	void handle_header(Handler handler, const boost::system::error_code &err)
+	void handle_header(Handler handler, int bytes_transferred, const boost::system::error_code &err)
 	{
+		if (err)
+		{
+			handler(err);
+			return;
+		}
 
+		std::string header_string;
+		header_string.resize(bytes_transferred);
+		m_response.sgetn(&header_string[0], bytes_transferred);
+
+		// 解析Http Header.
+		if (!detail::parse_http_headers(header_string.begin(), header_string.end(),
+			m_content_type, m_content_length, m_location, m_response_opts.option_all()))
+		{
+			handler(avhttp::errc::malformed_response_headers);
+			return;
+		}
+
+		try
+		{
+			boost::system::error_code ec;
+			// 判断是否需要跳转.
+			if (m_status_code == avhttp::errc::moved_permanently || m_status_code == avhttp::errc::found)
+			{
+				http_socket().close(ec);
+				if (++m_redirects <= AVHTTP_MAX_REDIRECTS)
+				{
+					async_open(m_location, handler);
+					return;
+				}
+			}
+			if (m_status_code != avhttp::errc::ok && m_status_code != avhttp::errc::partial_content)
+				ec = make_error_code(static_cast<avhttp::errc::errc_t>(m_status_code));
+			// 回调通知.
+			handler(ec);
+		}
+		catch (boost::system::system_error &e)
+		{
+			handler(e.code());
+		}
 	}
 
 protected:
