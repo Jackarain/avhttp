@@ -885,9 +885,12 @@ protected:
 			}
 			else
 			{
+				// 添加状态码.
+				m_response_opts.insert("status_code", boost::str(boost::format("%d") % m_status_code));
+
 				// 异步读取所有Http header部分.
 				boost::asio::async_read_until(http_socket(), m_response, "\r\n\r\n",
-					boost::bind(&http_stream::handle_status<Handler>, this, handler, boost::asio::placeholders::error));
+					boost::bind(&http_stream::handle_header<Handler>, this, handler, boost::asio::placeholders::error));
 			}
 		}
 		catch (boost::system::system_error &e)

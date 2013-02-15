@@ -1,5 +1,6 @@
 #include <iostream>
 #include <boost/bind.hpp>
+#include <boost/array.hpp>
 #include "avhttp.hpp"
 
 void handle_open(avhttp::http_stream &h, const boost::system::error_code &ec)
