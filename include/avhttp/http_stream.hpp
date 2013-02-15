@@ -8,7 +8,6 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-
 #ifndef __HTTP_STREAM_HPP__
 #define __HTTP_STREAM_HPP__
 
@@ -817,7 +816,7 @@ protected:
 					// 发起异步连接.
 					boost::asio::async_connect(http_socket(), endpoint_iterator,
 						boost::bind(&http_stream::handle_connect<Handler>, this,
-						boost::ref(handler), endpoint_iterator, boost::asio::placeholders::error));
+						handler, endpoint_iterator, boost::asio::placeholders::error));
 				}
 				catch (boost::system::system_error &e)
 				{
@@ -830,7 +829,77 @@ protected:
 	template <typename Handler>
 	void handle_request(Handler handler, const boost::system::error_code &err)
 	{
-		handler(err);
+		// 发生错误.
+		if (err)
+		{
+			handler(err);
+			return;
+		}
+
+		// 异步读取Http status.
+		try
+		{
+			boost::asio::async_read_until(http_socket(), m_response, "\r\n",
+				boost::bind(&http_stream::handle_status<Handler>, this, handler, boost::asio::placeholders::error));
+		}
+		catch (boost::system::system_error &e)
+		{
+			handler(e.code());
+		}
+	}
+
+	template <typename Handler>
+	void handle_status(Handler handler, const boost::system::error_code &err)
+	{
+		// 发生错误.
+		if (err)
+		{
+			handler(err);
+			return;
+		}
+
+		// 异步读取Http header.
+		try
+		{
+			// 检查http状态码, version_major和version_minor是http协议的版本号.
+			int version_major = 0;
+			int version_minor = 0;
+			if (!detail::parse_http_status_line(
+				std::istreambuf_iterator<char>(&m_response),
+				std::istreambuf_iterator<char>(),
+				version_major, version_minor, m_status_code))
+			{
+				handler(avhttp::errc::malformed_status_line);
+				return;
+			}
+
+			// 如果http状态代码不是ok或partial_content, 根据status_code构造一个http_code, 后面
+			// 需要判断http_code是不是302等跳转, 如果是, 则将进入跳转逻辑; 如果是http发生了错误
+			// , 则直接返回这个状态构造的.
+			boost::system::error_code http_code = make_error_code(static_cast<avhttp::errc::errc_t>(m_status_code));
+			// "continue"表示我们需要继续等待接收状态.
+			if (m_status_code == avhttp::errc::continue_request)
+			{
+				boost::asio::async_read_until(http_socket(), m_response, "\r\n",
+					boost::bind(&http_stream::handle_status<Handler>, this, handler, boost::asio::placeholders::error));
+			}
+			else
+			{
+				// 异步读取所有Http header部分.
+				boost::asio::async_read_until(http_socket(), m_response, "\r\n\r\n",
+					boost::bind(&http_stream::handle_status<Handler>, this, handler, boost::asio::placeholders::error));
+			}
+		}
+		catch (boost::system::system_error &e)
+		{
+			handler(e.code());
+		}
+	}
+
+	template <typename Handler>
+	void handle_header(Handler handler, const boost::system::error_code &err)
+	{
+
 	}
 
 protected:
