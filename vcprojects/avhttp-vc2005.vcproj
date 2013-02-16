@@ -234,6 +234,10 @@
 						RelativePath="..\include\avhttp\detail\socket_type.hpp"
 						>
 					</File>
+					<File
+						RelativePath="..\include\avhttp\detail\ssl_stream.hpp"
+						>
+					</File>
 				</Filter>
 			</Filter>
 		</Filter>

@@ -1,6 +1,9 @@
 #include <iostream>
 #include <boost/array.hpp>
 #include "avhttp.hpp"
+#include "avhttp/detail/ssl_stream.hpp"
+#include "avhttp/detail/socket_type.hpp"
+
 
 class downloader
 {
@@ -79,18 +82,36 @@ int main(int argc, char* argv[])
 {
 	{
 		typedef avhttp::detail::variant_stream<
-			std::string,
-			std::wstring
+			boost::asio::ip::tcp::socket,
+			avhttp::detail::ssl_stream<boost::asio::ip::tcp::socket>
 		> socket_type;
 
-		socket_type vs;
-		vs = "hsdfsd";
-		vs.instantiate<std::string>(std::string("std::string"));
-		std::cout << vs.get<std::string>()->c_str() << std::endl;		// 输出:std::string
-		vs.instantiate<std::wstring>(std::wstring(L"std::wstring"));
-		std::wcout << vs.get<std::wstring>()->c_str() << std::endl;		// 输出:std::wstring
+		boost::asio::io_service io;
+
+		socket_type s(io);
+		s.instantiate<boost::asio::ip::tcp::socket>(io);
+		s.instantiate<avhttp::detail::ssl_stream<boost::asio::ip::tcp::socket> >(io);
+		s.instantiate<boost::asio::ip::tcp::socket>(io);
+
+		s.get<avhttp::detail::ssl_stream<boost::asio::ip::tcp::socket> >()->is_open();
+		s.get<boost::asio::ip::tcp::socket>()->is_open();
+
 		return -1;
 	}
+// 	{
+// 		typedef avhttp::detail::variant_stream<
+// 			std::string,
+// 			std::wstring
+// 		> socket_type;
+// 
+// 		socket_type vs;
+// 
+// 		vs.instantiate<std::string>(std::string("std::string"));
+// 		std::cout << vs.get<std::string>()->c_str() << std::endl;		// 输出:std::string
+// 		vs.instantiate<std::wstring>(std::wstring(L"std::wstring"));
+// 		std::wcout << vs.get<std::wstring>()->c_str() << std::endl;		// 输出:std::wstring
+// 		return -1;
+// 	}
 	boost::asio::io_service io;
 	avhttp::http_stream h(io);
 	boost::system::error_code ec;
