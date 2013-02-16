@@ -9,6 +9,9 @@ public:
 		: m_io_service(io)
 		, m_stream(io)
 	{
+		avhttp::request_opts opt;
+		opt.insert("Range", "bytes=0-2");
+		m_stream.request_options(opt);
 		m_stream.async_open("http://www.boost.org/LICENSE_1_0.txt",
 			boost::bind(&downloader::handle_open, this, boost::asio::placeholders::error));
 	}

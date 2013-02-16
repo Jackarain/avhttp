@@ -22,8 +22,6 @@
 
 namespace avhttp {
 
-using boost::asio::ip::tcp;
-
 // 一个http流类实现, 用于同步或异步访问一个指定的url上的数据.
 // 目前支持http/https协议.
 // 以下是同步方式访问一个url中的数据使用示例.
@@ -54,6 +52,69 @@ using boost::asio::ip::tcp;
 //  	std::cerr << "Exception: " << e.what() << std::endl;
 //  }
 // @end example
+//
+// 以下是异步方式访问一个url中的数据使用示例.
+// @begin example
+//  class downloader
+//  {
+//  public:
+//  	downloader(boost::asio::io_service &io)
+//  		: m_io_service(io)
+//  		, m_stream(io)
+//  	{
+//  		// 设置请求选项.
+//  		avhttp::request_opts opt;
+//  		opt.insert("Connection", "close");
+//  		m_stream.request_options(opt);
+//			// 发起异步请求.
+//  		m_stream.async_open("http://www.boost.org/LICENSE_1_0.txt",
+//  			boost::bind(&downloader::handle_open, this, boost::asio::placeholders::error));
+//  	}
+//  	~downloader()
+//  	{}
+//  
+//  public:
+//  	void handle_open(const boost::system::error_code &ec)
+//  	{
+//  		if (!ec)
+//  		{
+//  			m_stream.async_read_some(boost::asio::buffer(m_buffer),
+//  				boost::bind(&downloader::handle_read, this,
+//  				boost::asio::placeholders::bytes_transferred,
+//  				boost::asio::placeholders::error));
+//  		}
+//  	}
+//  
+//  	void handle_read(int bytes_transferred, const boost::system::error_code &ec)
+//  	{
+//  		if (!ec)
+//  		{
+//  			std::cout.write(m_buffer.data(), bytes_transferred);
+//  			m_stream.async_read_some(boost::asio::buffer(m_buffer),
+//  				boost::bind(&downloader::handle_read, this,
+//  				boost::asio::placeholders::bytes_transferred,
+//  				boost::asio::placeholders::error));
+//  		}
+//  	}
+//  
+//  private:
+//  	boost::asio::io_service &m_io_service;
+//  	avhttp::http_stream m_stream;
+//  	boost::array<char, 1024> m_buffer;
+//  };
+//
+//  int main(int argc, char* argv[])
+//  {
+//		boost::asio::io_service io;
+//		downloader d(io);
+//		io.run();
+//		return 0;
+//  }
+// @end example
+
+
+using boost::asio::ip::tcp;
+
 class http_stream : public boost::noncopyable
 {
 public:
@@ -235,7 +296,7 @@ public:
 			} // end for.
 
 			// 添加状态码.
-			m_response_opts.insert("status_code", boost::str(boost::format("%d") % m_status_code));
+			m_response_opts.insert("_status_code", boost::str(boost::format("%d") % m_status_code));
 
 			// 接收掉所有Http Header.
 			std::size_t bytes_transferred = boost::asio::read_until(http_socket(), m_response, "\r\n\r\n", ec);
@@ -453,7 +514,7 @@ public:
 
 		// 得到request_method.
 		std::string request_method = "GET";
-		option_item::iterator val = opts.find("request_method");
+		option_item::iterator val = opts.find("_request_method");
 		if (val != opts.end())
 		{
 			if (val->second == "GET" || val->second == "HEAD" || val->second == "POST")
@@ -539,7 +600,7 @@ public:
 
 		// 得到request_method.
 		std::string request_method = "GET";
-		option_item::iterator val = opts.find("request_method");
+		option_item::iterator val = opts.find("_request_method");
 		if (val != opts.end())
 		{
 			if (val->second == "GET" || val->second == "HEAD" || val->second == "POST")
@@ -667,13 +728,13 @@ public:
 
 	///设置请求时的http选项.
 	// @param options 为http的选项. 目前有以下几项特定选项:
-	//  request_method, 取值 "GET/POST/HEAD", 默认为"GET".
+	//  _request_method, 取值 "GET/POST/HEAD", 默认为"GET".
 	//  Host, 取值为http服务器, 默认为http服务器.
 	//  Accept, 取值任意, 默认为"*/*".
 	// @begin example
 	//  avhttp::http_stream h_stream(io_service);
 	//  request_opts options;
-	//  options.insert("request_method", "POST"); // 默认为GET方式.
+	//  options.insert("_request_method", "POST"); // 默认为GET方式.
 	//  h_stream.request_options(options);
 	//  ...
 	// @end example
@@ -904,7 +965,7 @@ protected:
 			else
 			{
 				// 添加状态码.
-				m_response_opts.insert("status_code", boost::str(boost::format("%d") % m_status_code));
+				m_response_opts.insert("_status_code", boost::str(boost::format("%d") % m_status_code));
 
 				// 异步读取所有Http header部分.
 				boost::asio::async_read_until(http_socket(), m_response, "\r\n\r\n",

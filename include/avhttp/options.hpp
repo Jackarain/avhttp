@@ -66,14 +66,14 @@ protected:
 
 // 请求时的http选项.
 // 以下选项为必http必选项:
-// request_method, 取值 "GET/POST/HEAD", 默认为"GET".
+// _request_method, 取值 "GET/POST/HEAD", 默认为"GET".
 // Host, 取值为http服务器, 默认为http服务器.
 // Accept, 取值任意, 默认为"*/*".
 typedef option request_opts;
 
 // http服务器返回的http选项.
 // 一般会包括以下几个选项:
-// status_code, http返回状态.
+// _status_code, http返回状态.
 // Server, 服务器名称.
 // Content-Length, 数据内容长度.
 // Connection, 连接状态标识.
