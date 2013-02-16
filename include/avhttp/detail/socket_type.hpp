@@ -605,9 +605,7 @@ namespace aux
 } // namespace aux
 
 template <
-BOOST_PP_ENUM_BINARY_PARAMS(
-							NETWORK_VARIANT_STREAM_LIMIT, class S, = boost::mpl::void_ BOOST_PP_INTERCEPT
-							)
+	BOOST_PP_ENUM_BINARY_PARAMS(NETWORK_VARIANT_STREAM_LIMIT, class S, = boost::mpl::void_ BOOST_PP_INTERCEPT)
 >
 class variant_stream : boost::noncopyable
 {

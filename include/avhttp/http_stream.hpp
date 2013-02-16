@@ -889,7 +889,8 @@ protected:
 				else if (m_protocol == "https")
 				{
 					ssl_socket *sock = m_sock.get<ssl_socket>();
-					sock->async_connect(tcp::endpoint(*endpoint_iterator), boost::bind(&http_stream::handle_connect<Handler>, this,
+					sock->async_connect(tcp::endpoint(*endpoint_iterator),
+						boost::bind(&http_stream::handle_connect<Handler>, this,
 						handler, endpoint_iterator, boost::asio::placeholders::error));
 				}
 #endif
@@ -970,7 +971,8 @@ protected:
 					else if (m_protocol == "https")
 					{
 						ssl_socket *sock = m_sock.get<ssl_socket>();
-						sock->async_connect(tcp::endpoint(*endpoint_iterator), boost::bind(&http_stream::handle_connect<Handler>, this,
+						sock->async_connect(tcp::endpoint(*endpoint_iterator),
+							boost::bind(&http_stream::handle_connect<Handler>, this,
 							handler, endpoint_iterator, boost::asio::placeholders::error));
 					}
 #endif

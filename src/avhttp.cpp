@@ -1,9 +1,6 @@
 #include <iostream>
 #include <boost/array.hpp>
 #include "avhttp.hpp"
-#include "avhttp/detail/ssl_stream.hpp"
-#include "avhttp/detail/socket_type.hpp"
-
 
 class downloader
 {
