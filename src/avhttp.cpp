@@ -1,5 +1,4 @@
 #include <iostream>
-#include <boost/bind.hpp>
 #include <boost/array.hpp>
 #include "avhttp.hpp"
 

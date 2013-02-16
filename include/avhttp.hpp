@@ -13,18 +13,7 @@
 
 #pragma once
 
-// Disable some pesky MSVC warnings.
-#if defined(_MSC_VER)
-# pragma warning (push)
-# pragma warning (disable:4127)
-# pragma warning (disable:4251)
-# pragma warning (disable:4355)
-# pragma warning (disable:4512)
-# pragma warning (disable:4996)
-# pragma warning (disable:4267)
-# pragma warning (disable:4819)
-# pragma warning (disable:4244)
-#endif // defined(_MSC_VER)
+#include "avhttp/detail/abi_prefix.hpp"
 
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
@@ -41,17 +30,11 @@
 
 using boost::asio::ip::tcp;
 
-
-#include "avhttp/detail/abi_prefix.hpp"
-
 #include "avhttp/detail/error_codec.hpp"
 #include "avhttp/url.hpp"
 #include "avhttp/http_stream.hpp"
 
 #include "avhttp/detail/abi_suffix.hpp"
 
-#if defined(_MSC_VER)
-# pragma warning (pop)
-#endif // defined(_MSC_VER)
 
 #endif // __AVHTTP_H__
