@@ -18,6 +18,7 @@
 #include "http_stream.hpp"
 
 /************************************************************************
+
 boost::asio::io_service io;
 
 multi_download mget(io);
@@ -43,6 +44,9 @@ void handler(boost::system::error_code ec)
 
 ************************************************************************/
 
+namespace avhttp
+{
+
 class multi_download : public boost::noncopyable
 {
 public:
@@ -53,5 +57,7 @@ public:
 
 private:
 };
+
+} // avhttp
 
 #endif // MULTI_DOWNLOAD_HPP__
