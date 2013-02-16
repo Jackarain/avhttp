@@ -22,6 +22,8 @@
 
 namespace avhttp {
 
+using boost::asio::ip::tcp;
+
 // 一个http流类实现, 用于同步或异步访问一个指定的url上的数据.
 // 目前支持http/https协议.
 // 以下是同步方式访问一个url中的数据使用示例.
