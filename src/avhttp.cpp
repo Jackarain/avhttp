@@ -10,8 +10,8 @@ public:
 		, m_stream(io)
 	{
 		avhttp::request_opts opt;
-		opt.insert("Range", "bytes=0-2");
-		m_stream.request_options(opt);
+// 		opt.insert("Range", "bytes=0-2");
+// 		m_stream.request_options(opt);
 		m_stream.async_open("http://www.boost.org/LICENSE_1_0.txt",
 			boost::bind(&downloader::handle_open, this, boost::asio::placeholders::error));
 	}
@@ -23,10 +23,14 @@ public:
 	{
 		if (!ec)
 		{
-			m_stream.async_read_some(boost::asio::buffer(m_buffer),
+			boost::asio::async_read(m_stream, boost::asio::buffer(m_buffer, 1024),
 				boost::bind(&downloader::handle_read, this,
 				boost::asio::placeholders::bytes_transferred,
 				boost::asio::placeholders::error));
+// 			m_stream.async_read_some(boost::asio::buffer(m_buffer),
+// 				boost::bind(&downloader::handle_read, this,
+// 				boost::asio::placeholders::bytes_transferred,
+// 				boost::asio::placeholders::error));
 		}
 	}
 
@@ -48,7 +52,7 @@ private:
 	boost::array<char, 1024> m_buffer;
 };
 
-int main(int argc, char* argv[])
+int main1(int argc, char* argv[])
 {
 	boost::asio::io_service io;
 
@@ -70,3 +74,33 @@ int main(int argc, char* argv[])
 	return 0;
 }
 
+
+int main(int argc, char* argv[])
+{
+	{
+		typedef avhttp::detail::variant_stream<
+			std::string,
+			std::wstring
+		> socket_type;
+
+		socket_type vs;
+		vs = "hsdfsd";
+		vs.instantiate<std::string>(std::string("std::string"));
+		std::cout << vs.get<std::string>()->c_str() << std::endl;		// Êä³ö:std::string
+		vs.instantiate<std::wstring>(std::wstring(L"std::wstring"));
+		std::wcout << vs.get<std::wstring>()->c_str() << std::endl;		// Êä³ö:std::wstring
+		return -1;
+	}
+	boost::asio::io_service io;
+	avhttp::http_stream h(io);
+	boost::system::error_code ec;
+
+	h.check_certificate(false);
+	h.open("https://2.gravatar.com/avatar/767fc9c115a1b989744c755db47feb60", ec);
+	if (ec)
+		return -1;
+
+	io.run();
+
+	return 0;
+}

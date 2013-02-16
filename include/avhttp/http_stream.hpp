@@ -19,6 +19,7 @@
 #include "options.hpp"
 #include "detail/parsers.hpp"
 #include "detail/error_codec.hpp"
+#include "detail/socket_type.hpp"
 
 namespace avhttp {
 
@@ -129,6 +130,7 @@ public:
 #ifdef AVHTTP_ENABLE_OPENSSL
 		, m_ssl_context(m_io_service, boost::asio::ssl::context::sslv23)
 		, m_ssl_socket(m_io_service, m_ssl_context)
+		, m_check_certificate(true)
 #endif
 		, m_keep_alive(false)
 		, m_status_code(-1)
@@ -197,10 +199,14 @@ public:
 
 		// 获得请求的url类型.
 		if (protocol == "http")
+		{
 			m_protocol = "http";
+		}
 #ifdef AVHTTP_ENABLE_OPENSSL
 		else if (protocol == "https")
+		{
 			m_protocol = "https";
+		}
 #endif
 		else
 		{
@@ -242,13 +248,30 @@ public:
 #ifdef AVHTTP_ENABLE_OPENSSL
 				if (m_protocol == "https")
 				{
-					http_socket().handshake(boost::asio::ssl::stream_base::client, ec);
+					m_ssl_socket.handshake(boost::asio::ssl::stream_base::client, ec);
 					if (ec)
 					{
 						return;
 					}
 
-					// TODO: 认证证书...
+					// 认证证书.
+ 					if (m_check_certificate)
+ 					{
+ 						if (X509* cert = SSL_get_peer_certificate(m_ssl_socket.impl()->ssl))
+ 						{
+ 							if (SSL_get_verify_result(m_ssl_socket.impl()->ssl) == X509_V_OK)
+ 							{
+ 								if (certificate_matches_host(cert, m_url.host()))
+ 									ec = boost::system::error_code();
+ 								else
+ 									ec = make_error_code(boost::system::errc::permission_denied);
+ 							}
+ 							else
+ 								ec = make_error_code(boost::system::errc::permission_denied);
+ 							X509_free(cert);
+ 						}
+ 						else
+ 							ec = make_error_code(boost::system::errc::permission_denied); 					}
 				}
 #endif
 			}
@@ -564,7 +587,11 @@ public:
 		request_stream << other_option_string << "\r\n";
 
 		// 发送请求.
+#ifdef AVHTTP_ENABLE_OPENSSL
+		boost::asio::write(m_ssl_socket, m_request, boost::asio::transfer_all());
+#else
 		boost::asio::write(http_socket(), m_request);
+#endif
 	}
 
 	///向http服务器发起一个异步请求.
@@ -767,6 +794,48 @@ public:
 		return m_response_opts;
 	}
 
+	///设置是否认证服务器证书.
+	// @param is_check 如果为true表示认证服务器证书, 如果为false表示不认证服务器证书.
+	// 默认为认证服务器证书.
+	void check_certificate(bool is_check)
+	{
+#ifdef AVHTTP_ENABLE_OPENSSL
+		m_check_certificate = is_check;
+#endif
+	}
+
+	template <typename Stream>
+	Stream& lowest_layer_2(const std::string &protocol, boost::system::error_code& ec)
+	{
+		if (protocol == "http")
+		{
+			return m_socket;
+		}
+#ifdef AVHTTP_ENABLE_OPENSSL
+		if (protocol == "https")
+		{
+			// return m_ssl_socket.next_layer();
+			return m_ssl_socket.lowest_layer();
+		}
+#endif
+		// 未知的协议.
+		ec = boost::asio::error::operation_not_supported;
+		// 返回一个socket, 这个返回没有什么意义, 因为不知道协议的情况下操作socket, 行为是未确定.
+		return m_socket;
+	}
+
+	template <typename Stream>
+	Stream& lowest_layer_2(const std::string &protocol)
+	{
+		boost::system::error_code ec;
+		Stream& s = lowest_layer(protocol, ec);
+		if (ec)
+		{
+			boost::throw_exception(boost::system::system_error(ec));
+		}
+		return s;
+	}
+
 	///得到底层引用.
 	// @param ec用于保存操作失败的错误代码.
 	// @函数返回底层socket的引用, 失败信息保存于参数ec中.
@@ -778,6 +847,14 @@ public:
 	// @end example
 	tcp::socket& lowest_layer(const std::string &protocol, boost::system::error_code& ec)
 	{
+#ifndef AVHTTP_ENABLE_OPENSSL
+		m_socket;
+#else
+		if (protocol == "https")
+		{
+		}
+		m_ssl_socket;
+#endif // AVHTTP_ENABLE_OPENSSL
 		if (protocol == "http")
 		{
 			return m_socket;
@@ -785,7 +862,8 @@ public:
 #ifdef AVHTTP_ENABLE_OPENSSL
 		if (protocol == "https")
 		{
-			return m_ssl_socket.lowest_layer();
+			return m_ssl_socket.next_layer();
+			// return m_ssl_socket.lowest_layer();
 		}
 #endif
 		// 未知的协议.
@@ -822,8 +900,8 @@ public:
 	///得到socket的引用.
 	// @函数返回底层socket的引用, 失败将抛出一个boost::system::system_error异常.
 	// @begin example
-	//  avhttp::http_stream h_stream(io_service);
-	//  tcp::socket &sock = h_stream.http_socket();
+	//  avhttp::http_stream h(io_service);
+	//  tcp::socket &sock = h.http_socket();
 	//  ...
 	// @end example
 	inline tcp::socket& http_socket()
@@ -843,6 +921,18 @@ public:
 	inline tcp::socket& http_socket(boost::system::error_code &ec)
 	{
 		return lowest_layer(m_protocol, ec);
+	}
+
+	template <typename Stream>
+	Stream& socket(boost::system::error_code &ec)
+	{
+		return lowest_layer_2(m_protocol, ec);
+	}
+
+	template <typename Stream>
+	Stream& socket()
+	{
+		return lowest_layer_2(m_protocol);
 	}
 
 protected:
@@ -1029,6 +1119,84 @@ protected:
 		}
 	}
 
+#ifdef AVHTTP_ENABLE_OPENSSL
+	inline bool certificate_matches_host(X509* cert, const std::string& host)
+	{
+		// Try converting host name to an address. If it is an address then we need
+		// to look for an IP address in the certificate rather than a host name.
+		boost::system::error_code ec;
+		boost::asio::ip::address address
+			= boost::asio::ip::address::from_string(host, ec);
+		bool is_address = !ec;
+
+		// Go through the alternate names in the certificate looking for DNS or IPADD
+		// entries.
+		GENERAL_NAMES* gens = static_cast<GENERAL_NAMES*>(
+			X509_get_ext_d2i(cert, NID_subject_alt_name, 0, 0));
+		for (int i = 0; i < sk_GENERAL_NAME_num(gens); ++i)
+		{
+			GENERAL_NAME* gen = sk_GENERAL_NAME_value(gens, i);
+			if (gen->type == GEN_DNS && !is_address)
+			{
+				ASN1_IA5STRING* domain = gen->d.dNSName;
+				if (domain->type == V_ASN1_IA5STRING
+					&& domain->data && domain->length)
+				{
+					const char* cert_host = reinterpret_cast<const char*>(domain->data);
+					int j;
+					for (j = 0; host[j] && cert_host[j]; ++j)
+						if (std::tolower(host[j]) != std::tolower(cert_host[j]))
+							break;
+					if (host[j] == 0 && cert_host[j] == 0)
+						return true;
+				}
+			}
+			else if (gen->type == GEN_IPADD && is_address)
+			{
+				ASN1_OCTET_STRING* ip_address = gen->d.iPAddress;
+				if (ip_address->type == V_ASN1_OCTET_STRING && ip_address->data)
+				{
+					if (address.is_v4() && ip_address->length == 4)
+					{
+						boost::asio::ip::address_v4::bytes_type address_bytes
+							= address.to_v4().to_bytes();
+						if (std::memcmp(address_bytes.data(), ip_address->data, 4) == 0)
+							return true;
+					}
+					else if (address.is_v6() && ip_address->length == 16)
+					{
+						boost::asio::ip::address_v6::bytes_type address_bytes
+							= address.to_v6().to_bytes();
+						if (std::memcmp(address_bytes.data(), ip_address->data, 16) == 0)
+							return true;
+					}
+				}
+			}
+		}
+
+		// No match in the alternate names, so try the common names.
+		X509_NAME* name = X509_get_subject_name(cert);
+		int i = -1;
+		while ((i = X509_NAME_get_index_by_NID(name, NID_commonName, i)) >= 0)
+		{
+			X509_NAME_ENTRY* name_entry = X509_NAME_get_entry(name, i);
+			ASN1_STRING* domain = X509_NAME_ENTRY_get_data(name_entry);
+			if (domain->data && domain->length)
+			{
+				const char* cert_host = reinterpret_cast<const char*>(domain->data);
+				int j;
+				for (j = 0; host[j] && cert_host[j]; ++j)
+					if (std::tolower(host[j]) != std::tolower(cert_host[j]))
+						break;
+				if (host[j] == 0 && cert_host[j] == 0)
+					return true;
+			}
+		}
+
+		return false;
+	}
+#endif // AVHTTP_ENABLE_OPENSSL
+
 protected:
 	boost::asio::io_service &m_io_service;			// io_service引用.
 	tcp::socket m_socket;							// socket.
@@ -1037,8 +1205,11 @@ protected:
 #ifdef AVHTTP_ENABLE_OPENSSL
 	boost::asio::ssl::context m_ssl_context;		// SSL上下文.
 	boost::asio::ssl::stream<
-		boost::asio::ip::tcp::socket> m_ssl_socket;	// SSL连接.
+		tcp::socket> m_ssl_socket;					// SSL连接.
+	bool m_check_certificate;						// 是否认证服务端证书.
 #endif
+
+	// socket_type m_sock;
 
 	request_opts m_request_opts;					// 向http服务器请求的头信息.
 	response_opts m_response_opts;					// http服务器返回的http头信息.
