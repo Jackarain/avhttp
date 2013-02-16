@@ -2,7 +2,7 @@
 // socket_type.hpp
 // ~~~~~~~~~~~~~~~
 //
-// Copyright (c) 2013 Jack (jack at gmail dot com)
+// Copyright (c) 2013 Jack (jack dot wgm at gmail dot com)
 // Copyright (c) 2003, Arvid Norberg
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
