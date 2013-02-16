@@ -19,6 +19,7 @@
 #include "options.hpp"
 #include "detail/parsers.hpp"
 #include "detail/error_codec.hpp"
+#include "detail/ssl_stream.hpp"
 #include "detail/socket_type.hpp"
 
 namespace avhttp {
@@ -123,15 +124,18 @@ using boost::asio::ip::tcp;
 
 class http_stream : public boost::noncopyable
 {
+	typedef avhttp::detail::ssl_stream<tcp::socket> ssl_socket;
+	typedef tcp::socket nossl_socket;
+	typedef avhttp::detail::variant_stream<
+		nossl_socket,
+		ssl_socket
+	> socket_type;
+
 public:
 	http_stream(boost::asio::io_service &io)
 		: m_io_service(io)
-		, m_socket(io)
-#ifdef AVHTTP_ENABLE_OPENSSL
-		, m_ssl_context(m_io_service, boost::asio::ssl::context::sslv23)
-		, m_ssl_socket(m_io_service, m_ssl_context)
 		, m_check_certificate(true)
-#endif
+		, m_sock(io)
 		, m_keep_alive(false)
 		, m_status_code(-1)
 		, m_redirects(0)
@@ -216,8 +220,28 @@ public:
 
 		try
 		{
+			// 构造socket.
+			if (!m_sock.instantiated())
+			{
+				if (protocol == "http")
+				{
+					m_sock.instantiate<nossl_socket>(m_io_service);
+				}
+#ifdef AVHTTP_ENABLE_OPENSSL
+				else if (protocol == "https")
+				{
+					m_sock.instantiate<ssl_socket>(m_io_service);
+				}
+#endif
+				else
+				{
+					ec = boost::asio::error::operation_not_supported;
+					return;
+				}
+			}
+
 			// 开始进行连接.
-			if (!http_socket().is_open())
+			if (m_sock.instantiated() && !m_sock.is_open())
 			{
 				// 开始解析端口和主机名.
 				tcp::resolver resolver(m_io_service);
@@ -231,15 +255,15 @@ public:
 				ec = boost::asio::error::host_not_found;
 				while (ec && endpoint_iterator != end)
 				{
-					http_socket().close(ec);
-					http_socket().connect(*endpoint_iterator++, ec);
+					m_sock.close(ec);
+					m_sock.connect(*endpoint_iterator++, ec);
 				}
 				if (ec)
 				{
 					return;
 				}
 				// 禁用Nagle在socket上.
-				http_socket().set_option(tcp::no_delay(true), ec);
+				m_sock.set_option(tcp::no_delay(true), ec);
 				if (ec)
 				{
 					return;
@@ -248,30 +272,24 @@ public:
 #ifdef AVHTTP_ENABLE_OPENSSL
 				if (m_protocol == "https")
 				{
-					m_ssl_socket.handshake(boost::asio::ssl::stream_base::client, ec);
-					if (ec)
-					{
-						return;
-					}
-
 					// 认证证书.
- 					if (m_check_certificate)
- 					{
- 						if (X509* cert = SSL_get_peer_certificate(m_ssl_socket.impl()->ssl))
- 						{
- 							if (SSL_get_verify_result(m_ssl_socket.impl()->ssl) == X509_V_OK)
- 							{
- 								if (certificate_matches_host(cert, m_url.host()))
- 									ec = boost::system::error_code();
- 								else
- 									ec = make_error_code(boost::system::errc::permission_denied);
- 							}
- 							else
- 								ec = make_error_code(boost::system::errc::permission_denied);
- 							X509_free(cert);
- 						}
- 						else
- 							ec = make_error_code(boost::system::errc::permission_denied); 					}
+					if (m_check_certificate)
+					{
+						ssl_socket *ssl_sock =  m_sock.get<ssl_socket>();
+						if (X509* cert = SSL_get_peer_certificate(ssl_sock->impl()->ssl))
+						{
+							if (SSL_get_verify_result(ssl_sock->impl()->ssl) == X509_V_OK)
+							{
+								if (certificate_matches_host(cert, m_url.host()))
+									ec = boost::system::error_code();
+								else
+									ec = make_error_code(boost::system::errc::permission_denied);
+							}
+							else
+								ec = make_error_code(boost::system::errc::permission_denied);
+							X509_free(cert);
+						}
+					}
 				}
 #endif
 			}
@@ -291,7 +309,7 @@ public:
 			// 循环读取.
 			for (;;)
 			{
-				boost::asio::read_until(http_socket(), m_response, "\r\n", ec);
+				boost::asio::read_until(m_sock, m_response, "\r\n", ec);
 				if (ec)
 				{
 					return;
@@ -327,7 +345,7 @@ public:
 			m_response_opts.insert("_status_code", boost::str(boost::format("%d") % m_status_code));
 
 			// 接收掉所有Http Header.
-			std::size_t bytes_transferred = boost::asio::read_until(http_socket(), m_response, "\r\n\r\n", ec);
+			std::size_t bytes_transferred = boost::asio::read_until(m_sock, m_response, "\r\n\r\n", ec);
 			if (ec)
 			{
 				return;
@@ -348,7 +366,7 @@ public:
 			// 判断是否需要跳转.
 			if (http_code == avhttp::errc::moved_permanently || http_code == avhttp::errc::found)
 			{
-				http_socket().close(ec);
+				m_sock.close(ec);
 				if (++m_redirects <= AVHTTP_MAX_REDIRECTS)
 				{
 					open(m_location, ec);
@@ -426,6 +444,33 @@ public:
 			return;
 		}
 
+		// 构造socket.
+		if (!m_sock.instantiated())
+		{
+			if (protocol == "http")
+			{
+				m_sock.instantiate<nossl_socket>(m_io_service);
+			}
+#ifdef AVHTTP_ENABLE_OPENSSL
+			else if (protocol == "https")
+			{
+				m_sock.instantiate<ssl_socket>(m_io_service);
+			}
+#endif
+			else
+			{
+				handler(boost::asio::error::operation_not_supported);
+				return;
+			}
+		}
+
+		// 判断socket是否打开.
+		if (m_sock.instantiated() && m_sock.is_open())
+		{
+			handler(boost::asio::error::already_open);
+			return;
+		}
+
 		// 构造异步查询HOST.
 		std::ostringstream port_string;
 		port_string << m_url.port();
@@ -481,7 +526,7 @@ public:
 		std::size_t bytes_transferred = 0;
 		try
 		{
-			bytes_transferred = http_socket().read_some(buffers, ec);
+			bytes_transferred = m_sock.read_some(buffers, ec);
 			if (ec == boost::asio::error::shut_down)
 				ec = boost::asio::error::eof;
 			return bytes_transferred;
@@ -494,17 +539,25 @@ public:
 	}
 
 	///从这个http_stream异步读取一些数据.
-	// @param buffers一个或多个用于读取数据的缓冲区, 这个类型必须满足
-	// MutableBufferSequence, MutableBufferSequence的定义在boost.asio
-	// 文档中.
-	// @param ec在发生错误时, 将传回错误信息.
-	// @函数返回读取到的数据大小.
-	// @备注: 该函数将会阻塞到一直等待有数据或发生错误时才返回.
-	// read_some不能读取指定大小的数据.
+	// @param buffers一个或多个用于读取数据的缓冲区, 这个类型必须满足MutableBufferSequence,
+	//  MutableBufferSequence的定义在boost.asio文档中.
+	// @param handler在发生操作完成或出现错误时, 将被回调, 它满足以下条件:
+	// @begin code
+	//  void handler(
+	//    int bytes_transferred,				// 返回读取的数据字节数.
+	//    const boost::system::error_code& ec	// 用于返回操作状态.
+	//  );
+	// @end code
 	// @begin example
-	//  boost::system::error_code ec;
-	//  std::size bytes_transferred = s.read_some(boost::asio::buffer(data, size), ec);
-	//  ...
+	//   void handler(int bytes_transferred, const boost::system::error_code& ec)
+	//   {
+	//		// 处理异步回调.
+	//   }
+	//   http_stream h(io_service);
+	//   ...
+	//   boost::array<char, 1024> buffer;
+	//   boost::asio::async_read(h, boost::asio::buffer(buffer), handler);
+	//   ...
 	// @end example
 	// 关于示例中的boost::asio::buffer用法可以参考boost中的文档. 它可以接受一个
 	// boost.array或std.vector作为数据容器.
@@ -534,7 +587,7 @@ public:
 		option_item opts = opt.option_all();
 
 		// 判断socket是否打开.
-		if (!http_socket().is_open())
+		if (!m_sock.is_open())
 		{
 			boost::system::system_error ex(boost::asio::error::network_reset);
 			boost::throw_exception(ex);
@@ -587,11 +640,7 @@ public:
 		request_stream << other_option_string << "\r\n";
 
 		// 发送请求.
-#ifdef AVHTTP_ENABLE_OPENSSL
-		boost::asio::write(m_ssl_socket, m_request, boost::asio::transfer_all());
-#else
-		boost::asio::write(http_socket(), m_request);
-#endif
+		boost::asio::write(m_sock, m_request);
 	}
 
 	///向http服务器发起一个异步请求.
@@ -624,7 +673,7 @@ public:
 		option_item opts = opt.option_all();
 
 		// 判断socket是否打开.
-		if (!http_socket(ec).is_open())
+		if (!m_sock.is_open())
 		{
 			handler(boost::asio::error::network_reset);
 			return;
@@ -680,7 +729,7 @@ public:
 		try
 		{
 			typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
-			boost::asio::async_write(http_socket(), m_request,
+			boost::asio::async_write(m_sock, m_request,
 				boost::bind(&http_stream::handle_request<HandlerWrapper>, this,
 				HandlerWrapper(handler), boost::asio::placeholders::error));
 		}
@@ -722,16 +771,9 @@ public:
 
 		if (is_open())
 		{
-			if (m_protocol == "http")
-			{
-				m_socket.close(ec);
-			}
-#ifdef AVHTTP_ENABLE_OPENSSL
-			else if (m_protocol == "https")
-			{
-				m_ssl_socket.lowest_layer().close(ec);
-			}
-#endif
+			// 关闭socket.
+			m_sock.close(ec);
+
 			// 清空内部的各种缓冲信息.
 			m_request.consume(m_request.size());
 			m_response.consume(m_response.size());
@@ -745,17 +787,7 @@ public:
 	// @返回是否打开.
 	bool is_open() const
 	{
-		if (m_protocol == "http")
-		{
-			return m_socket.is_open();
-		}
-#ifdef AVHTTP_ENABLE_OPENSSL
-		if (m_protocol == "https")
-		{
-			return m_ssl_socket.lowest_layer().is_open();
-		}
-#endif
-		return false;
+		return m_sock.is_open();
 	}
 
 	///设置请求时的http选项.
@@ -836,105 +868,6 @@ public:
 		return s;
 	}
 
-	///得到底层引用.
-	// @param ec用于保存操作失败的错误代码.
-	// @函数返回底层socket的引用, 失败信息保存于参数ec中.
-	// @begin example
-	//  avhttp::http_stream h_stream(io_service);
-	//  boost::system::error_code ec;
-	//  tcp::socket &sock = h_stream.lowest_layer("http", ec);
-	//  ...
-	// @end example
-	tcp::socket& lowest_layer(const std::string &protocol, boost::system::error_code& ec)
-	{
-#ifndef AVHTTP_ENABLE_OPENSSL
-		m_socket;
-#else
-		if (protocol == "https")
-		{
-		}
-		m_ssl_socket;
-#endif // AVHTTP_ENABLE_OPENSSL
-		if (protocol == "http")
-		{
-			return m_socket;
-		}
-#ifdef AVHTTP_ENABLE_OPENSSL
-		if (protocol == "https")
-		{
-			return m_ssl_socket.next_layer();
-			// return m_ssl_socket.lowest_layer();
-		}
-#endif
-		// 未知的协议.
-		ec = boost::asio::error::operation_not_supported;
-		// 返回一个socket, 这个返回没有什么意义, 因为不知道协议的情况下操作socket, 行为是未确定.
-		return m_socket;
-	}
-
-	///得到底层引用.
-	// @函数返回底层socket的引用, 失败将抛出一个boost::system::system_error异常.
-	// @begin example
-	//  avhttp::http_stream h_stream(io_service);
-	//  try
-	//  {
-	//    tcp::socket &sock = h_stream.lowest_layer("http");
-	//  }
-	//  catch (std::exception& e)
-	//  {
-	//    std::cout << e.what() << std::endl;
-	//  }
-	//  ...
-	// @end example
-	tcp::socket& lowest_layer(const std::string &protocol)
-	{
-		boost::system::error_code ec;
-		tcp::socket& sock = lowest_layer(protocol, ec);
-		if (ec)
-		{
-			boost::throw_exception(boost::system::system_error(ec));
-		}
-		return sock;
-	}
-
-	///得到socket的引用.
-	// @函数返回底层socket的引用, 失败将抛出一个boost::system::system_error异常.
-	// @begin example
-	//  avhttp::http_stream h(io_service);
-	//  tcp::socket &sock = h.http_socket();
-	//  ...
-	// @end example
-	inline tcp::socket& http_socket()
-	{
-		return lowest_layer(m_protocol);
-	}
-
-	///得到socket的引用.
-	// @函数返回底层socket的引用, 失败信息保存于参数ec中.
-	// @param ec用于保存操作失败的错误代码.
-	// @begin example
-	//  avhttp::http_stream h(io_service);
-	//  boost::system::error_code ec;
-	//  tcp::socket &sock = h.http_socket(ec);
-	//  ...
-	// @end example
-	inline tcp::socket& http_socket(boost::system::error_code &ec)
-	{
-		return lowest_layer(m_protocol, ec);
-	}
-
-	template <typename Stream>
-	Stream& socket(boost::system::error_code &ec)
-	{
-		return lowest_layer_2(m_protocol, ec);
-	}
-
-	template <typename Stream>
-	Stream& socket()
-	{
-		return lowest_layer_2(m_protocol);
-	}
-
 protected:
 	template <typename Handler>
 	void handle_resolve(const boost::system::error_code &err,
@@ -945,9 +878,25 @@ protected:
 			try
 			{
 				// 发起异步连接.
-				boost::asio::async_connect(http_socket(), endpoint_iterator,
-					boost::bind(&http_stream::handle_connect<Handler>, this,
-					handler, endpoint_iterator, boost::asio::placeholders::error));
+				if (m_protocol == "http")
+				{
+					nossl_socket *sock = m_sock.get<nossl_socket>();
+					boost::asio::async_connect(*sock, endpoint_iterator,
+						boost::bind(&http_stream::handle_connect<Handler>, this,
+						handler, endpoint_iterator, boost::asio::placeholders::error));
+				}
+#ifdef AVHTTP_ENABLE_OPENSSL
+				else if (m_protocol == "https")
+				{
+					ssl_socket *sock = m_sock.get<ssl_socket>();
+					sock->async_connect(tcp::endpoint(*endpoint_iterator), boost::bind(&http_stream::handle_connect<Handler>, this,
+						handler, endpoint_iterator, boost::asio::placeholders::error));
+				}
+#endif
+				else
+				{
+					handler(boost::asio::error::operation_not_supported);
+				}
 			}
 			catch (const boost::system::system_error &e)
 			{
@@ -967,20 +916,38 @@ protected:
 	{
 		if (!err)
 		{
+#ifdef AVHTTP_ENABLE_OPENSSL
 			if (m_protocol == "https")
 			{
-#ifdef AVHTTP_ENABLE_OPENSSL
-				// TODO: 发起异步认证证书.
-#else
-				handler(boost::asio::error::operation_not_supported);
-				return;
+				// 认证证书.
+				if (m_check_certificate)
+				{
+					boost::system::error_code ec;
+					ssl_socket *ssl_sock =  m_sock.get<ssl_socket>();
+					if (X509* cert = SSL_get_peer_certificate(ssl_sock->impl()->ssl))
+					{
+						if (SSL_get_verify_result(ssl_sock->impl()->ssl) == X509_V_OK)
+						{
+							if (certificate_matches_host(cert, m_url.host()))
+								ec = boost::system::error_code();
+							else
+								ec = make_error_code(boost::system::errc::permission_denied);
+						}
+						else
+							ec = make_error_code(boost::system::errc::permission_denied);
+						X509_free(cert);
+					}
+					
+					if (ec)
+					{
+						handler(ec);
+						return;
+					}
+				}
+			}
 #endif
-			}
-			else if (m_protocol == "http")
-			{
-				// 发起异步请求.
-				async_request(m_request_opts, handler);
-			}
+			// 发起异步请求.
+			async_request(m_request_opts, handler);
 		}
 		else
 		{
@@ -991,10 +958,26 @@ protected:
 			{
 				try
 				{
-					// 发起异步连接.
-					boost::asio::async_connect(http_socket(), endpoint_iterator,
-						boost::bind(&http_stream::handle_connect<Handler>, this,
-						handler, endpoint_iterator, boost::asio::placeholders::error));
+					// 继续发起异步连接.
+					if (m_protocol == "http")
+					{
+						nossl_socket *sock = m_sock.get<nossl_socket>();
+						boost::asio::async_connect(*sock, endpoint_iterator,
+							boost::bind(&http_stream::handle_connect<Handler>, this,
+							handler, endpoint_iterator, boost::asio::placeholders::error));
+					}
+#ifdef AVHTTP_ENABLE_OPENSSL
+					else if (m_protocol == "https")
+					{
+						ssl_socket *sock = m_sock.get<ssl_socket>();
+						sock->async_connect(tcp::endpoint(*endpoint_iterator), boost::bind(&http_stream::handle_connect<Handler>, this,
+							handler, endpoint_iterator, boost::asio::placeholders::error));
+					}
+#endif
+					else
+					{
+						handler(boost::asio::error::operation_not_supported);
+					}
 				}
 				catch (boost::system::system_error &e)
 				{
@@ -1017,7 +1000,7 @@ protected:
 		// 异步读取Http status.
 		try
 		{
-			boost::asio::async_read_until(http_socket(), m_response, "\r\n",
+			boost::asio::async_read_until(m_sock, m_response, "\r\n",
 				boost::bind(&http_stream::handle_status<Handler>, this, handler, boost::asio::placeholders::error));
 		}
 		catch (boost::system::system_error &e)
@@ -1054,7 +1037,7 @@ protected:
 			// "continue"表示我们需要继续等待接收状态.
 			if (m_status_code == avhttp::errc::continue_request)
 			{
-				boost::asio::async_read_until(http_socket(), m_response, "\r\n",
+				boost::asio::async_read_until(m_sock, m_response, "\r\n",
 					boost::bind(&http_stream::handle_status<Handler>, this, handler, boost::asio::placeholders::error));
 			}
 			else
@@ -1063,7 +1046,7 @@ protected:
 				m_response_opts.insert("_status_code", boost::str(boost::format("%d") % m_status_code));
 
 				// 异步读取所有Http header部分.
-				boost::asio::async_read_until(http_socket(), m_response, "\r\n\r\n",
+				boost::asio::async_read_until(m_sock, m_response, "\r\n\r\n",
 					boost::bind(&http_stream::handle_header<Handler>, this, handler,
 					boost::asio::placeholders::bytes_transferred, boost::asio::placeholders::error));
 			}
@@ -1101,7 +1084,7 @@ protected:
 			// 判断是否需要跳转.
 			if (m_status_code == avhttp::errc::moved_permanently || m_status_code == avhttp::errc::found)
 			{
-				http_socket().close(ec);
+				m_sock.close(ec);
 				if (++m_redirects <= AVHTTP_MAX_REDIRECTS)
 				{
 					async_open(m_location, handler);
@@ -1199,18 +1182,9 @@ protected:
 
 protected:
 	boost::asio::io_service &m_io_service;			// io_service引用.
-	tcp::socket m_socket;							// socket.
 	tcp::resolver m_resolver;						// 解析HOST.
-
-#ifdef AVHTTP_ENABLE_OPENSSL
-	boost::asio::ssl::context m_ssl_context;		// SSL上下文.
-	boost::asio::ssl::stream<
-		tcp::socket> m_ssl_socket;					// SSL连接.
+	socket_type m_sock;								// socket.
 	bool m_check_certificate;						// 是否认证服务端证书.
-#endif
-
-	// socket_type m_sock;
-
 	request_opts m_request_opts;					// 向http服务器请求的头信息.
 	response_opts m_response_opts;					// http服务器返回的http头信息.
 	std::string m_protocol;							// 协议类型(http/https).

@@ -44,11 +44,33 @@ public:
 	typedef typename Stream::endpoint_type endpoint_type;
 	typedef typename Stream::protocol_type protocol_type;
 	typedef typename boost::asio::ssl::stream<Stream> sock_type;
+	typedef typename boost::asio::ssl::stream<Stream>::impl_type impl_type;
 
 	typedef boost::function<void(boost::system::error_code const&)> handler_type;
 
+
+	void connect(endpoint_type const &endpoint)
+	{
+		// 1. connect to peer
+		// 2. perform SSL client handshake
+
+		m_sock.next_layer().connect(endpoint);
+		m_sock.handshake(boost::asio::ssl::stream_base::client);
+	}
+
+	void connect(endpoint_type const &endpoint, boost::system::error_code &ec)
+	{
+		// 1. connect to peer
+		// 2. perform SSL client handshake
+
+		m_sock.next_layer().connect(endpoint, ec);
+		if (ec)
+			return;
+		m_sock.handshake(boost::asio::ssl::stream_base::client, ec);
+	}
+
 	template <class Handler>
-	void async_connect(endpoint_type const& endpoint, Handler const& handler)
+	void async_connect(endpoint_type &endpoint, Handler &handler)
 	{
 		// the connect is split up in the following steps:
 		// 1. connect to peer
@@ -95,12 +117,24 @@ public:
 	}
 
 	template <class Const_Buffers, class Handler>
-	void async_write_some(Const_Buffers const& buffers, Handler const& handler)
+	void async_write_some(Const_Buffers const &buffers, Handler const& handler)
 	{
 		m_sock.async_write_some(buffers, handler);
 	}
 
+	template <class Const_Buffers>
+	std::size_t write_some(Const_Buffers const &buffers, boost::system::error_code &ec)
+	{
+		return m_sock.write_some(buffers, ec);
+	}
+
 #ifndef BOOST_NO_EXCEPTIONS
+	template <class Const_Buffers>
+	std::size_t write_some(Const_Buffers const &buffers)
+	{
+		return m_sock.write_some(buffers);
+	}
+
 	void bind(endpoint_type const& endpoint)
 	{
 		m_sock.next_layer().bind(endpoint);
@@ -180,6 +214,26 @@ public:
 		return m_sock.next_layer();
 	}
 
+	impl_type impl()
+	{
+		return m_sock.impl();
+	}
+
+	template <typename SettableSocketOption>
+	boost::system::error_code set_option(const SettableSocketOption& option,
+		boost::system::error_code& ec)
+	{
+		return m_sock.next_layer().set_option(option, ec);
+	}
+
+#ifndef BOOST_NO_EXCEPTIONS
+	template <typename SettableSerialPortOption>
+	void set_option(const SettableSerialPortOption& option)
+	{
+		m_sock.next_layer().set_option(option);
+	}
+#endif
+
 private:
 
 	void connected(boost::system::error_code const& e, boost::shared_ptr<handler_type> h)
@@ -190,7 +244,7 @@ private:
 			return;
 		}
 
-		m_sock.async_handshake(asio::ssl::stream_base::client
+		m_sock.async_handshake(boost::asio::ssl::stream_base::client
 			, boost::bind(&ssl_stream::handshake, this, _1, h));
 	}
 

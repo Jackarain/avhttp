@@ -45,6 +45,12 @@
     <ClInclude Include="..\include\avhttp\detail\abi_prefix.hpp">
       <Filter>头文件\avhttp\detail</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\avhttp\detail\socket_type.hpp">
+      <Filter>头文件\avhttp\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\avhttp\detail\ssl_stream.hpp">
+      <Filter>头文件\avhttp\detail</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />

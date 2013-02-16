@@ -54,7 +54,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_WIN32_WINNT=0x0501;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_WIN32_WINNT=0x0501;AVHTTP_ENABLE_OPENSSL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -68,6 +68,8 @@
       <SubSystem>Console</SubSystem>
       <TargetMachine>MachineX86</TargetMachine>
       <AdditionalOptions>/SAFESEH:NO %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalLibraryDirectories>..\include\libs</AdditionalLibraryDirectories>
+      <AdditionalDependencies>ssleay32.lib;libeay32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -97,6 +99,8 @@
     <ClInclude Include="..\include\avhttp\detail\abi_suffix.hpp" />
     <ClInclude Include="..\include\avhttp\detail\error_codec.hpp" />
     <ClInclude Include="..\include\avhttp\detail\parsers.hpp" />
+    <ClInclude Include="..\include\avhttp\detail\socket_type.hpp" />
+    <ClInclude Include="..\include\avhttp\detail\ssl_stream.hpp" />
     <ClInclude Include="..\include\avhttp\http_stream.hpp" />
     <ClInclude Include="..\include\avhttp\options.hpp" />
     <ClInclude Include="..\include\avhttp\url.hpp" />
