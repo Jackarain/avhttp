@@ -82,6 +82,11 @@ namespace avhttp {
 //  				boost::bind(&downloader::handle_read, this,
 //  				boost::asio::placeholders::bytes_transferred,
 //  				boost::asio::placeholders::error));
+//				// 在这里也支持使用boost::asio::async_read来读取一定量大小的数据, 用法用boost.asio, 比如:
+//				boost::asio::async_read(m_stream, boost::asio::buffer(m_buffer),
+// 					boost::bind(&downloader::handle_read, this,
+// 					boost::asio::placeholders::bytes_transferred,
+// 					boost::asio::placeholders::error));
 //  		}
 //  	}
 //  
