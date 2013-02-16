@@ -739,14 +739,6 @@ public:
 		}
 	}
 
-	// request
-	// async_request
-	// open
-	// close
-	// async_open
-	// read_some
-	// async_read_some
-
 	///关闭http_stream.
 	// @失败抛出asio::system_error异常.
 	// @备注: 停止所有正在进行的读写操作, 正在进行的异步调用将回调
