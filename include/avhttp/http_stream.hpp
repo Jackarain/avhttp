@@ -347,57 +347,6 @@ public:
 			boost::asio::placeholders::error, boost::asio::placeholders::iterator, HandlerWrapper(handler)));
 	}
 
-	// request
-	// async_request
-	// open
-	// close
-	// async_open
-	// read_some
-	// async_read_some
-
-	///关闭http_stream.
-	// @失败抛出asio::system_error异常.
-	// @备注: 停止所有正在进行的读写操作, 正在进行的异步调用将回调
-	// boost::asio::error::operation_aborted错误.
-	void close()
-	{
-		boost::system::error_code ec;
-		close(ec);
-		if (ec)
-		{
-			boost::throw_exception(boost::system::system_error(ec));
-		}
-	}
-
-	///关闭http_stream.
-	// @param ec保存失败信息.
-	// @备注: 停止所有正在进行的读写操作, 正在进行的异步调用将回调
-	// boost::asio::error::operation_aborted错误.
-	void close(boost::system::error_code& ec)
-	{
-		ec = boost::system::error_code();
-
-		if (is_open())
-		{
-			if (m_protocol == "http")
-			{
-				m_socket.close(ec);
-			}
-#ifdef AVHTTP_ENABLE_OPENSSL
-			else if (m_protocol == "https")
-			{
-				m_ssl_socket.lowest_layer().close(ec);
-			}
-#endif
-			// 清空内部的各种缓冲信息.
-			m_request.consume(m_request.size());
-			m_response.consume(m_response.size());
-			m_content_type.clear();
-			m_location.clear();
-			m_protocol.clear();
-		}
-	}
-
 	///从这个http_stream读取一些数据.
 	// @param buffers一个或多个用于读取数据的缓冲区, 这个类型必须满足
 	// MutableBufferSequence, MutableBufferSequence的定义在boost.asio
@@ -453,135 +402,28 @@ public:
 		}
 	}
 
-	///判断是否打开.
-	// @返回是否打开.
-	bool is_open() const
-	{
-		if (m_protocol == "http")
-		{
-			return m_socket.is_open();
-		}
-#ifdef AVHTTP_ENABLE_OPENSSL
-		if (m_protocol == "https")
-		{
-			return m_ssl_socket.lowest_layer().is_open();
-		}
-#endif
-		return false;
-	}
-
-	///设置请求时的http选项.
-	// @param options 为http的选项. 目前有以下几项特定选项:
-	//  request_method, 取值 "GET/POST/HEAD", 默认为"GET".
-	//  Host, 取值为http服务器, 默认为http服务器.
-	//  Accept, 取值任意, 默认为"*/*".
+	///从这个http_stream异步读取一些数据.
+	// @param buffers一个或多个用于读取数据的缓冲区, 这个类型必须满足
+	// MutableBufferSequence, MutableBufferSequence的定义在boost.asio
+	// 文档中.
+	// @param ec在发生错误时, 将传回错误信息.
+	// @函数返回读取到的数据大小.
+	// @备注: 该函数将会阻塞到一直等待有数据或发生错误时才返回.
+	// read_some不能读取指定大小的数据.
 	// @begin example
-	//  avhttp::http_stream h_stream(io_service);
-	//  request_opts options;
-	//  options.insert("request_method", "POST"); // 默认为GET方式.
-	//  h_stream.request_options(options);
-	//  ...
-	// @end example
-	void request_options(const request_opts& options)
-	{
-		m_request_opts = options;
-	}
-
-	///返回请求时的http选项.
-	// @begin example
-	//  avhttp::http_stream h_stream(io_service);
-	//  request_opts options;
-	//  options = h_stream.request_options();
-	//  ...
-	// @end example
-	request_opts request_options(void) const
-	{
-		return m_request_opts;
-	}
-
-	///http服务器回复选项.
-	// @返回服务器回复的所有选项信息, key/value形式.
-	response_opts response_options(void) const
-	{
-		return m_response_opts;
-	}
-
-	///得到底层引用.
-	// @param ec用于保存操作失败的错误代码.
-	// @函数返回底层socket的引用, 失败信息保存于参数ec中.
-	// @begin example
-	//  avhttp::http_stream h_stream(io_service);
 	//  boost::system::error_code ec;
-	//  tcp::socket &sock = h_stream.lowest_layer("http", ec);
+	//  std::size bytes_transferred = s.read_some(boost::asio::buffer(data, size), ec);
 	//  ...
 	// @end example
-	tcp::socket& lowest_layer(const std::string &protocol, boost::system::error_code& ec)
-	{
-		if (protocol == "http")
-		{
-			return m_socket;
-		}
-#ifdef AVHTTP_ENABLE_OPENSSL
-		if (protocol == "https")
-		{
-			return m_ssl_socket.lowest_layer();
-		}
-#endif
-		// 未知的协议.
-		ec = boost::asio::error::operation_not_supported;
-		// 返回一个socket, 这个返回没有什么意义, 因为不知道协议的情况下操作socket, 行为是未确定.
-		return m_socket;
-	}
-
-	///得到底层引用.
-	// @函数返回底层socket的引用, 失败将抛出一个boost::system::system_error异常.
-	// @begin example
-	//  avhttp::http_stream h_stream(io_service);
-	//  try
-	//  {
-	//    tcp::socket &sock = h_stream.lowest_layer("http");
-	//  }
-	//  catch (std::exception& e)
-	//  {
-	//    std::cout << e.what() << std::endl;
-	//  }
-	//  ...
-	// @end example
-	tcp::socket& lowest_layer(const std::string &protocol)
+	// 关于示例中的boost::asio::buffer用法可以参考boost中的文档. 它可以接受一个
+	// boost.array或std.vector作为数据容器.
+	template <typename MutableBufferSequence, typename Handler>
+	void async_read_some(const MutableBufferSequence& buffers, Handler handler)
 	{
 		boost::system::error_code ec;
-		tcp::socket& sock = lowest_layer(protocol, ec);
-		if (ec)
-		{
-			boost::throw_exception(boost::system::system_error(ec));
-		}
-		return sock;
-	}
-
-	///得到socket的引用.
-	// @函数返回底层socket的引用, 失败将抛出一个boost::system::system_error异常.
-	// @begin example
-	//  avhttp::http_stream h_stream(io_service);
-	//  tcp::socket &sock = h_stream.http_socket();
-	//  ...
-	// @end example
-	inline tcp::socket& http_socket()
-	{
-		return lowest_layer(m_protocol);
-	}
-
-	///得到socket的引用.
-	// @函数返回底层socket的引用, 失败信息保存于参数ec中.
-	// @param ec用于保存操作失败的错误代码.
-	// @begin example
-	//  avhttp::http_stream h(io_service);
-	//  boost::system::error_code ec;
-	//  tcp::socket &sock = h.http_socket(ec);
-	//  ...
-	// @end example
-	inline tcp::socket& http_socket(boost::system::error_code &ec)
-	{
-		return lowest_layer(m_protocol, ec);
+		std::size_t bytes_transferred = read_some(buffers, ec);
+		m_io_service.post(
+			boost::asio::detail::bind_handler(handler, ec, bytes_transferred));
 	}
 
 	///向http服务器发起一个请求.
@@ -751,6 +593,188 @@ public:
 		{
 			handler(e.code());
 		}
+	}
+
+	// request
+	// async_request
+	// open
+	// close
+	// async_open
+	// read_some
+	// async_read_some
+
+	///关闭http_stream.
+	// @失败抛出asio::system_error异常.
+	// @备注: 停止所有正在进行的读写操作, 正在进行的异步调用将回调
+	// boost::asio::error::operation_aborted错误.
+	void close()
+	{
+		boost::system::error_code ec;
+		close(ec);
+		if (ec)
+		{
+			boost::throw_exception(boost::system::system_error(ec));
+		}
+	}
+
+	///关闭http_stream.
+	// @param ec保存失败信息.
+	// @备注: 停止所有正在进行的读写操作, 正在进行的异步调用将回调
+	// boost::asio::error::operation_aborted错误.
+	void close(boost::system::error_code& ec)
+	{
+		ec = boost::system::error_code();
+
+		if (is_open())
+		{
+			if (m_protocol == "http")
+			{
+				m_socket.close(ec);
+			}
+#ifdef AVHTTP_ENABLE_OPENSSL
+			else if (m_protocol == "https")
+			{
+				m_ssl_socket.lowest_layer().close(ec);
+			}
+#endif
+			// 清空内部的各种缓冲信息.
+			m_request.consume(m_request.size());
+			m_response.consume(m_response.size());
+			m_content_type.clear();
+			m_location.clear();
+			m_protocol.clear();
+		}
+	}
+
+	///判断是否打开.
+	// @返回是否打开.
+	bool is_open() const
+	{
+		if (m_protocol == "http")
+		{
+			return m_socket.is_open();
+		}
+#ifdef AVHTTP_ENABLE_OPENSSL
+		if (m_protocol == "https")
+		{
+			return m_ssl_socket.lowest_layer().is_open();
+		}
+#endif
+		return false;
+	}
+
+	///设置请求时的http选项.
+	// @param options 为http的选项. 目前有以下几项特定选项:
+	//  request_method, 取值 "GET/POST/HEAD", 默认为"GET".
+	//  Host, 取值为http服务器, 默认为http服务器.
+	//  Accept, 取值任意, 默认为"*/*".
+	// @begin example
+	//  avhttp::http_stream h_stream(io_service);
+	//  request_opts options;
+	//  options.insert("request_method", "POST"); // 默认为GET方式.
+	//  h_stream.request_options(options);
+	//  ...
+	// @end example
+	void request_options(const request_opts& options)
+	{
+		m_request_opts = options;
+	}
+
+	///返回请求时的http选项.
+	// @begin example
+	//  avhttp::http_stream h_stream(io_service);
+	//  request_opts options;
+	//  options = h_stream.request_options();
+	//  ...
+	// @end example
+	request_opts request_options(void) const
+	{
+		return m_request_opts;
+	}
+
+	///http服务器回复选项.
+	// @返回服务器回复的所有选项信息, key/value形式.
+	response_opts response_options(void) const
+	{
+		return m_response_opts;
+	}
+
+	///得到底层引用.
+	// @param ec用于保存操作失败的错误代码.
+	// @函数返回底层socket的引用, 失败信息保存于参数ec中.
+	// @begin example
+	//  avhttp::http_stream h_stream(io_service);
+	//  boost::system::error_code ec;
+	//  tcp::socket &sock = h_stream.lowest_layer("http", ec);
+	//  ...
+	// @end example
+	tcp::socket& lowest_layer(const std::string &protocol, boost::system::error_code& ec)
+	{
+		if (protocol == "http")
+		{
+			return m_socket;
+		}
+#ifdef AVHTTP_ENABLE_OPENSSL
+		if (protocol == "https")
+		{
+			return m_ssl_socket.lowest_layer();
+		}
+#endif
+		// 未知的协议.
+		ec = boost::asio::error::operation_not_supported;
+		// 返回一个socket, 这个返回没有什么意义, 因为不知道协议的情况下操作socket, 行为是未确定.
+		return m_socket;
+	}
+
+	///得到底层引用.
+	// @函数返回底层socket的引用, 失败将抛出一个boost::system::system_error异常.
+	// @begin example
+	//  avhttp::http_stream h_stream(io_service);
+	//  try
+	//  {
+	//    tcp::socket &sock = h_stream.lowest_layer("http");
+	//  }
+	//  catch (std::exception& e)
+	//  {
+	//    std::cout << e.what() << std::endl;
+	//  }
+	//  ...
+	// @end example
+	tcp::socket& lowest_layer(const std::string &protocol)
+	{
+		boost::system::error_code ec;
+		tcp::socket& sock = lowest_layer(protocol, ec);
+		if (ec)
+		{
+			boost::throw_exception(boost::system::system_error(ec));
+		}
+		return sock;
+	}
+
+	///得到socket的引用.
+	// @函数返回底层socket的引用, 失败将抛出一个boost::system::system_error异常.
+	// @begin example
+	//  avhttp::http_stream h_stream(io_service);
+	//  tcp::socket &sock = h_stream.http_socket();
+	//  ...
+	// @end example
+	inline tcp::socket& http_socket()
+	{
+		return lowest_layer(m_protocol);
+	}
+
+	///得到socket的引用.
+	// @函数返回底层socket的引用, 失败信息保存于参数ec中.
+	// @param ec用于保存操作失败的错误代码.
+	// @begin example
+	//  avhttp::http_stream h(io_service);
+	//  boost::system::error_code ec;
+	//  tcp::socket &sock = h.http_socket(ec);
+	//  ...
+	// @end example
+	inline tcp::socket& http_socket(boost::system::error_code &ec)
+	{
+		return lowest_layer(m_protocol, ec);
 	}
 
 protected:
