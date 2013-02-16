@@ -915,6 +915,7 @@ private:
 	variant_type m_variant;
 };
 
-}}
+}
+}
 
 #endif // __SOCKET_TYPE_H__

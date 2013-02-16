@@ -35,9 +35,7 @@ public:
 		m_context.set_verify_mode(boost::asio::ssl::context::verify_none, ec);
 	}
 
-	~ssl_stream() {
-		std::cout << "destruct\n";
-	}
+	~ssl_stream() {}
 
 	typedef Stream next_layer_type;
 	typedef typename Stream::lowest_layer_type lowest_layer_type;
@@ -208,7 +206,7 @@ public:
 	{
 		return m_sock.lowest_layer();
 	}
-	
+
 	next_layer_type& next_layer()
 	{
 		return m_sock.next_layer();
