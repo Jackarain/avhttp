@@ -14,10 +14,12 @@
 #pragma once
 
 #include <vector>
+#include <list>
 
 #include <boost/noncopyable.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/cstdint.hpp>
+#include <boost/shared_ptr.hpp>
 
 #include "http_stream.hpp"
 
@@ -48,6 +50,11 @@ mget.async_read_some(hr, handler);
 void handler(boost::system::error_code ec)
 {
 }
+
+
+
+
+
 
 ************************************************************************/
 
@@ -86,15 +93,22 @@ struct handle_reader
 	std::vector<char> m_data;	// 数据缓冲.
 };
 
+
 class multi_download : public boost::noncopyable
 {
+	typedef boost::shared_ptr<http_stream> http_stream_ptr;
 public:
-	multi_download() {}
-	~multi_download() {}
+	multi_download(boost::asio::io_service &io)
+		: m_io_service(io)
+	{}
+	~multi_download()
+	{}
 
 public:
 
 private:
+	boost::asio::io_service &m_io_service;	// io_service引用.
+	std::list<http_stream_ptr> m_streams;	// http_stream容器, 每一个http_stream是一个http连接.
 };
 
 } // avhttp
