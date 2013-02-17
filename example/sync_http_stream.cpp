@@ -15,11 +15,9 @@ int main(int argc, char* argv[])
 		avhttp::http_stream h(io);
 
 		//  可以设置请求选项.
-		// 	avhttp::request_opts opt;
-		// 	opt.insert("Connection", "close");
-		// 	h.request_options(opt);
-
-		avhttp::request_opts;
+		// avhttp::request_opts opt;
+		// opt.insert("Connection", "Keep-Alive");
+		// h.request_options(opt);
 
 		h.open(argv[1]);
 
@@ -29,8 +27,8 @@ int main(int argc, char* argv[])
 		while (!ec)
 		{
 			std::size_t bytes_transferred = 0;
-			bytes_transferred = boost::asio::read(h, boost::asio::buffer(buf), ec);
-			// 也可以: std::size_t bytes_transferred = h.read_some(boost::asio::buffer(buf), ec);
+			// 也可以: bytes_transferred = boost::asio::read(h, boost::asio::buffer(buf), ec);
+			bytes_transferred = h.read_some(boost::asio::buffer(buf), ec);
 			file_size += bytes_transferred;
 			std::cout.write(buf.data(), bytes_transferred);
 		}

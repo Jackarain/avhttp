@@ -492,6 +492,35 @@ public:
 			boost::asio::placeholders::error, boost::asio::placeholders::iterator, HandlerWrapper(handler)));
 	}
 
+	///从这个http_stream中读取一些数据.
+	// @param buffers一个或多个读取数据的缓冲区, 这个类型必须满足MutableBufferSequence,
+	// MutableBufferSequence的定义在boost.asio文档中.
+	// @函数返回读取到的数据大小.
+	// @失败将抛出boost::asio::system_error异常.
+	// @备注: 该函数将会阻塞到一直等待有数据或发生错误时才返回.
+	// read_some不能读取指定大小的数据.
+	// @begin example
+	//  try
+	//  {
+	//    std::size bytes_transferred = s.read_some(boost::asio::buffer(data, size));
+	//  } catch (boost::asio::system_error &e)
+	//  {
+	//    std::cerr << e.what() << std::endl;
+	//  }
+	//  ...
+	// @end example
+	template <typename MutableBufferSequence>
+	std::size_t read_some(const MutableBufferSequence &buffers)
+	{
+		boost::system::error_code ec;
+		std::size_t bytes_transferred = read_some(buffers, ec);
+		if (ec)
+		{
+			boost::throw_exception(boost::system::system_error(ec));
+		}
+		return bytes_transferred;
+	}
+
 	///从这个http_stream读取一些数据.
 	// @param buffers一个或多个用于读取数据的缓冲区, 这个类型必须满足
 	// MutableBufferSequence, MutableBufferSequence的定义在boost.asio
@@ -508,8 +537,8 @@ public:
 	// 关于示例中的boost::asio::buffer用法可以参考boost中的文档. 它可以接受一个
 	// boost.array或std.vector作为数据容器.
 	template <typename MutableBufferSequence>
-	std::size_t read_some(const MutableBufferSequence& buffers,
-		boost::system::error_code& ec)
+	std::size_t read_some(const MutableBufferSequence &buffers,
+		boost::system::error_code &ec)
 	{
 		// 如果还有数据在m_response中, 先读取m_response中的数据.
 		if (m_response.size() > 0)
@@ -532,25 +561,17 @@ public:
 		}
 
 		// 再从socket中读取数据.
-		std::size_t bytes_transferred = 0;
-		try
-		{
-			bytes_transferred = m_sock.read_some(buffers, ec);
-			if (ec == boost::asio::error::shut_down)
-				ec = boost::asio::error::eof;
-			return bytes_transferred;
-		}
-		catch (const boost::system::system_error &e)
-		{
-			ec = e.code();
-			return bytes_transferred;
-		}
+		std::size_t bytes_transferred = m_sock.read_some(buffers, ec);
+		if (ec == boost::asio::error::shut_down)
+			ec = boost::asio::error::eof;
+		return bytes_transferred;
 	}
 
 	///从这个http_stream异步读取一些数据.
 	// @param buffers一个或多个用于读取数据的缓冲区, 这个类型必须满足MutableBufferSequence,
 	//  MutableBufferSequence的定义在boost.asio文档中.
-	// @param handler在发生操作完成或出现错误时, 将被回调, 它满足以下条件:
+	// http://www.boost.org/doc/libs/1_53_0/doc/html/boost_asio/reference/MutableBufferSequence.html
+	// @param handler在读取操作完成或出现错误时, 将被回调, 它满足以下条件:
 	// @begin code
 	//  void handler(
 	//    int bytes_transferred,				// 返回读取的数据字节数.
@@ -574,9 +595,98 @@ public:
 	void async_read_some(const MutableBufferSequence& buffers, Handler handler)
 	{
 		boost::system::error_code ec;
-		std::size_t bytes_transferred = read_some(buffers, ec);
-		m_io_service.post(
-			boost::asio::detail::bind_handler(handler, ec, bytes_transferred));
+		if (m_response.size() > 0)
+		{
+			std::size_t bytes_transferred = read_some(buffers, ec);
+			m_io_service.post(
+				boost::asio::detail::bind_handler(handler, ec, bytes_transferred));
+			return;
+		}
+		// 当缓冲区数据不够, 直接从socket中异步读取.
+		m_sock.async_read_some(buffers, handler);
+	}
+
+	///向这个http_stream中发送一些数据.
+	// @param buffers是一个或多个用于发送数据缓冲. 这个类型必须满足ConstBufferSequence, 参考文档:
+	// http://www.boost.org/doc/libs/1_53_0/doc/html/boost_asio/reference/ConstBufferSequence.html
+	// @返回实现发送的数据大小.
+	// @备注: 该函数将会阻塞到一直等待数据被发送或发生错误时才返回.
+	// write_some不保证发送完所有数据, 用户需要根据返回值来确定已经发送的数据大小.
+	// @begin example
+	//  try
+	//  {
+	//    std::size bytes_transferred = s.write_some(boost::asio::buffer(data, size));
+	//  }
+	//  catch (boost::asio::system_error &e)
+	//  {
+	//    std::cerr << e.what() << std::endl;
+	//  }
+	//  ...
+	// @end example
+	// 关于示例中的boost::asio::buffer用法可以参考boost中的文档. 它可以接受一个
+	// boost.array或std.vector作为数据容器.
+	template <typename ConstBufferSequence>
+	std::size_t write_some(const ConstBufferSequence& buffers)
+	{
+		boost::system::error_code ec;
+		std::size_t bytes_transferred = write_some(buffers, ec);
+		if (ec)
+		{
+			boost::throw_exception(boost::system::system_error(ec));
+		}
+		return bytes_transferred;
+	}
+
+	///向这个http_stream中发送一些数据.
+	// @param buffers是一个或多个用于发送数据缓冲. 这个类型必须满足ConstBufferSequence, 参考文档:
+	// http://www.boost.org/doc/libs/1_53_0/doc/html/boost_asio/reference/ConstBufferSequence.html
+	// @返回实现发送的数据大小.
+	// @备注: 该函数将会阻塞到一直等待数据被发送或发生错误时才返回.
+	// write_some不保证发送完所有数据, 用户需要根据返回值来确定已经发送的数据大小.
+	// @begin example
+	//  boost::system::error_code ec;
+	//  std::size bytes_transferred = s.write_some(boost::asio::buffer(data, size), ec);
+	//  ...
+	// @end example
+	// 关于示例中的boost::asio::buffer用法可以参考boost中的文档. 它可以接受一个
+	// boost.array或std.vector作为数据容器.
+	template <typename ConstBufferSequence>
+	std::size_t write_some(const ConstBufferSequence& buffers,
+		boost::system::error_code &ec)
+	{
+		std::size_t bytes_transferred = m_sock.write_some(buffers, ec);
+		if (ec == boost::asio::error::shut_down)
+			ec = boost::asio::error::eof;
+		return bytes_transferred;
+	}
+
+	///从这个http_stream异步发送一些数据.
+	// @param buffers一个或多个用于读取数据的缓冲区, 这个类型必须满足ConstBufferSequence,
+	//  ConstBufferSequence的定义在boost.asio文档中.
+	// http://www.boost.org/doc/libs/1_53_0/doc/html/boost_asio/reference/ConstBufferSequence.html
+	// @param handler在发送操作完成或出现错误时, 将被回调, 它满足以下条件:
+	// @begin code
+	//  void handler(
+	//    int bytes_transferred,				// 返回发送的数据字节数.
+	//    const boost::system::error_code& ec	// 用于返回操作状态.
+	//  );
+	// @end code
+	// @begin example
+	//   void handler(int bytes_transferred, const boost::system::error_code& ec)
+	//   {
+	//		// 处理异步回调.
+	//   }
+	//   http_stream h(io_service);
+	//   ...
+	//   h.async_write_some(boost::asio::buffer(data, size), handler);
+	//   ...
+	// @end example
+	// 关于示例中的boost::asio::buffer用法可以参考boost中的文档. 它可以接受一个
+	// boost.array或std.vector作为数据容器.
+	template <typename ConstBufferSequence, typename Handler>
+	void async_write_some(const ConstBufferSequence &buffers, Handler handler)
+	{
+		m_sock.async_write_some(buffers, handler);
 	}
 
 	///向http服务器发起一个请求.
