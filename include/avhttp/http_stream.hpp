@@ -828,38 +828,6 @@ public:
 #endif
 	}
 
-	template <typename Stream>
-	Stream& lowest_layer_2(const std::string &protocol, boost::system::error_code& ec)
-	{
-		if (protocol == "http")
-		{
-			return m_socket;
-		}
-#ifdef AVHTTP_ENABLE_OPENSSL
-		if (protocol == "https")
-		{
-			// return m_ssl_socket.next_layer();
-			return m_ssl_socket.lowest_layer();
-		}
-#endif
-		// 未知的协议.
-		ec = boost::asio::error::operation_not_supported;
-		// 返回一个socket, 这个返回没有什么意义, 因为不知道协议的情况下操作socket, 行为是未确定.
-		return m_socket;
-	}
-
-	template <typename Stream>
-	Stream& lowest_layer_2(const std::string &protocol)
-	{
-		boost::system::error_code ec;
-		Stream& s = lowest_layer(protocol, ec);
-		if (ec)
-		{
-			boost::throw_exception(boost::system::system_error(ec));
-		}
-		return s;
-	}
-
 protected:
 	template <typename Handler>
 	void handle_resolve(const boost::system::error_code &err,
