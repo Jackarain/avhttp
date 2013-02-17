@@ -2,7 +2,7 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8.00"
-	Name="sync_http_stream"
+	Name="async_http_stream"
 	ProjectGUID="{B082E8C6-633B-4EC8-BA28-DE2942B9F4C2}"
 	RootNamespace="async_http_stream"
 	Keyword="Win32Proj"
@@ -177,7 +177,7 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\sync_http_stream.cpp"
+				RelativePath="..\example\async_http_stream.cpp"
 				>
 			</File>
 		</Filter>
