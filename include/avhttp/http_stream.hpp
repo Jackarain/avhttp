@@ -166,7 +166,7 @@ public:
 	//   {
 	//     h_stream.open("http://www.boost.org");
 	//   }
-	//   catch (boost::system::error_code& e)
+	//   catch (boost::system::system_error& e)
 	//   {
 	//     std::cerr << e.waht() << std::endl;
 	//   }
