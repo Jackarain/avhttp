@@ -630,6 +630,15 @@ public:
 			opts.erase(val);	// 删除处理过的选项.
 		}
 
+		// 是否带有body选项.
+		std::string body;
+		val = opts.find("_request_body");
+		if (val != opts.end())
+		{
+			body = val->second;
+			opts.erase(val);	// 删除处理过的选项.
+		}
+
 		// 循环构造其它选项.
 		std::string other_option_string;
 		for (val = opts.begin(); val != opts.end(); val++)
@@ -647,6 +656,10 @@ public:
 		request_stream << "Host: " << host << "\r\n";
 		request_stream << "Accept: " << accept << "\r\n";
 		request_stream << other_option_string << "\r\n";
+		if (!body.empty())
+		{
+			request_stream << body;
+		}
 
 		// 发送请求.
 		boost::asio::write(m_sock, m_request);
@@ -716,6 +729,15 @@ public:
 			opts.erase(val);	// 删除处理过的选项.
 		}
 
+		// 是否带有body选项.
+		std::string body;
+		val = opts.find("_request_body");
+		if (val != opts.end())
+		{
+			body = val->second;
+			opts.erase(val);	// 删除处理过的选项.
+		}
+
 		// 循环构造其它选项.
 		std::string other_option_string;
 		for (val = opts.begin(); val != opts.end(); val++)
@@ -733,6 +755,10 @@ public:
 		request_stream << "Host: " << host << "\r\n";
 		request_stream << "Accept: " << accept << "\r\n";
 		request_stream << other_option_string << "\r\n";
+		if (!body.empty())
+		{
+			request_stream << body;
+		}
 
 		// 异步发送请求.
 		try

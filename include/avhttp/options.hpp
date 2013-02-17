@@ -65,8 +65,9 @@ protected:
 };
 
 // 请求时的http选项.
-// 以下选项为必http必选项:
+// 以下选项为必http选项:
 // _request_method, 取值 "GET/POST/HEAD", 默认为"GET".
+// _request_body, 请求中的body内容, 取值任意, 默认为空.
 // Host, 取值为http服务器, 默认为http服务器.
 // Accept, 取值任意, 默认为"*/*".
 typedef option request_opts;

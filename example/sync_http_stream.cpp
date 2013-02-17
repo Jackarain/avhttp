@@ -19,6 +19,8 @@ int main(int argc, char* argv[])
 		// 	opt.insert("Connection", "close");
 		// 	h.request_options(opt);
 
+		avhttp::request_opts;
+
 		h.open(argv[1]);
 
 		boost::array<char, 1024> buf;
