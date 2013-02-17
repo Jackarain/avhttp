@@ -126,6 +126,9 @@ using boost::asio::ip::tcp;
 
 class http_stream : public boost::noncopyable
 {
+	// 定义socket_type类型, socket_type是variant_stream的重定义, 它的作用
+	// 可以为ssl_socket或nossl_socket, 这样, 在访问socket的时候, 就不需要
+	// 区别编写不同的代码.
 #ifdef ENABLE_AVHTTP_OPENSSL
 	typedef avhttp::detail::ssl_stream<tcp::socket> ssl_socket;
 #endif
