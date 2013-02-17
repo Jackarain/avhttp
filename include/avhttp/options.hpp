@@ -41,8 +41,9 @@ public:
 	 * s.request_options( request_opts()("cookie","XXXXXX") );
 	 * 
 	 */
-	option & operator()(const std::string &key, const std::string &val){
-		insert(key,val);
+	option & operator()(const std::string &key, const std::string &val)
+	{
+		insert(key, val);
 		return *this;
 	}
 
