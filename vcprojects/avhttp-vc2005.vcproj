@@ -199,6 +199,10 @@
 					>
 				</File>
 				<File
+					RelativePath="..\include\avhttp\multi_download.hpp"
+					>
+				</File>
+				<File
 					RelativePath="..\include\avhttp\options.hpp"
 					>
 				</File>
