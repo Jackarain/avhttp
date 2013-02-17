@@ -13,8 +13,11 @@
 
 #pragma once
 
+#include <vector>
+
 #include <boost/noncopyable.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/cstdint.hpp>
 
 #include "http_stream.hpp"
 
@@ -53,13 +56,18 @@ namespace avhttp
 
 namespace fs = boost::filesystem;
 
-// 下载设置.
+// 下载模式.
 enum downlad_mode
 {
-	compact_mode,		// 紧凑模式下载.
-	dispersion_mode		// 松散模式下载.
+	// 紧凑模式下载, 紧凑模式是指, 将文件分片后, 从文件头开始, 一片紧接着一片,
+	// 连续不断的下载.
+	compact_mode,
+
+	// 松散模式下载, 是指将文件分片后, 按连接数平分为N大块进行下载.
+	dispersion_mode
 };
 
+// 下载设置.
 struct settings
 {
 	int m_download_rate_limit;		// 下载速率限制, -1为无限制.
@@ -67,6 +75,15 @@ struct settings
 	int m_piece_size;				// 分块大小, 默认根据文件大小自动计算.
 	downlad_mode m_downlad_mode;	// 下载模式, 默认为dispersion_mode.
 	fs::path m_meta_file;			// meta_file路径, 默认为当前路径下同文件名的.meta文件.
+};
+
+// 数据读取handler定义.
+// 用于multi_download读取数据, 其中包含了数据的偏移, 以及数据大小, 和数据缓冲.
+struct handle_reader
+{
+	boost::uint64_t m_offset;	// 数据偏移.
+	std::size_t m_size;			// 数据大小.
+	std::vector<char> m_data;	// 数据缓冲.
 };
 
 class multi_download : public boost::noncopyable
