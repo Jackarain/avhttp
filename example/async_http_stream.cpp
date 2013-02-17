@@ -33,7 +33,7 @@ public:
 				boost::bind(&downloader::handle_read, this,
 				boost::asio::placeholders::bytes_transferred,
 				boost::asio::placeholders::error));
-// 			m_stream.async_read_some(boost::asio::buffer(m_buffer),
+// 			也可以: m_stream.async_read_some(boost::asio::buffer(m_buffer),
 // 				boost::bind(&downloader::handle_read, this,
 // 				boost::asio::placeholders::bytes_transferred,
 // 				boost::asio::placeholders::error));

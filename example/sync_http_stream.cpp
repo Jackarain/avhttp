@@ -14,7 +14,7 @@ int main(int argc, char* argv[])
 		boost::asio::io_service io;
 		avhttp::http_stream h(io);
 
-		//  ¿ÉÒÔÉèÖÃÇëÇóÑ¡Ïî.
+		//  å¯ä»¥è®¾ç½®è¯·æ±‚é€‰é¡¹.
 		// avhttp::request_opts opt;
 		// opt.insert("Connection", "Keep-Alive");
 		// h.request_options(opt);
@@ -27,7 +27,7 @@ int main(int argc, char* argv[])
 		while (!ec)
 		{
 			std::size_t bytes_transferred = 0;
-			// Ò²¿ÉÒÔ: bytes_transferred = boost::asio::read(h, boost::asio::buffer(buf), ec);
+			// ä¹Ÿå¯ä»¥: bytes_transferred = boost::asio::read(h, boost::asio::buffer(buf), ec);
 			bytes_transferred = h.read_some(boost::asio::buffer(buf), ec);
 			file_size += bytes_transferred;
 			std::cout.write(buf.data(), bytes_transferred);
