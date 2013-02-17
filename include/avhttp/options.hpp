@@ -33,6 +33,18 @@ public:
 	~option() {}
 
 public:
+	/*
+	 * 这样就允许这样的应用:
+	 * 
+	 * http_stream s;
+	 * 
+	 * s.request_options( request_opts()("cookie","XXXXXX") );
+	 * 
+	 */
+	option & operator()(const std::string &key, const std::string &val){
+		insert(key,val);
+		return *this;
+	}
 
 	// 添加选项, 由key/value形式添加.
 	void insert(const std::string &key, const std::string &val)
