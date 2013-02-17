@@ -14,6 +14,7 @@
 #pragma once
 
 #include <boost/noncopyable.hpp>
+#include <boost/filesystem.hpp>
 
 #include "http_stream.hpp"
 
@@ -22,7 +23,10 @@
 boost::asio::io_service io;
 
 multi_download mget(io);
-mget.open(url); // async_open(url);
+
+settings s;
+
+mget.open(url, s); // async_open(url, s);
 mget.close();
 
 struct handle_reader
@@ -46,6 +50,24 @@ void handler(boost::system::error_code ec)
 
 namespace avhttp
 {
+
+namespace fs = boost::filesystem;
+
+// 下载设置.
+enum downlad_mode
+{
+	compact_mode,		// 紧凑模式下载.
+	dispersion_mode		// 松散模式下载.
+};
+
+struct settings
+{
+	int m_download_rate_limit;		// 下载速率限制, -1为无限制.
+	int m_connections_limit;		// 连接数限制, -1为无限制.
+	int m_piece_size;				// 分块大小, 默认根据文件大小自动计算.
+	downlad_mode m_downlad_mode;	// 下载模式, 默认为dispersion_mode.
+	fs::path m_meta_file;			// meta_file路径, 默认为当前路径下同文件名的.meta文件.
+};
 
 class multi_download : public boost::noncopyable
 {
