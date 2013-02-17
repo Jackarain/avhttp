@@ -15,6 +15,7 @@
 #pragma once
 
 #include <boost/asio/ssl.hpp>
+#include <openssl/x509v3.h>
 
 // openssl seems to believe it owns this name in every single scope.
 #undef set_key

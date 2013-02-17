@@ -23,11 +23,6 @@
 #include <boost/function.hpp>
 #include <boost/noncopyable.hpp>
 
-#ifdef AVHTTP_ENABLE_OPENSSL
-#include <boost/asio/ssl.hpp>
-#include <openssl/x509v3.h>
-#endif
-
 #include "avhttp/detail/error_codec.hpp"
 #include "avhttp/url.hpp"
 #include "avhttp/http_stream.hpp"
