@@ -20,13 +20,10 @@ int main(int argc, char* argv[])
 		// opt.insert("Connection", "Keep-Alive");
 		// h.request_options(opt);
 
-		// h.open(argv[1]);
-
-		boost::system::error_code ec;
-		m.open(argv[1], ec);
+		h.open(argv[1]);
 
 		boost::array<char, 1024> buf;
-		// boost::system::error_code ec;
+		boost::system::error_code ec;
 		std::size_t file_size = 0;
 		while (!ec)
 		{
