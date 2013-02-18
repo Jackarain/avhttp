@@ -27,7 +27,7 @@ namespace avhttp {
 // 选项表.
 typedef std::map<std::string, std::string> option_item;
 
-namespace httpoptions{
+namespace httpoptions {
 	// 定义一些常用的　http 选项为 const string , 这样就不用记忆那些单词了，呵呵.
 	static const std::string request_method("_request_method");
 	static const std::string request_body("_request_body");
