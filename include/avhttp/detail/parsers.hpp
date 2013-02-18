@@ -63,16 +63,16 @@ inline bool tolower_compare(char a, char b)
 	return std::tolower(a) == std::tolower(b);
 }
 
-inline bool headers_equal(const std::string& a, const std::string& b)
+inline bool headers_equal(const std::string &a, const std::string &b)
 {
 	if (a.length() != b.length())
 		return false;
 	return std::equal(a.begin(), a.end(), b.begin(), tolower_compare);
 }
 
-inline void check_header(const std::string& name, const std::string& value,
-	std::string& content_type, std::size_t& content_length,
-	std::string& location)
+inline void check_header(const std::string &name, const std::string &value,
+	std::string &content_type, std::size_t &content_length,
+	std::string &location)
 {
 	if (headers_equal(name, "Content-Type"))
 		content_type = value;
@@ -84,7 +84,7 @@ inline void check_header(const std::string& name, const std::string& value,
 
 template <typename Iterator>
 bool parse_http_status_line(Iterator begin, Iterator end,
-	int& version_major, int& version_minor, int& status)
+	int& version_major, int &version_minor, int& status)
 {
 	enum
 	{
@@ -196,8 +196,8 @@ bool parse_http_status_line(Iterator begin, Iterator end,
 
 template <typename Iterator>
 bool parse_http_headers(Iterator begin, Iterator end,
-	std::string& content_type, std::size_t& content_length,
-	std::string& location)
+	std::string &content_type, std::size_t &content_length,
+	std::string &location)
 {
 	enum
 	{
@@ -305,12 +305,12 @@ bool parse_http_headers(Iterator begin, Iterator end,
 	return false;
 }
 
-typedef std::map<std::string, std::string> http_headers;
+typedef avhttp::option::option_item_list http_headers;
 
 template <typename Iterator>
 bool parse_http_headers(Iterator begin, Iterator end,
-	std::string& content_type, std::size_t& content_length,
-	std::string& location, http_headers& headers)
+	std::string &content_type, std::size_t &content_length,
+	std::string &location, http_headers &headers)
 {
 	enum
 	{
@@ -351,7 +351,7 @@ bool parse_http_headers(Iterator begin, Iterator end,
 				check_header(name, value, content_type, content_length, location);
 				boost::trim(name);
 				boost::trim(value);
-				headers.insert(std::make_pair(name, value));
+				headers.push_back(std::make_pair(name, value));
 				name.clear();
 				value.clear();
 				state = final_linefeed;
@@ -365,7 +365,7 @@ bool parse_http_headers(Iterator begin, Iterator end,
 				check_header(name, value, content_type, content_length, location);
 				boost::trim(name);
 				boost::trim(value);
-				headers.insert(std::make_pair(name, value));
+				headers.push_back(std::make_pair(name, value));
 				name.clear();
 				value.clear();
 				name.push_back(c);
