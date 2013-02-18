@@ -85,6 +85,14 @@ public:
 		return false;
 	}
 
+	// 查找指定的 key 的 value. 没找到放回 ""，　这是个偷懒的帮助.
+	std::string find(const std::string & key) const
+	{
+		std::string v;
+		find(key,v);
+		return v;
+	}
+
 	// 清空.
 	void clear()
 	{
