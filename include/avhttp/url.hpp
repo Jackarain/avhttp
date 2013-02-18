@@ -10,6 +10,10 @@
 #ifndef __URL_HPP__
 #define __URL_HPP__
 
+#if defined(_MSC_VER) && (_MSC_VER >= 1200)
+# pragma once
+#endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
+
 #include <cstring>
 #include <string>
 #include <cctype>
@@ -557,5 +561,4 @@ private:
 
 } // namespace avhttp
 
-#endif // __URL_H__
-
+#endif // __URL_HPP__

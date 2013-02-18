@@ -11,6 +11,10 @@
 #ifndef __FILE_HPP__
 #define __FILE_HPP__
 
+#if defined(_MSC_VER) && (_MSC_VER >= 1200)
+# pragma once
+#endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
+
 #include <boost/noncopyable.hpp>
 #include "storage_interface.hpp"
 
