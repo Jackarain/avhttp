@@ -14,6 +14,7 @@
 #pragma once
 
 #include <map>
+#include <string>
 
 namespace avhttp {
 
@@ -26,13 +27,22 @@ namespace avhttp {
 // 选项表.
 typedef std::map<std::string, std::string> option_item;
 
+namespace httpoptions{
+	// 定义一些常用的　http 选项为 const string , 这样就不用记忆那些单词了，呵呵.
+	static const std::string request_method("_request_method");
+	static const std::string request_body("_request_body");
+	static const std::string cookie("cookie");
+	static const std::string referer("referer");
+	static const std::string content_type("content-type");
+}
+
 class option
 {
 public:
 	option() {}
 	~option() {}
 
-public:
+// public:
 
 	// 这样就允许这样的应用:
 	// http_stream s;
