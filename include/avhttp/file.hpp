@@ -66,7 +66,7 @@ protected:
 };
 
 // 默认存储对象.
-storage_interface* default_storage_constructor()
+static storage_interface* default_storage_constructor()
 {
 	return new file();
 }
