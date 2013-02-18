@@ -17,6 +17,7 @@
 
 #include <map>
 #include <string>
+#include <boost/algorithm/string.hpp>
 
 namespace avhttp {
 
@@ -103,7 +104,7 @@ public:
 		return v;
 	}
 
-	// 得到Heder字符串.
+	// 得到Header字符串.
 	std::string header_string() const
 	{
 		std::string str;
