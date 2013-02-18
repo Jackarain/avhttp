@@ -8,10 +8,12 @@
 // path LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef __OPTIONS_H__
-#define __OPTIONS_H__
+#ifndef __OPTIONS_HPP__
+#define __OPTIONS_HPP__
 
-#pragma once
+#if defined(_MSC_VER) && (_MSC_VER >= 1200)
+# pragma once
+#endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 #include <map>
 #include <string>
@@ -127,4 +129,4 @@ typedef option response_opts;
 
 }
 
-#endif // __OPTIONS_H__
+#endif // __OPTIONS_HPP__

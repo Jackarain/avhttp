@@ -11,6 +11,10 @@
 #ifndef __STORAGE_INTERFACE_HPP__
 #define __STORAGE_INTERFACE_HPP__
 
+#if defined(_MSC_VER) && (_MSC_VER >= 1200)
+# pragma once
+#endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
+
 #include <boost/filesystem.hpp>
 #include <boost/system/error_code.hpp>
 #include <boost/cstdint.hpp>

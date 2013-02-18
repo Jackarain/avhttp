@@ -29,4 +29,3 @@
 #  pragma GCC visibility push (default)
 # endif // (__GNUC__ == 4 && __GNUC_MINOR__ >= 1) || (__GNUC__ > 4)
 #endif // defined(__GNUC__)
-

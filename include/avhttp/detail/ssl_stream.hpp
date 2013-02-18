@@ -9,10 +9,12 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef __SSL_STREAM_H__
-#define __SSL_STREAM_H__
+#ifndef __SSL_STREAM_HPP__
+#define __SSL_STREAM_HPP__
 
-#pragma once
+#if defined(_MSC_VER) && (_MSC_VER >= 1200)
+# pragma once
+#endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 #include <boost/asio/ssl.hpp>
 #include <openssl/x509v3.h>
@@ -259,9 +261,4 @@ private:
 }
 }
 
-
-
-#endif // __SSL_STREAM_H__
-
-
-
+#endif // __SSL_STREAM_HPP__

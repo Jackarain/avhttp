@@ -11,8 +11,12 @@
 // * $Id: parsers.hpp 49 2011-07-15 03:00:34Z jack $
 //
 
-#ifndef __PARSERS_H__
-#define __PARSERS_H__
+#ifndef __PARSERS_HPP__
+#define __PARSERS_HPP__
+
+#if defined(_MSC_VER) && (_MSC_VER >= 1200)
+# pragma once
+#endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 #include <map>
 #include <algorithm>
@@ -21,8 +25,6 @@
 #include <string>
 
 #include <boost/algorithm/string.hpp>
-
-#pragma once
 
 namespace avhttp {
 namespace detail {
@@ -425,5 +427,4 @@ bool parse_http_headers(Iterator begin, Iterator end,
 } // namespace detail
 } // namespace avhttp
 
-#endif // __PARSERS_H__
-
+#endif // __PARSERS_HPP__
