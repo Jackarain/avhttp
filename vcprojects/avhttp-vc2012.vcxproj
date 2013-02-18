@@ -99,9 +99,11 @@
     <ClInclude Include="..\include\avhttp\detail\parsers.hpp" />
     <ClInclude Include="..\include\avhttp\detail\socket_type.hpp" />
     <ClInclude Include="..\include\avhttp\detail\ssl_stream.hpp" />
+    <ClInclude Include="..\include\avhttp\file.hpp" />
     <ClInclude Include="..\include\avhttp\http_stream.hpp" />
     <ClInclude Include="..\include\avhttp\multi_download.hpp" />
     <ClInclude Include="..\include\avhttp\options.hpp" />
+    <ClInclude Include="..\include\avhttp\storage_interface.hpp" />
     <ClInclude Include="..\include\avhttp\url.hpp" />
   </ItemGroup>
   <ItemGroup>

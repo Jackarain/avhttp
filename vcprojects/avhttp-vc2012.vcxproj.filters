@@ -54,6 +54,12 @@
     <ClInclude Include="..\include\avhttp\multi_download.hpp">
       <Filter>头文件\avhttp</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\avhttp\file.hpp">
+      <Filter>头文件\avhttp\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\avhttp\storage_interface.hpp">
+      <Filter>头文件\avhttp\detail</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />

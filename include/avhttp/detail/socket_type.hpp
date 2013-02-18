@@ -9,10 +9,12 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef __SOCKET_TYPE_H__
-#define __SOCKET_TYPE_H__
+#ifndef __SOCKET_TYPE_HPP__
+#define __SOCKET_TYPE_HPP__
 
-#pragma once
+#if defined(_MSC_VER) && (_MSC_VER >= 1200)
+# pragma once
+#endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 #include <boost/variant.hpp>
 #include <boost/mpl/vector.hpp>
@@ -916,4 +918,4 @@ private:
 }
 }
 
-#endif // __SOCKET_TYPE_H__
+#endif // __SOCKET_TYPE_HPP__

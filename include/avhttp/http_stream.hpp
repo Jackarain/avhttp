@@ -11,7 +11,9 @@
 #ifndef __HTTP_STREAM_HPP__
 #define __HTTP_STREAM_HPP__
 
-#pragma once
+#if defined(_MSC_VER) && (_MSC_VER >= 1200)
+# pragma once
+#endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 #include <vector>
 
@@ -722,8 +724,6 @@ public:
 	// @end example
 	void request(request_opts &opt, boost::system::error_code &ec)
 	{
-		option_item opts = opt.option_all();
-
 		// 判断socket是否打开.
 		if (!m_sock.is_open())
 		{
@@ -731,46 +731,34 @@ public:
 			return;
 		}
 
+		// 保存到一个新的opts中操作.
+		request_opts opts = opt;
+
 		// 得到request_method.
 		std::string request_method = "GET";
-		option_item::iterator val = opts.find("_request_method");
-		if (val != opts.end())
-		{
-			if (val->second == "GET" || val->second == "HEAD" || val->second == "POST")
-				request_method = val->second;
-			opts.erase(val);	// 删除处理过的选项.
-		}
+		if (opts.find("_request_method", request_method))
+			opts.remove("_request_method");	// 删除处理过的选项.
 
 		// 得到Host信息.
 		std::string host = m_url.to_string(url::host_component | url::port_component);
-		val = opts.find("Host");
-		if (val != opts.end())
-		{
-			host = val->second;	// 使用选项设置中的主机信息.
-			opts.erase(val);	// 删除处理过的选项.
-		}
+		if (opts.find("Host", host))
+			opts.remove("Host");	// 删除处理过的选项.
 
 		// 得到Accept信息.
 		std::string accept = "*/*";
-		val = opts.find("Accept");
-		if (val != opts.end())
-		{
-			accept = val->second;
-			opts.erase(val);	// 删除处理过的选项.
-		}
+		if (opts.find("Accept", accept))
+			opts.remove("Accept");	// 删除处理过的选项.
+
 
 		// 是否带有body选项.
 		std::string body;
-		val = opts.find("_request_body");
-		if (val != opts.end())
-		{
-			body = val->second;
-			opts.erase(val);	// 删除处理过的选项.
-		}
+		if (opts.find("_request_body", body))
+			opts.remove("_request_body");	// 删除处理过的选项.
 
 		// 循环构造其它选项.
 		std::string other_option_string;
-		for (val = opts.begin(); val != opts.end(); val++)
+		request_opts::option_item_list &list = opts.option_all();
+		for (request_opts::option_item_list::iterator val = list.begin(); val != list.end(); val++)
 		{
 			other_option_string += (val->first + ": " + val->second + "\r\n");
 		}
@@ -821,7 +809,6 @@ public:
 	void async_request(request_opts &opt, Handler handler)
 	{
 		boost::system::error_code ec;
-		option_item opts = opt.option_all();
 
 		// 判断socket是否打开.
 		if (!m_sock.is_open())
@@ -830,46 +817,34 @@ public:
 			return;
 		}
 
+		// 保存到一个新的opts中操作.
+		request_opts opts = opt;
+
 		// 得到request_method.
 		std::string request_method = "GET";
-		option_item::iterator val = opts.find("_request_method");
-		if (val != opts.end())
-		{
-			if (val->second == "GET" || val->second == "HEAD" || val->second == "POST")
-				request_method = val->second;
-			opts.erase(val);	// 删除处理过的选项.
-		}
+		if (opts.find("_request_method", request_method))
+			opts.remove("_request_method");	// 删除处理过的选项.
 
 		// 得到Host信息.
 		std::string host = m_url.to_string(url::host_component | url::port_component);
-		val = opts.find("Host");
-		if (val != opts.end())
-		{
-			host = val->second;	// 使用选项设置中的主机信息.
-			opts.erase(val);	// 删除处理过的选项.
-		}
+		if (opts.find("Host", host))
+			opts.remove("Host");	// 删除处理过的选项.
 
 		// 得到Accept信息.
 		std::string accept = "*/*";
-		val = opts.find("Accept");
-		if (val != opts.end())
-		{
-			accept = val->second;
-			opts.erase(val);	// 删除处理过的选项.
-		}
+		if (opts.find("Accept", accept))
+			opts.remove("Accept");	// 删除处理过的选项.
+
 
 		// 是否带有body选项.
 		std::string body;
-		val = opts.find("_request_body");
-		if (val != opts.end())
-		{
-			body = val->second;
-			opts.erase(val);	// 删除处理过的选项.
-		}
+		if (opts.find("_request_body", body))
+			opts.remove("_request_body");	// 删除处理过的选项.
 
 		// 循环构造其它选项.
 		std::string other_option_string;
-		for (val = opts.begin(); val != opts.end(); val++)
+		request_opts::option_item_list &list = opts.option_all();
+		for (request_opts::option_item_list::iterator val = list.begin(); val != list.end(); val++)
 		{
 			other_option_string += (val->first + ": " + val->second + "\r\n");
 		}

@@ -8,10 +8,12 @@
 // path LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef __AVHTTP_H__
-#define __AVHTTP_H__
+#ifndef __AVHTTP_HPP__
+#define __AVHTTP_HPP__
 
-#pragma once
+#if defined(_MSC_VER) && (_MSC_VER >= 1200)
+# pragma once
+#endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 #include "avhttp/detail/abi_prefix.hpp"
 
@@ -31,4 +33,4 @@
 #include "avhttp/detail/abi_suffix.hpp"
 
 
-#endif // __AVHTTP_H__
+#endif // __AVHTTP_HPP__
