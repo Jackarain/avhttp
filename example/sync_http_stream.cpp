@@ -13,16 +13,20 @@ int main(int argc, char* argv[])
 	try {
 		boost::asio::io_service io;
 		avhttp::http_stream h(io);
+		avhttp::multi_download m(io);
 
 		//  可以设置请求选项.
 		// avhttp::request_opts opt;
 		// opt.insert("Connection", "Keep-Alive");
 		// h.request_options(opt);
 
-		h.open(argv[1]);
+		// h.open(argv[1]);
+
+		boost::system::error_code ec;
+		m.open(argv[1], ec);
 
 		boost::array<char, 1024> buf;
-		boost::system::error_code ec;
+		// boost::system::error_code ec;
 		std::size_t file_size = 0;
 		while (!ec)
 		{

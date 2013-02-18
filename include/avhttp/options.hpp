@@ -33,14 +33,10 @@ public:
 	~option() {}
 
 public:
-	/*
-	 * 这样就允许这样的应用:
-	 * 
-	 * http_stream s;
-	 * 
-	 * s.request_options( request_opts()("cookie","XXXXXX") );
-	 * 
-	 */
+
+	// 这样就允许这样的应用:
+	// http_stream s;
+	// s.request_options(request_opts()("cookie","XXXXXX"));
 	option & operator()(const std::string &key, const std::string &val)
 	{
 		insert(key, val);
@@ -59,6 +55,16 @@ public:
 		option_item::iterator f = m_opts.find(key);
 		if (f != m_opts.end())
 			m_opts.erase(f);
+	}
+
+	// 查找指定key的value.
+	bool find(const std::string &key, std::string &val)
+	{
+		option_item::iterator f = m_opts.find(key);
+		if (f == m_opts.end())
+			return false;
+		val = f->second;
+		return true;
 	}
 
 	// 清空.

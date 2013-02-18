@@ -975,6 +975,13 @@ public:
 		return m_response_opts;
 	}
 
+	///返回location.
+	// @返回location信息, 如果没有则返回空串.
+	const std::string& location() const
+	{
+		return m_location;
+	}
+
 	///设置是否认证服务器证书.
 	// @param is_check 如果为true表示认证服务器证书, 如果为false表示不认证服务器证书.
 	// 默认为认证服务器证书.
