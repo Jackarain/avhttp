@@ -772,7 +772,7 @@ public:
 		std::string other_option_string;
 		for (val = opts.begin(); val != opts.end(); val++)
 		{
-			other_option_string = val->first + ": " + val->second + "\r\n";
+			other_option_string += (val->first + ": " + val->second + "\r\n");
 		}
 
 		// 整合各选项到Http请求字符串中.
@@ -871,7 +871,7 @@ public:
 		std::string other_option_string;
 		for (val = opts.begin(); val != opts.end(); val++)
 		{
-			other_option_string = val->first + ": " + val->second + "\r\n";
+			other_option_string += (val->first + ": " + val->second + "\r\n");
 		}
 
 		// 整合各选项到Http请求字符串中.
