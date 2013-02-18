@@ -42,7 +42,7 @@ public:
 	option() {}
 	~option() {}
 
-// public:
+public:
 
 	// 这样就允许这样的应用:
 	// http_stream s;
@@ -68,12 +68,12 @@ public:
 	}
 
 	// 查找指定key的value.
-	bool find(const std::string &key, std::string &val)
+	bool find(const std::string &key, std::string &val) const
 	{
-		option_item::iterator f = m_opts.find(key);
-		if (f == m_opts.end())
-			return false;
-		val = f->second;
+ 		option_item::const_iterator f = m_opts.find(key);
+ 		if (f == m_opts.end())
+ 			return false;
+ 		val = f->second;
 		return true;
 	}
 
