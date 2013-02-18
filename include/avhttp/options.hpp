@@ -70,11 +70,19 @@ public:
 	// 查找指定key的value.
 	bool find(const std::string &key, std::string &val) const
 	{
- 		option_item::const_iterator f = m_opts.find(key);
- 		if (f == m_opts.end())
- 			return false;
- 		val = f->second;
-		return true;
+		std::string s = key;
+		boost::to_lower(s);
+		for (option_item::const_iterator f = m_opts.begin(); f != m_opts.end(); f++)
+		{
+			std::string temp = f->first;
+			boost::to_lower(temp);
+			if (temp == s)
+			{
+				val = f->second;
+				return true;
+			}
+		}
+		return false;
 	}
 
 	// 清空.
