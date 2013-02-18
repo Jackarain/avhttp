@@ -32,8 +32,9 @@ namespace httpoptions {
 	static const std::string request_body("_request_body");
 	static const std::string status_code("_status_code");
 	static const std::string cookie("cookie");
-	static const std::string referer("referer");
-	static const std::string content_type("content-type");
+	static const std::string referer("Referer");
+	static const std::string content_type("Content-Type");
+	static const std::string connection("Connection");
 }
 
 class option
