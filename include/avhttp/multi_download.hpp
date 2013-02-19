@@ -146,7 +146,7 @@ public:
 		http_object_ptr obj(new http_stream_object);
 
 		request_opts req_opt;
-		req_opt.insert("Range", "bytes=0-4");
+		req_opt.insert("Range", "bytes=0-");
 		req_opt.insert("Connection", "keep-alive");
 
 		// 创建http_stream并同步打开, 检查返回状态码是否为206, 如果非206则表示该http服务器不支持多点下载.
@@ -246,6 +246,9 @@ public:
 		else
 			req_opt.insert("Connection", "close");
 
+		// 修改终止状态.
+		m_abort = false;
+
 		// 如果支持多点下载, 按设置创建其它http_stream.
 		if (m_accept_multi)
 		{
@@ -291,27 +294,43 @@ public:
 		return ec;
 	}
 
+	// TODO: 实现close.
+	void close()
+	{
+		m_abort = true;
+	}
+
 protected:
 	void handle_open(const int index,
 		http_stream_ptr stream_ptr, const boost::system::error_code &ec)
 	{
+		// TODO: 实现打开后的逻辑处理.
 		std::cerr << "handle_open: " << index << std::endl;
 	}
 
 	void handle_read(const int index,
 		http_stream_ptr stream_ptr, int bytes_transferred, const boost::system::error_code &ec)
 	{
+		// TODO: 实现数据读取处理.
 		std::cerr << "handle_read: " << index << std::endl;
 	}
 
 	void handle_request(const int index,
 		http_stream_ptr stream_ptr, const boost::system::error_code &ec)
 	{
-
+		// TODO: 实现数据请求后的处理.
+		std::cerr << "handle_request: " << index << std::endl;
 	}
 
 	void on_tick()
 	{
+		// 每隔1秒进行一次on_tick.
+		if (!m_abort)
+		{
+			m_timer.expires_at(m_timer.expires_at() + boost::posix_time::seconds(1));
+			m_timer.async_wait(boost::bind(&multi_download::on_tick, this));
+		}
+
 		// 检查超时连接.
 		for (int i = 0; i < m_streams.size(); i++)
 		{
@@ -320,7 +339,6 @@ protected:
 				boost::posix_time::microsec_clock::local_time() - ptr->m_last_request_time;
 			if (duration > boost::posix_time::seconds(m_settings.m_time_out))
 			{
-				std::cerr << duration << std::endl;
 				// 超时, 关闭并重新创建连接.
 				boost::system::error_code ec;
 				ptr->m_stream->close(ec);
@@ -334,13 +352,6 @@ protected:
 					boost::bind(&multi_download::handle_open, this,
 					i, ptr->m_stream, boost::asio::placeholders::error));
 			}
-		}
-
-		// 每隔1秒进行一次on_tick.
-		if (!m_abort)
-		{
-			m_timer.expires_at(m_timer.expires_at() + boost::posix_time::seconds(1));
-			m_timer.async_wait(boost::bind(&multi_download::on_tick, this));
 		}
 	}
 
