@@ -113,7 +113,7 @@ public:
 		for (option_item_list::const_iterator f = m_opts.begin(); f != m_opts.end(); f++)
 		{
 			if (f->first != httpoptions::status_code)
-				str += (f->first + ": " + f->second);
+				str += (f->first + ": " + f->second + "\r\n");
 		}
 		return str;
 	}
