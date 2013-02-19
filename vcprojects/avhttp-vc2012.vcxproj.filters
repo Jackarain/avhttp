@@ -55,10 +55,10 @@
       <Filter>头文件\avhttp</Filter>
     </ClInclude>
     <ClInclude Include="..\include\avhttp\file.hpp">
-      <Filter>头文件\avhttp\detail</Filter>
+      <Filter>头文件\avhttp</Filter>
     </ClInclude>
     <ClInclude Include="..\include\avhttp\storage_interface.hpp">
-      <Filter>头文件\avhttp\detail</Filter>
+      <Filter>头文件\avhttp</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
