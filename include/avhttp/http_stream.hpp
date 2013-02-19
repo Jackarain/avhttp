@@ -30,6 +30,7 @@ namespace avhttp {
 
 // 一个http流类实现, 用于同步或异步访问一个指定的url上的数据.
 // 目前支持http/https协议.
+// @备注: 该类http_stream的对象非线程安全!
 // 以下是同步方式访问一个url中的数据使用示例.
 // @begin example
 //  try
@@ -203,7 +204,6 @@ public:
 		m_url = u;
 
 		// 清空一些选项.
-		m_response_opts.clear();
 		m_content_type = "";
 		m_status_code = 0;
 		m_content_length = 0;
@@ -309,72 +309,10 @@ public:
 			return;
 		}
 
-		// http状态代码.
 		boost::system::error_code http_code;
 
 		// 发出请求.
-		request(m_request_opts, ec);
-		if (ec)
-		{
-			return;
-		}
-
-		// 循环读取.
-		for (;;)
-		{
-			boost::asio::read_until(m_sock, m_response, "\r\n", ec);
-			if (ec)
-			{
-				return;
-			}
-
-			// 检查http状态码, version_major和version_minor是http协议的版本号.
-			int version_major = 0;
-			int version_minor = 0;
-			if (!detail::parse_http_status_line(
-				std::istreambuf_iterator<char>(&m_response),
-				std::istreambuf_iterator<char>(),
-				version_major, version_minor, m_status_code))
-			{
-				ec = avhttp::errc::malformed_status_line;
-				return;
-			}
-
-			// 如果http状态代码不是ok或partial_content, 根据status_code构造一个http_code, 后面
-			// 需要判断http_code是不是302等跳转, 如果是, 则将进入跳转逻辑; 如果是http发生了错误
-			// , 则直接返回这个状态构造的.
-			if (m_status_code != avhttp::errc::ok &&
-				m_status_code != avhttp::errc::partial_content)
-			{
-				http_code = make_error_code(static_cast<avhttp::errc::errc_t>(m_status_code));
-			}
-
-			// "continue"表示我们需要继续等待接收状态.
-			if (m_status_code != avhttp::errc::continue_request)
-				break;
-		} // end for.
-
-		// 添加状态码.
-		m_response_opts.insert("_status_code", boost::str(boost::format("%d") % m_status_code));
-
-		// 接收掉所有Http Header.
-		std::size_t bytes_transferred = boost::asio::read_until(m_sock, m_response, "\r\n\r\n", ec);
-		if (ec)
-		{
-			return;
-		}
-
-		std::string header_string;
-		header_string.resize(bytes_transferred);
-		m_response.sgetn(&header_string[0], bytes_transferred);
-
-		// 解析Http Header.
-		if (!detail::parse_http_headers(header_string.begin(), header_string.end(),
-			m_content_type, m_content_length, m_location, m_response_opts.option_all()))
-		{
-			ec = avhttp::errc::malformed_response_headers;
-			return;
-		}
+		request(m_request_opts, http_code);
 
 		// 判断是否需要跳转.
 		if (http_code == avhttp::errc::moved_permanently || http_code == avhttp::errc::found)
@@ -387,16 +325,13 @@ public:
 			}
 		}
 
+		// 根据http状态码来构造.
 		if (http_code)
-		{
-			// 根据http状态码来构造.
 			ec = http_code;
-		}
 		else
-		{
-			// 打开成功.
-			ec = boost::system::error_code();
-		}
+			ec = boost::system::error_code();	// 打开成功.
+
+		return;
 	}
 
 	///异步打开一个指定的URL.
@@ -430,7 +365,6 @@ public:
 		m_url = u;
 
 		// 清空一些选项.
-		m_response_opts.clear();
 		m_content_type = "";
 		m_status_code = 0;
 		m_content_length = 0;
@@ -780,6 +714,69 @@ public:
 
 		// 发送请求.
 		boost::asio::write(m_sock, m_request, ec);
+		if (ec)
+		{
+			return;
+		}
+
+		// 循环读取.
+		for (;;)
+		{
+			boost::asio::read_until(m_sock, m_response, "\r\n", ec);
+			if (ec)
+			{
+				return;
+			}
+
+			// 检查http状态码, version_major和version_minor是http协议的版本号.
+			int version_major = 0;
+			int version_minor = 0;
+			if (!detail::parse_http_status_line(
+				std::istreambuf_iterator<char>(&m_response),
+				std::istreambuf_iterator<char>(),
+				version_major, version_minor, m_status_code))
+			{
+				ec = avhttp::errc::malformed_status_line;
+				return;
+			}
+
+			// 如果http状态代码不是ok或partial_content, 根据status_code构造一个http_code, 后面
+			// 需要判断http_code是不是302等跳转, 如果是, 则将进入跳转逻辑; 如果是http发生了错误
+			// , 则直接返回这个状态构造的.
+			if (m_status_code != avhttp::errc::ok &&
+				m_status_code != avhttp::errc::partial_content)
+			{
+				ec = make_error_code(static_cast<avhttp::errc::errc_t>(m_status_code));
+			}
+
+			// "continue"表示我们需要继续等待接收状态.
+			if (m_status_code != avhttp::errc::continue_request)
+				break;
+		} // end for.
+
+		// 清除原有的返回选项.
+		m_response_opts.clear();
+		// 添加状态码.
+		m_response_opts.insert("_status_code", boost::str(boost::format("%d") % m_status_code));
+
+		// 接收掉所有Http Header.
+		std::size_t bytes_transferred = boost::asio::read_until(m_sock, m_response, "\r\n\r\n", ec);
+		if (ec)
+		{
+			return;
+		}
+
+		std::string header_string;
+		header_string.resize(bytes_transferred);
+		m_response.sgetn(&header_string[0], bytes_transferred);
+
+		// 解析Http Header.
+		if (!detail::parse_http_headers(header_string.begin(), header_string.end(),
+			m_content_type, m_content_length, m_location, m_response_opts.option_all()))
+		{
+			ec = avhttp::errc::malformed_response_headers;
+			return;
+		}
 	}
 
 	///向http服务器发起一个异步请求.
@@ -869,6 +866,14 @@ public:
 		boost::asio::async_write(m_sock, m_request,
 			boost::bind(&http_stream::handle_request<HandlerWrapper>, this,
 			HandlerWrapper(handler), boost::asio::placeholders::error));
+	}
+
+	///清除读写缓冲区数据.
+	// @备注: 非线程安全! 不应在正在进行读写操作时进行该操作!
+	void clear()
+	{
+		m_request.consume(m_request.size());
+		m_response.consume(m_response.size());
 	}
 
 	///关闭http_stream.
@@ -1099,8 +1104,6 @@ protected:
 			return;
 		}
 
-		// 异步读取Http header.
-
 		// 检查http状态码, version_major和version_minor是http协议的版本号.
 		int version_major = 0;
 		int version_minor = 0;
@@ -1121,6 +1124,8 @@ protected:
 		}
 		else
 		{
+			// 清除原有的返回选项.
+			m_response_opts.clear();
 			// 添加状态码.
 			m_response_opts.insert("_status_code", boost::str(boost::format("%d") % m_status_code));
 
