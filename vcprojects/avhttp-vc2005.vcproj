@@ -195,6 +195,10 @@
 				Name="avhttp"
 				>
 				<File
+					RelativePath="..\include\avhttp\file.hpp"
+					>
+				</File>
+				<File
 					RelativePath="..\include\avhttp\http_stream.hpp"
 					>
 				</File>
@@ -204,6 +208,10 @@
 				</File>
 				<File
 					RelativePath="..\include\avhttp\options.hpp"
+					>
+				</File>
+				<File
+					RelativePath="..\include\avhttp\rangefield.hpp"
 					>
 				</File>
 				<File

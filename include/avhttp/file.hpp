@@ -16,6 +16,8 @@
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 #include <boost/noncopyable.hpp>
+#include <boost/filesystem/fstream.hpp>
+
 #include "storage_interface.hpp"
 
 namespace avhttp

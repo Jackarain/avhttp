@@ -17,6 +17,8 @@
 
 #include <map>
 #include <vector>
+
+#include <boost/cstdint.hpp>
 #include <boost/assert.hpp>
 
 namespace avhttp {
@@ -25,7 +27,7 @@ namespace avhttp {
 class rangefield
 {
 public:
-	rangefield(int size)
+	rangefield(boost::int64_t size)
 		: m_size(size)
 		, m_need_gc(false)
 	{}
@@ -39,7 +41,7 @@ public:
 	// @param left左边边界.
 	// @param right右边边界, 不包含边界处.
 	// @备注: 添加一个区间到range中, 可以重叠添加, 成功返回true.
-	inline bool update(int left, int right)
+	inline bool update(boost::int64_t left, boost::int64_t right)
 	{
 		BOOST_ASSERT((left >= 0 && left < right) && right <= m_size);
 		if ((left < 0 || right > m_size) || (right <= left))
@@ -54,7 +56,7 @@ public:
 	// @param right右边边界, 不包含边界处.
 	// @返回这个[left, right)这个区间是否完整的被包含在range中.
 	// @备注: 检查的区间是一个半开区间[left, right), 即不包含右边界.
-	inline bool in_range(int left, int right)
+	inline bool in_range(boost::int64_t left, boost::int64_t right)
 	{
 		BOOST_ASSERT((left >= 0 && left < right) && right <= m_size);
 
@@ -62,7 +64,7 @@ public:
 		if (m_need_gc)
 			gc();
 
-		for (std::map<int, int>::iterator i = m_ranges.begin();
+		for (std::map<boost::int64_t, boost::int64_t>::iterator i = m_ranges.begin();
 			i != m_ranges.end(); i++)
 		{
 			if (left >= i->first && right <= i->second)
@@ -77,7 +79,7 @@ public:
 	// @param right 表示右边的边界, 不包括边界处.
 	// @返回false表示没有空间或失败.
 	// @备注: 输出的区间是一个半开区间[left, right), 即不包含右边界.
-	inline bool out_space(int &left, int &right)
+	inline bool out_space(boost::int64_t &left, boost::int64_t &right)
 	{
 		// 先整理.
 		if (m_need_gc)
@@ -93,7 +95,7 @@ public:
 		left = -1;
 		right = -1;
 		bool record = false;
-		for (std::map<int, int>::iterator i = m_ranges.begin();
+		for (std::map<boost::int64_t, boost::int64_t>::iterator i = m_ranges.begin();
 			i != m_ranges.end(); i++)
 		{
 			if (i == m_ranges.begin())
@@ -131,11 +133,11 @@ public:
 	///整理回收range中的重叠部分.
 	inline void gc()
 	{
-		std::map<int, int> result;
-		std::pair<int, int> max_value;
+		std::map<boost::int64_t, boost::int64_t> result;
+		std::pair<boost::int64_t, boost::int64_t> max_value;
 		max_value.first = 0;
 		max_value.second = 0;
-		for (std::map<int, int>::iterator i = m_ranges.begin();
+		for (std::map<boost::int64_t, boost::int64_t>::iterator i = m_ranges.begin();
 			i != m_ranges.end(); i++)
 		{
 			// i 在max_value 之间, 忽略之.
@@ -192,8 +194,8 @@ public:
 			gc();
 
 		int piece_num = (m_size / piece_size) + (m_size % piece_size == 0 ? 0 : 1);
-		int l = 0;
-		int r = 0;
+		boost::int64_t l = 0;
+		boost::int64_t r = 0;
 		for (int i = 0; i < piece_num; i++)
 		{
 			l = i * piece_size;
@@ -210,7 +212,7 @@ public:
 	///输出range内容, 调试使用.
 	inline void print()
 	{
-		for (std::map<int, int>::iterator i = m_ranges.begin();
+		for (std::map<boost::int64_t, boost::int64_t>::iterator i = m_ranges.begin();
 			i != m_ranges.end(); i++)
 		{
 			std::cout << i->first << "   ---    " << i->second << "\n";
@@ -219,8 +221,8 @@ public:
 
 private:
 	bool m_need_gc;
-	int m_size;
-	std::map<int, int> m_ranges;
+	boost::int64_t m_size;
+	std::map<boost::int64_t, boost::int64_t> m_ranges;
 };
 
 } // namespace avhttp

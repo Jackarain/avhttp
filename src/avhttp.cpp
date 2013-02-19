@@ -30,10 +30,11 @@ public:
 	{
 		if (!ec)
 		{
-			boost::asio::async_read(m_stream, boost::asio::buffer(m_buffer, 1024),
-				boost::bind(&downloader::handle_read, this,
-				boost::asio::placeholders::bytes_transferred,
-				boost::asio::placeholders::error));
+			m_stream.read_some(boost::asio::buffer(m_buffer, 1024));
+// 			boost::asio::async_read(m_stream, boost::asio::buffer(m_buffer, 1024),
+// 				boost::bind(&downloader::handle_read, this,
+// 				boost::asio::placeholders::bytes_transferred,
+// 				boost::asio::placeholders::error));
 // 			m_stream.async_read_some(boost::asio::buffer(m_buffer),
 // 				boost::bind(&downloader::handle_read, this,
 // 				boost::asio::placeholders::bytes_transferred,
@@ -63,7 +64,13 @@ int main(int argc, char* argv[])
 {
 	boost::asio::io_service io;
 
-	downloader d(io);
+	// downloader d(io);
+
+	avhttp::multi_download d(io);
+
+	boost::system::error_code ec;
+	d.open(argv[1], ec);
+
 	io.run();
 
 	return 0;
