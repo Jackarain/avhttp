@@ -32,8 +32,10 @@ namespace httpoptions {
 	static const std::string request_body("_request_body");
 	static const std::string status_code("_status_code");
 	static const std::string cookie("cookie");
-	static const std::string referer("referer");
-	static const std::string content_type("content-type");
+	static const std::string referer("Referer");
+	static const std::string content_type("Content-Type");
+	static const std::string content_length("Content-Length");
+	static const std::string connection("Connection");
 }
 
 class option
@@ -111,7 +113,7 @@ public:
 		for (option_item_list::const_iterator f = m_opts.begin(); f != m_opts.end(); f++)
 		{
 			if (f->first != httpoptions::status_code)
-				str += (f->first + ": " + f->second);
+				str += (f->first + ": " + f->second + "\r\n");
 		}
 		return str;
 	}
