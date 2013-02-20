@@ -399,9 +399,10 @@ protected:
 		// 保存数据.
 		if (m_storage && !ec)
 		{
+			// 计算offset.
 			boost::int64_t offset = object_ptr->m_request_range.left + object_ptr->m_bytes_transferred;
-			std::cout << index << " write data, offset: " << offset << " size: " << bytes_transferred << std::endl;
 
+			// 使用m_storage写入.
 			m_storage->write(object_ptr->m_buffer.c_array(),
 				object_ptr->m_request_range.left + object_ptr->m_bytes_transferred, bytes_transferred);
 		}
@@ -419,6 +420,8 @@ protected:
 
 		// 统计总下载字节数.
 		object_ptr->m_bytes_downloaded += bytes_transferred;
+
+		std::cout << index << " " << object_ptr->m_bytes_downloaded << " " << object_ptr->m_bytes_transferred << std::endl;
 
 		// 判断请求区间的数据已经下载完成, 如果下载完成, 则分配新的区间, 发起新的请求.
 		if (object_ptr->m_bytes_transferred >= object_ptr->m_request_range.size())
@@ -459,7 +462,8 @@ protected:
 				% object_ptr->m_request_range.left % object_ptr->m_request_range.right));
 
 			std::cout << index << " retry read: " <<
-				object_ptr->m_request_range.left << " " << object_ptr->m_request_range.right << std::endl;
+				object_ptr->m_request_range.left << " " << object_ptr->m_request_range.right <<
+				" " << object_ptr->m_request_range.size() << std::endl;
 
 			// 设置到请求选项中.
 			stream_ptr->request_options(req_opt);
@@ -568,9 +572,13 @@ protected:
 						// 如果分配空闲空间失败, 则跳过这个socket.
 						if (!allocate_range(object_ptr->m_request_range))
 							continue;
+						object_ptr->m_bytes_transferred = 0;
 						begin = object_ptr->m_request_range.left;
 						end = object_ptr->m_request_range.right;
 					}
+
+					std::cout << i << " retry read: " <<
+						begin << " " << end << " " << (end - begin) << std::endl;
 
 					req_opt.insert("Range",
 						boost::str(boost::format("bytes=%lld-%lld") % begin % end));
@@ -591,6 +599,7 @@ protected:
 
 	bool allocate_range(range &r)
 	{
+		boost::mutex::scoped_lock lock(m_rangefield_mutex);
 		range temp(-1, -1);
 		do
 		{
@@ -653,6 +662,9 @@ private:
 
 	// 文件区间图, 每次请求将由m_rangefield来分配空间区间.
 	rangefield m_rangefield;
+
+	// 保证分配空闲区间的唯一性.
+	boost::mutex m_rangefield_mutex;
 
 	// 是否中止工作.
 	bool m_abort;
