@@ -576,7 +576,7 @@ protected:
 				boost::system::error_code ec;
 				object_item_ptr->m_stream->close(ec);
 
-				std::cerr << "connection: " << i << " is timeout !!!" << std::endl;
+				std::cerr << "connection: " << i << " time out!!!" << std::endl;
 
 				// 重新创建http_object和http_stream.
 				http_object_ptr object_ptr(new http_stream_object(*object_item_ptr));
@@ -599,9 +599,9 @@ protected:
 				if (m_accept_multi)
 				{
 					boost::int64_t begin = object_ptr->m_request_range.left + object_ptr->m_bytes_transferred;
-					boost::int64_t end = object_ptr->m_request_range.left + object_ptr->m_request_range.size();
+					boost::int64_t end = object_ptr->m_request_range.right;
 
-					if (end - begin == 0)
+					if (end - begin <= 0)
 					{
 						// 如果分配空闲空间失败, 则跳过这个socket.
 						if (!allocate_range(object_ptr->m_request_range))
