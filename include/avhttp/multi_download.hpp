@@ -149,6 +149,21 @@ public:
 		ec = open(u, s);
 	}
 
+	///打开multi_download开始下载, 打开失败抛出一个异常.
+	// @param u指定的url.
+	// @备注: 直接使用内部的file.hpp下载数据到文件, 若想自己指定数据下载到指定的地方
+	// 可以通过调用另一个open来完成, 具体见另一个open的详细说明.
+	void open(const url &u)
+	{
+		settings s;
+		boost::system::error_code ec;
+		ec = open(u, s);
+		if (ec)
+		{
+			boost::throw_exception(boost::system::system_error(ec));
+		}
+	}
+
 	///打开multi_download开始下载.
 	// @param u指定的url.
 	// @param s指定的设置信息.
