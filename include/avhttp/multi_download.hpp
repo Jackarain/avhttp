@@ -137,12 +137,25 @@ public:
 	{}
 
 public:
+
+	///打开multi_download开始下载.
+	// @param u指定的url.
+	// @param ec当发生错误时, 包含详细的错误信息.
+	// @备注: 直接使用内部的file.hpp下载数据到文件, 若想自己指定数据下载到指定的地方
+	// 可以通过调用另一个open来完成, 具体见另一个open的详细说明.
 	void open(const url &u, boost::system::error_code &ec)
 	{
 		settings s;
 		ec = open(u, s);
 	}
 
+	///打开multi_download开始下载.
+	// @param u指定的url.
+	// @param s指定的设置信息.
+	// @param p指定的storage创建函数指针, 默认为default_storage_constructor.
+	// @返回error_code, 包含详细的错误信息.
+	// @备注: 如果需要自定义multi_download存储数据方式, 需要按照storage_interface.hpp中的storage_interface
+	// 虚接口来实现, 并实现一个storage_constructor_type函数用于创建你实现的存储接口, 通过这个open函数的参数3传入.
 	boost::system::error_code open(const url &u, const settings &s, storage_constructor_type p = NULL)
 	{
 		boost::system::error_code ec;
