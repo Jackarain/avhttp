@@ -398,6 +398,12 @@ public:
 		return m_file_size;
 	}
 
+	///得到当前下载的文件名.
+	std::string file_name() const
+	{
+		return boost::filesystem::path(m_final_url.path()).leaf().string();
+	}
+
 protected:
 	void handle_open(const int index,
 		http_object_ptr object_ptr, const boost::system::error_code &ec)
