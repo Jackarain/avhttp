@@ -13,7 +13,6 @@ int main(int argc, char* argv[])
 	try {
 		boost::asio::io_service io;
 		avhttp::http_stream h(io);
-		avhttp::multi_download m(io);
 
 		//  可以设置请求选项.
 		// avhttp::request_opts opt;
@@ -38,7 +37,7 @@ int main(int argc, char* argv[])
 
 		io.run();
 	}
-	catch (boost::system::system_error& e)
+	catch (boost::system::system_error &e)
 	{
 		std::cerr << e.what() << std::endl;
 		return -1;
