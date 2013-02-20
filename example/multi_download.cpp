@@ -42,8 +42,8 @@ std::string add_suffix(float val, char const* suffix = 0)
 	const int num_prefix = sizeof(prefix) / sizeof(const char*);
 	for (int i = 0; i < num_prefix; ++i)
 	{
-		val /= 1000.f;
-		if (std::fabs(val) < 1000.f)
+		val /= 1024.f;
+		if (std::fabs(val) < 1024.f)
 		{
 			ret = to_string(val, 4);
 			ret += prefix[i];
