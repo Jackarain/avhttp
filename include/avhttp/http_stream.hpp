@@ -761,9 +761,11 @@ public:
 		m_response_opts.insert("_status_code", boost::str(boost::format("%d") % m_status_code));
 
 		// 接收掉所有Http Header.
-		std::size_t bytes_transferred = boost::asio::read_until(m_sock, m_response, "\r\n\r\n", ec);
-		if (ec)
+		boost::system::error_code read_err;
+		std::size_t bytes_transferred = boost::asio::read_until(m_sock, m_response, "\r\n\r\n", read_err);
+		if (read_err)
 		{
+			ec = read_err;
 			return;
 		}
 
