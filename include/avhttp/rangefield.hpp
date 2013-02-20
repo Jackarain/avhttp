@@ -24,6 +24,41 @@
 
 namespace avhttp {
 
+// 定义请求数据范围类型.
+struct range
+{
+	range(boost::int64_t l, boost::int64_t r)
+		: left(l)
+		, right(r)
+	{}
+	range()
+		: left(0)
+		, right(0)
+	{}
+
+	inline boost::int64_t size()
+	{
+		return right - left;
+	}
+
+	inline bool operator ==(const range &r) const
+	{
+		if (left == r.left && right == r.right)
+			return true;
+		return false;
+	}
+
+	inline bool operator!=(const range &r) const
+	{
+		if (left == r.left && right == r.right)
+			return false;
+		return true;
+	}
+
+	boost::int64_t left;
+	boost::int64_t right;
+};
+
 // 一个按区域来划分的位图实现, 该类对象线程访问安全.
 class rangefield
 {
@@ -57,11 +92,19 @@ public:
 		return m_size;
 	}
 
+	///添加或更新range, 区间为[r.left, r.right)
+	// @param r区间, 不包含右边界处.
+	// @备注: 添加一个区间到range中, 可以重叠添加, 成功返回true.
+	inline bool update(const range &r)
+	{
+		return update(r.left, r.right);
+	}
+
 	///添加或更新range, 区间为[left, right)
 	// @param left左边边界.
 	// @param right右边边界, 不包含边界处.
 	// @备注: 添加一个区间到range中, 可以重叠添加, 成功返回true.
-	inline bool update(boost::int64_t left, boost::int64_t right)
+	inline bool update(const boost::int64_t &left, const boost::int64_t &right)
 	{
 		BOOST_ASSERT((left >= 0 && left < right) && right <= m_size);
 
@@ -75,11 +118,20 @@ public:
 	}
 
 	///是否在区间里.
+	// @param r区间, 不包含右边界处.
+	// @返回这个range这个区间是否完整的被包含在range中.
+	// @备注: 检查的区间是一个半开区间[left, right), 即不包含右边界.
+	inline bool in_range(const range &r)
+	{
+		return in_range(r.left, r.right);
+	}
+
+	///是否在区间里.
 	// @param left左边边界.
 	// @param right右边边界, 不包含边界处.
 	// @返回这个[left, right)这个区间是否完整的被包含在range中.
 	// @备注: 检查的区间是一个半开区间[left, right), 即不包含右边界.
-	inline bool in_range(boost::int64_t left, boost::int64_t right)
+	inline bool in_range(const boost::int64_t &left, const boost::int64_t &right)
 	{
 		BOOST_ASSERT((left >= 0 && left < right) && right <= m_size);
 
@@ -97,6 +149,15 @@ public:
 		}
 
 		return false;
+	}
+
+	///输出空隙.
+	// @param r区间, 不包含右边界处.
+	// @返回false表示没有空间或失败.
+	// @备注: 输出的区间是一个半开区间[left, right), 即不包含右边界.
+	inline bool out_space(range &r)
+	{
+		return out_space(r.left, r.right);
 	}
 
 	///输出空隙.
