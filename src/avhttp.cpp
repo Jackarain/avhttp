@@ -2,75 +2,85 @@
 #include <boost/array.hpp>
 #include "avhttp.hpp"
 
-class downloader
+std::string to_string(int v, int width)
 {
-public:
-	downloader(boost::asio::io_service &io)
-		: m_io_service(io)
-		, m_stream(io)
+	std::stringstream s;
+	s.flags(std::ios_base::right);
+	s.width(width);
+	s.fill(' ');
+	s << v;
+	return s.str();
+}
+
+std::string& to_string(float v, int width, int precision = 3)
+{
+	// this is a silly optimization
+	// to avoid copying of strings
+	enum { num_strings = 20 };
+	static std::string buf[num_strings];
+	static int round_robin = 0;
+	std::string& ret = buf[round_robin];
+	++round_robin;
+	if (round_robin >= num_strings) round_robin = 0;
+	ret.resize(20);
+	int size = sprintf(&ret[0], "%*.*f", width, precision, v);
+	ret.resize((std::min)(size, width));
+	return ret;
+}
+
+std::string add_suffix(float val, char const* suffix = 0)
+{
+	std::string ret;
+	if (val == 0)
 	{
-		avhttp::request_opts opt;
-
-		// opt.insert("Range", "bytes=0-2");
-		// m_stream.request_options(opt);
-
-		// https://2.gravatar.com/avatar/767fc9c115a1b989744c755db47feb60
-		// http://www.boost.org/LICENSE_1_0.txt
-		// http://w.qq.com/cgi-bin/get_group_pic?pic={64A234EE-8657-DA63-B7F4-C7718460F461}.gif
-
-		m_stream.check_certificate(false);
-		m_stream.async_open("http://www.boost.org/LICENSE_1_0.txt",
-			boost::bind(&downloader::handle_open, this, boost::asio::placeholders::error));
+		ret.resize(4 + 2, ' ');
+		if (suffix) ret.resize(4 + 2 + strlen(suffix), ' ');
+		return ret;
 	}
-	~downloader()
-	{}
 
-public:
-	void handle_open(const boost::system::error_code &ec)
+	const char* prefix[] = {"kB", "MB", "GB", "TB"};
+	const int num_prefix = sizeof(prefix) / sizeof(const char*);
+	for (int i = 0; i < num_prefix; ++i)
 	{
-		if (!ec)
+		val /= 1024.f;
+		if (std::fabs(val) < 1024.f)
 		{
-// 			boost::asio::async_read(m_stream, boost::asio::buffer(m_buffer, 1024),
-// 				boost::bind(&downloader::handle_read, this,
-// 				boost::asio::placeholders::bytes_transferred,
-// 				boost::asio::placeholders::error));
-			m_stream.async_read_some(boost::asio::buffer(m_buffer),
-				boost::bind(&downloader::handle_read, this,
-				boost::asio::placeholders::bytes_transferred,
-				boost::asio::placeholders::error));
+			ret = to_string(val, 4);
+			ret += prefix[i];
+			if (suffix) ret += suffix;
+			return ret;
 		}
 	}
-
-	void handle_read(int bytes_transferred, const boost::system::error_code &ec)
-	{
-		if (!ec)
-		{
-			std::cout.write(m_buffer.data(), bytes_transferred);
-			m_stream.async_read_some(boost::asio::buffer(m_buffer),
-				boost::bind(&downloader::handle_read, this,
-				boost::asio::placeholders::bytes_transferred,
-				boost::asio::placeholders::error));
-		}
-	}
-
-private:
-	boost::asio::io_service &m_io_service;
-	avhttp::http_stream m_stream;
-	boost::array<char, 1024> m_buffer;
-};
+	ret = to_string(val, 4);
+	ret += "PB";
+	if (suffix) ret += suffix;
+	return ret;
+}
 
 int main(int argc, char* argv[])
 {
-	boost::asio::io_service io;
+	if (argc != 2)
+	{
+		std::cerr << "usage: " << argv[0] << " <url>\n";
+		return -1;
+	}
 
-	// downloader d(io);
+	try {
+		boost::asio::io_service io;
+		avhttp::multi_download d(io);
 
-	avhttp::multi_download d(io);
+		d.open(argv[1]);
+		if (d.file_size() != -1)
+			std::cout << "file \'" << d.file_name().c_str() <<
+			"\' size is: " << "(" << d.file_size() << " bytes) " << add_suffix(d.file_size()).c_str() << std::endl;
 
-	boost::system::error_code ec;
-	d.open(argv[1], ec);
-
-	io.run();
+		io.run();
+	}
+	catch (boost::system::system_error &e)
+	{
+		std::cerr << e.what() << std::endl;
+		return -1;
+	}
 
 	return 0;
 }
