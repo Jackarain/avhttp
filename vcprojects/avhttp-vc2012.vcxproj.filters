@@ -60,6 +60,12 @@
     <ClInclude Include="..\include\avhttp\storage_interface.hpp">
       <Filter>头文件\avhttp</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\avhttp\bitfield.hpp">
+      <Filter>头文件\avhttp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\avhttp\rangefield.hpp">
+      <Filter>头文件\avhttp</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
