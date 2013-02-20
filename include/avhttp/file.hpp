@@ -39,6 +39,10 @@ public:
 	virtual void open(fs::path &file_path, boost::system::error_code &ec)
 	{
 		m_fstream.open(file_path, std::ios::binary|std::ios::trunc|std::ios::in|std::ios::out);
+		if (!m_fstream.is_open())
+		{
+			ec = boost::system::errc::make_error_code(boost::system::errc::bad_file_descriptor);
+		}
 	}
 
 	// 关闭存储组件.
