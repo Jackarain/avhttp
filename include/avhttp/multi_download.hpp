@@ -86,6 +86,7 @@ struct http_stream_object
 		: m_request_range(0, 0)
 		, m_bytes_transferred(0)
 		, m_bytes_downloaded(0)
+		, m_direct_retry_connect(false)
 	{}
 
 	// http_stream对象.
@@ -106,6 +107,9 @@ struct http_stream_object
 
 	// 最后请求的时间.
 	boost::posix_time::ptime m_last_request_time;
+
+	// 直接重试连接, 用于发生错误时直接重试.
+	bool m_direct_retry_connect;
 };
 
 // 重定义http_object_ptr指针.
@@ -227,6 +231,14 @@ public:
 			m_storage.reset(p());
 		BOOST_ASSERT(m_storage);
 
+		// 打开文件.
+		std::string file_name = boost::filesystem::path(m_final_url.path()).leaf().string();
+		m_storage->open(boost::filesystem::path(file_name), ec);
+		if (ec)
+		{
+			return ec;
+		}
+
 		// 保存设置.
 		m_settings = s;
 
@@ -236,9 +248,13 @@ public:
 		if (m_settings.m_piece_size == -1 && m_file_size != -1)
 			m_settings.m_piece_size = default_piece_size;
 
-		// 清除http_stream缓冲区数据, 避免长连接在下次请求后读取到脏数据, 保存到列表.
-		if (m_keep_alive)
-			h.clear();
+		// 关闭stream.
+		h.close(ec);
+		if (ec)
+		{
+			return ec;
+		}
+
 		m_streams.push_back(obj);
 
 		// 根据第1个连接返回的信息, 重新设置请求选项.
@@ -335,8 +351,9 @@ public:
 			// 保存最后请求时间, 方便检查超时重置.
 			obj->m_last_request_time = boost::posix_time::microsec_clock::local_time();
 
-			// 发起异步http数据请求.
-			h.async_request(req_opt, boost::bind(&multi_download::handle_request, this,
+			// 开始异步打开.
+			h.async_open(m_final_url,
+				boost::bind(&multi_download::handle_open, this,
 				0, obj, boost::asio::placeholders::error));
 
 		} while (0);
@@ -360,7 +377,7 @@ protected:
 		if (ec || m_abort)
 		{
 			// 输出错误信息, 然后退出, 让on_tick检查到超时后重新连接.
-			std::cerr << "handle_open: " << ec.message().c_str() << std::endl;
+			std::cerr << index << " handle_open: " << ec.message().c_str() << std::endl;
 			return;
 		}
 
@@ -383,7 +400,7 @@ protected:
 		if (m_storage && !ec)
 		{
 			boost::int64_t offset = object_ptr->m_request_range.left + object_ptr->m_bytes_transferred;
-			std::cout << "write data, offset: " << offset << " size: " << bytes_transferred << std::endl;
+			std::cout << index << " write data, offset: " << offset << " size: " << bytes_transferred << std::endl;
 
 			m_storage->write(object_ptr->m_buffer.c_array(),
 				object_ptr->m_request_range.left + object_ptr->m_bytes_transferred, bytes_transferred);
@@ -393,7 +410,7 @@ protected:
 		if (ec || m_abort)
 		{
 			// 输出错误信息, 然后退出, 让on_tick检查到超时后重新连接.
-			std::cerr << "handle_read: " << ec.message().c_str() << std::endl;
+			std::cerr << index << " handle_read: " << ec.message().c_str() << std::endl;
 			return;
 		}
 
@@ -441,6 +458,9 @@ protected:
 				boost::str(boost::format("bytes=%lld-%lld")
 				% object_ptr->m_request_range.left % object_ptr->m_request_range.right));
 
+			std::cout << index << " retry read: " <<
+				object_ptr->m_request_range.left << " " << object_ptr->m_request_range.right << std::endl;
+
 			// 设置到请求选项中.
 			stream_ptr->request_options(req_opt);
 
@@ -450,13 +470,16 @@ protected:
 			// 发起异步http数据请求.
 			if (!m_keep_alive)
 				stream_ptr->async_open(m_final_url, boost::bind(&multi_download::handle_open, this,
-					0, object_ptr, boost::asio::placeholders::error));
+					index, object_ptr, boost::asio::placeholders::error));
 			else
 				stream_ptr->async_request(req_opt, boost::bind(&multi_download::handle_request, this,
-				0, object_ptr, boost::asio::placeholders::error));
+					index, object_ptr, boost::asio::placeholders::error));
 		}
 		else
 		{
+			// 保存最后请求时间, 方便检查超时重置.
+			object_ptr->m_last_request_time = boost::posix_time::microsec_clock::local_time();
+
 			// 继续读取数据.
 			http_stream_ptr &stream_ptr = object_ptr->m_stream;
 			stream_ptr->async_read_some(boost::asio::buffer(object_ptr->m_buffer),
@@ -473,7 +496,7 @@ protected:
 		if (ec || m_abort)
 		{
 			// 输出错误信息, 然后退出, 让on_tick检查到超时后重新连接.
-			std::cerr << "handle_request: " << ec.message().c_str() << std::endl;
+			std::cerr << index << " handle_request: " << ec.message().c_str() << std::endl;
 			return;
 		}
 
@@ -514,6 +537,8 @@ protected:
 				// 超时, 关闭并重新创建连接.
 				boost::system::error_code ec;
 				object_item_ptr->m_stream->close(ec);
+
+				std::cerr << "connection: " << i << " is timeout !!!" << std::endl;
 
 				// 重新创建http_object和http_stream.
 				http_object_ptr object_ptr(new http_stream_object(*object_item_ptr));

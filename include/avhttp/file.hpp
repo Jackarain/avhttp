@@ -38,7 +38,7 @@ public:
 	// @param ec在出错时保存了详细的错误信息.
 	virtual void open(fs::path &file_path, boost::system::error_code &ec)
 	{
-
+		m_fstream.open(file_path, std::ios::binary|std::ios::trunc|std::ios::in|std::ios::out);
 	}
 
 	// 关闭存储组件.
@@ -54,6 +54,9 @@ public:
 	// @返回值为实际写入的字节数, 返回-1表示写入失败.
 	virtual int write(const char *buf, boost::uint64_t offset, int size)
 	{
+		m_fstream.seekp(offset, std::ios::beg);
+		m_fstream.write(buf, size);
+		m_fstream.flush();
 		return -1;
 	}
 
@@ -68,7 +71,7 @@ public:
 	}
 
 protected:
-
+	boost::filesystem::fstream m_fstream;
 };
 
 // 默认存储对象.
