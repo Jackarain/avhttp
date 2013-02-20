@@ -26,6 +26,7 @@
 #include <boost/thread/condition.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/date_time.hpp>
+#include <boost/format.hpp>
 
 #include "storage_interface.hpp"
 #include "file.hpp"
