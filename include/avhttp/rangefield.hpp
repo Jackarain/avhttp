@@ -22,6 +22,8 @@
 #include <boost/assert.hpp>
 #include <boost/thread/mutex.hpp>
 
+#include "bitfield.hpp"
+
 namespace avhttp {
 
 // 定义请求数据范围类型.
@@ -240,15 +242,19 @@ public:
 	///按指定大小输出为位图块.
 	// @param bitfield以int为单位的位图数组, 每个元素表示1个piece, 为0表示空, 为1表示满.
 	// @param piece_size指定的piece大小.
-	inline void range_to_bitfield(std::vector<int> &bitfield, int piece_size)
+	inline void range_to_bitfield(bitfield &bf, int piece_size)
 	{
 		// 先整理.
 		if (m_need_gc)
 			gc();
 
 		int piece_num = (m_size / piece_size) + (m_size % piece_size == 0 ? 0 : 1);
+
+		bf.resize(piece_num, 0);
+
 		boost::int64_t l = 0;
 		boost::int64_t r = 0;
+
 		for (int i = 0; i < piece_num; i++)
 		{
 			l = i * piece_size;
@@ -256,9 +262,7 @@ public:
 			r = r > m_size ? m_size : r;
 
 			if (in_range(l, r))
-				bitfield.push_back(1);
-			else
-				bitfield.push_back(0);
+				bf.set_bit(i);
 		}
 	}
 
