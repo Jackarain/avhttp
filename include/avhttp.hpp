@@ -29,6 +29,7 @@
 #include "avhttp/url.hpp"
 #include "avhttp/http_stream.hpp"
 #include "avhttp/rangefield.hpp"
+#include "avhttp/bitfield.hpp"
 #include "avhttp/multi_download.hpp"
 
 #include "avhttp/detail/abi_suffix.hpp"
