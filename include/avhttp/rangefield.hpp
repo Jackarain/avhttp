@@ -38,7 +38,7 @@ struct range
 
 	inline boost::int64_t size()
 	{
-		return right - left;
+		return right - left + 1;	// 注意: 由于http请求带右边界, 所以必须把右边界计算进去!!!
 	}
 
 	inline bool operator ==(const range &r) const
@@ -135,11 +135,11 @@ public:
 	{
 		BOOST_ASSERT((left >= 0 && left < right) && right <= m_size);
 
-		boost::mutex::scoped_lock lock(m_mutex);
-
 		// 先整理.
 		if (m_need_gc)
 			gc();
+
+		boost::mutex::scoped_lock lock(m_mutex);
 
 		for (std::map<boost::int64_t, boost::int64_t>::iterator i = m_ranges.begin();
 			i != m_ranges.end(); i++)
@@ -167,11 +167,11 @@ public:
 	// @备注: 输出的区间是一个半开区间[left, right), 即不包含右边界.
 	inline bool out_space(boost::int64_t &left, boost::int64_t &right)
 	{
-		boost::mutex::scoped_lock lock(m_mutex);
-
 		// 先整理.
 		if (m_need_gc)
 			gc();
+
+		boost::mutex::scoped_lock lock(m_mutex);
 
 		if (m_ranges.size() == 0)
 		{
@@ -218,6 +218,25 @@ public:
 		return true;
 	}
 
+	///检查位图是否已经满了.
+	bool is_full()
+	{
+		// 先整理.
+		if (m_need_gc)
+			gc();
+
+		boost::mutex::scoped_lock lock(m_mutex);
+
+		// 直接判断区间边界.
+		if (m_ranges.size() == 1)
+		{
+			std::map<boost::int64_t, boost::int64_t>::iterator i = m_ranges.begin();
+			if (i->first == 0 && i->second == m_size)
+				return true;
+		}
+		return false;
+	}
+
 	///按指定大小输出为位图块.
 	// @param bitfield以int为单位的位图数组, 每个元素表示1个piece, 为0表示空, 为1表示满.
 	// @param piece_size指定的piece大小.
@@ -259,6 +278,8 @@ protected:
 	///整理回收range中的重叠部分.
 	inline void gc()
 	{
+		boost::mutex::scoped_lock lock(m_mutex);
+
 		std::map<boost::int64_t, boost::int64_t> result;
 		std::pair<boost::int64_t, boost::int64_t> max_value;
 		max_value.first = 0;
