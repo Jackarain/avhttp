@@ -86,7 +86,8 @@ struct http_stream_object
 		: m_request_range(0, 0)
 		, m_bytes_transferred(0)
 		, m_bytes_downloaded(0)
-		, m_direct_retry_connect(false)
+		, m_done(false)
+		, m_direct_reconnect(false)
 	{}
 
 	// http_stream对象.
@@ -108,8 +109,11 @@ struct http_stream_object
 	// 最后请求的时间.
 	boost::posix_time::ptime m_last_request_time;
 
-	// 直接重试连接, 用于发生错误时直接重试.
-	bool m_direct_retry_connect;
+	// 是否操作功能完成.
+	bool m_done;
+
+	// 立即重新尝试连接.
+	bool m_direct_reconnect;
 };
 
 // 重定义http_object_ptr指针.
@@ -421,15 +425,10 @@ protected:
 		// 统计总下载字节数.
 		object_ptr->m_bytes_downloaded += bytes_transferred;
 
-		std::cout << index << " " << object_ptr->m_bytes_downloaded << " " << object_ptr->m_bytes_transferred << std::endl;
-
 		// 判断请求区间的数据已经下载完成, 如果下载完成, 则分配新的区间, 发起新的请求.
 		if (object_ptr->m_bytes_transferred >= object_ptr->m_request_range.size())
 		{
 			http_stream_ptr &stream_ptr = object_ptr->m_stream;
-
-			// 清空计数.
-			object_ptr->m_bytes_transferred = 0;
 
 			// 单连接模式, 表示下载完成, 终止下载.
 			if (!m_accept_multi)
@@ -452,18 +451,20 @@ protected:
 			if (m_keep_alive)
 				req_opt.insert("Connection", "keep-alive");
 
-			// 如果分配空闲空间失败, 则跳过这个socket.
+			// 如果分配空闲空间失败, 则跳过这个socket, 并立即尝试连接这个socket.
 			if (!allocate_range(object_ptr->m_request_range))
+			{
+				object_ptr->m_direct_reconnect = true;
 				return;
+			}
+
+			// 清空计数.
+			object_ptr->m_bytes_transferred = 0;
 
 			// 插入新的区间请求.
 			req_opt.insert("Range",
 				boost::str(boost::format("bytes=%lld-%lld")
 				% object_ptr->m_request_range.left % object_ptr->m_request_range.right));
-
-			std::cout << index << " retry read: " <<
-				object_ptr->m_request_range.left << " " << object_ptr->m_request_range.right <<
-				" " << object_ptr->m_request_range.size() << std::endl;
 
 			// 设置到请求选项中.
 			stream_ptr->request_options(req_opt);
@@ -530,13 +531,17 @@ protected:
 			return;
 		}
 
+		// 统计操作功能完成的http_stream的个数.
+		int done = 0;
+
 		for (int i = 0; i < m_streams.size(); i++)
 		{
 			http_object_ptr &object_item_ptr = m_streams[i];
 			boost::posix_time::time_duration duration =
 				boost::posix_time::microsec_clock::local_time() - object_item_ptr->m_last_request_time;
 
-			if (duration > boost::posix_time::seconds(m_settings.m_time_out))
+			if (!object_item_ptr->m_done &&	(duration > boost::posix_time::seconds(m_settings.m_time_out)
+				|| object_item_ptr->m_direct_reconnect))
 			{
 				// 超时, 关闭并重新创建连接.
 				boost::system::error_code ec;
@@ -565,20 +570,22 @@ protected:
 				if (m_accept_multi)
 				{
 					boost::int64_t begin = object_ptr->m_request_range.left + object_ptr->m_bytes_transferred;
-					boost::int64_t end = object_ptr->m_request_range.right;
+					boost::int64_t end = object_ptr->m_request_range.left + object_ptr->m_request_range.size();
 
 					if (end - begin == 0)
 					{
 						// 如果分配空闲空间失败, 则跳过这个socket.
 						if (!allocate_range(object_ptr->m_request_range))
+						{
+							object_ptr->m_done = true;	// 已经没什么可以下载了.
+							done++;
 							continue;
+						}
+
 						object_ptr->m_bytes_transferred = 0;
 						begin = object_ptr->m_request_range.left;
 						end = object_ptr->m_request_range.right;
 					}
-
-					std::cout << i << " retry read: " <<
-						begin << " " << end << " " << (end - begin) << std::endl;
 
 					req_opt.insert("Range",
 						boost::str(boost::format("bytes=%lld-%lld") % begin % end));
@@ -594,6 +601,14 @@ protected:
 				stream_ptr->async_open(m_final_url, boost::bind(&multi_download::handle_open, this,
 					i, object_ptr, boost::asio::placeholders::error));
 			}
+		}
+
+		// 检查位图是否已经满以及异步操作是否完成.
+		if (done == m_streams.size() && m_rangefield.is_full())
+		{
+			std::cout << "*** download completed! ***" << std::endl;
+			m_abort = true;
+			return;
 		}
 	}
 
@@ -625,7 +640,7 @@ protected:
 				break;
 		} while (!m_abort);
 
-		// 右边边界减1, 因为http请求的区间是包含右边界值.
+		// 右边边界减1, 因为http请求的区间是包含右边界值, 下载时会将right下标位置的字节下载.
 		if (--r.right < r.left)
 			return false;
 
