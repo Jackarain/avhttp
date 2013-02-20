@@ -212,39 +212,39 @@ public:
 			m_accept_multi = true;
 
 		// 得到文件大小.
-		if (m_accept_multi)
+		std::string length;
+		h.response_options().find("Content-Length", length);
+		if (length.empty())
 		{
-			std::string length;
-			h.response_options().find("Content-Length", length);
+			h.response_options().find("Content-Range", length);
+			std::string::size_type f = length.find('/');
+			if (f++ != std::string::npos)
+				length = length.substr(f);
+			else
+				length = "";
 			if (length.empty())
 			{
-				h.response_options().find("Content-Range", length);
-				std::string::size_type f = length.find('/');
-				if (f++ != std::string::npos)
-					length = length.substr(f);
-				else
-					length = "";
-				if (length.empty())
-				{
-					// 得到不文件长度, 设置为不支持多下载模式.
-					m_accept_multi = false;
-				}
+				// 得到不文件长度, 设置为不支持多下载模式.
+				m_accept_multi = false;
 			}
+		}
 
-			if (!length.empty())
+		if (!length.empty())
+		{
+			try
 			{
-				try
-				{
-					m_file_size = boost::lexical_cast<boost::int64_t>(length);
-				}
-				catch (boost::bad_lexical_cast &)
-				{
-					// 得不到正确的文件长度, 设置为不支持多下载模式.
-					m_accept_multi = false;
-				}
+				m_file_size = boost::lexical_cast<boost::int64_t>(length);
 			}
+			catch (boost::bad_lexical_cast &)
+			{
+				// 得不到正确的文件长度, 设置为不支持多下载模式.
+				m_accept_multi = false;
+			}
+		}
 
-			// 按文件大小分配rangefield.
+		// 按文件大小分配rangefield.
+		if (m_file_size != -1)
+		{
 			m_rangefield.reset(m_file_size);
 		}
 
@@ -368,18 +368,6 @@ public:
 				// 设置请求选项.
 				h.request_options(req_opt);
 			}
-			else
-			{
-				range req_range;
-				if (!allocate_range(req_range))
-				{
-					// 用于调试, 不可能执行到这里! 因为单socket模式没有其它stream和它竞争文件区间.
-					BOOST_ASSERT(0);
-				}
-
-				// 保存请求范围.
-				obj->m_request_range = req_range;
-			}
 
 			// 保存最后请求时间, 方便检查超时重置.
 			obj->m_last_request_time = boost::posix_time::microsec_clock::local_time();
@@ -403,6 +391,13 @@ public:
 		m_abort = true;
 	}
 
+	///返回当前下载的文件大小.
+	// @如果服务器不支持多点下载, 则可能文件大小为-1.
+	boost::int64_t file_size() const
+	{
+		return m_file_size;
+	}
+
 protected:
 	void handle_open(const int index,
 		http_object_ptr object_ptr, const boost::system::error_code &ec)
@@ -411,6 +406,11 @@ protected:
 		{
 			// 输出错误信息, 然后退出, 让on_tick检查到超时后重新连接.
 			std::cerr << index << " handle_open: " << ec.message().c_str() << std::endl;
+
+			// 单连接模式, 表示下载停止, 终止下载.
+			if (!m_accept_multi)
+				m_abort = true;
+
 			return;
 		}
 
@@ -445,6 +445,11 @@ protected:
 		{
 			// 输出错误信息, 然后退出, 让on_tick检查到超时后重新连接.
 			std::cerr << index << " handle_read: " << ec.message().c_str() << std::endl;
+
+			// 单连接模式, 表示下载停止, 终止下载.
+			if (!m_accept_multi)
+				m_abort = true;
+
 			return;
 		}
 
@@ -455,16 +460,10 @@ protected:
 		object_ptr->m_bytes_downloaded += bytes_transferred;
 
 		// 判断请求区间的数据已经下载完成, 如果下载完成, 则分配新的区间, 发起新的请求.
-		if (object_ptr->m_bytes_transferred >= object_ptr->m_request_range.size())
+		if (m_accept_multi &&
+			(object_ptr->m_bytes_transferred >= object_ptr->m_request_range.size()))
 		{
 			http_stream_ptr &stream_ptr = object_ptr->m_stream;
-
-			// 单连接模式, 表示下载完成, 终止下载.
-			if (!m_accept_multi)
-			{
-				m_abort = true;	// 终止下载!!!
-				return;
-			}
 
 			// 不支持长连接, 则创建新的连接.
 			if (!m_keep_alive)
@@ -531,6 +530,11 @@ protected:
 		{
 			// 输出错误信息, 然后退出, 让on_tick检查到超时后重新连接.
 			std::cerr << index << " handle_request: " << ec.message().c_str() << std::endl;
+
+			// 单连接模式, 表示下载停止, 终止下载.
+			if (!m_accept_multi)
+				m_abort = true;
+
 			return;
 		}
 
@@ -577,6 +581,14 @@ protected:
 				object_item_ptr->m_stream->close(ec);
 
 				std::cerr << "connection: " << i << " time out!!!" << std::endl;
+
+				// 单连接模式, 表示下载停止, 终止下载.
+				if (!m_accept_multi)
+				{
+					m_abort = true;
+					object_item_ptr->m_done = true;
+					break;
+				}
 
 				// 重新创建http_object和http_stream.
 				http_object_ptr object_ptr(new http_stream_object(*object_item_ptr));
@@ -636,7 +648,7 @@ protected:
 		}
 
 		// 检查位图是否已经满以及异步操作是否完成.
-		if (done == m_streams.size() && m_rangefield.is_full())
+		if (done == m_streams.size() && (m_rangefield.is_full() || !m_accept_multi))
 		{
 			std::cout << "*** download completed! ***" << std::endl;
 			m_abort = true;
