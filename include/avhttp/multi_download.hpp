@@ -578,7 +578,6 @@ protected:
 						if (!allocate_range(object_ptr->m_request_range))
 						{
 							object_ptr->m_done = true;	// 已经没什么可以下载了.
-							done++;
 							continue;
 						}
 
@@ -601,6 +600,10 @@ protected:
 				stream_ptr->async_open(m_final_url, boost::bind(&multi_download::handle_open, this,
 					i, object_ptr, boost::asio::placeholders::error));
 			}
+
+			// 计算已经完成操作的object.
+			if (object_item_ptr->m_done)
+				done++;
 		}
 
 		// 检查位图是否已经满以及异步操作是否完成.
