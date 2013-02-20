@@ -534,7 +534,7 @@ protected:
 		// 统计操作功能完成的http_stream的个数.
 		int done = 0;
 
-		for (int i = 0; i < m_streams.size(); i++)
+		for (std::size_t i = 0; i < m_streams.size(); i++)
 		{
 			http_object_ptr &object_item_ptr = m_streams[i];
 			boost::posix_time::time_duration duration =
