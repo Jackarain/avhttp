@@ -264,8 +264,12 @@ public:
 			m_storage.reset(p());
 		BOOST_ASSERT(m_storage);
 
-		// 打开文件.
+		// 打开文件, 构造文件名.
 		std::string file_name = boost::filesystem::path(m_final_url.path()).leaf().string();
+		if (file_name == "/" || file_name == "")
+			file_name = boost::filesystem::path(m_final_url.query()).leaf().string();
+		if (file_name == "/" || file_name == "")
+			file_name = "index.html";
 		m_storage->open(boost::filesystem::path(file_name), ec);
 		if (ec)
 		{
