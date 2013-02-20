@@ -20,14 +20,16 @@
 
 #include <boost/cstdint.hpp>
 #include <boost/assert.hpp>
+#include <boost/thread/mutex.hpp>
 
 namespace avhttp {
 
-// 一个按区域来划分的位图实现.
+// 一个按区域来划分的位图实现, 该类对象线程访问安全.
 class rangefield
 {
 public:
-	rangefield(boost::int64_t size)
+	// @param size表示区间的总大小.
+	rangefield(boost::int64_t size = 0)
 		: m_size(size)
 		, m_need_gc(false)
 	{}
@@ -37,6 +39,24 @@ public:
 
 public:
 
+	///重置rangefield.
+	// @param size表示区间的总大小.
+	void reset(boost::int64_t size = 0)
+	{
+		boost::mutex::scoped_lock lock(m_mutex);
+
+		m_size = size;
+		m_need_gc = false;
+		m_ranges.clear();
+	}
+
+	///获得区域的大小.
+	// @返回这个区间的总大小.
+	boost::int64_t size() const
+	{
+		return m_size;
+	}
+
 	///添加或更新range, 区间为[left, right)
 	// @param left左边边界.
 	// @param right右边边界, 不包含边界处.
@@ -44,6 +64,9 @@ public:
 	inline bool update(boost::int64_t left, boost::int64_t right)
 	{
 		BOOST_ASSERT((left >= 0 && left < right) && right <= m_size);
+
+		boost::mutex::scoped_lock lock(m_mutex);
+
 		if ((left < 0 || right > m_size) || (right <= left))
 			return false;
 		m_ranges[left] = right;
@@ -59,6 +82,8 @@ public:
 	inline bool in_range(boost::int64_t left, boost::int64_t right)
 	{
 		BOOST_ASSERT((left >= 0 && left < right) && right <= m_size);
+
+		boost::mutex::scoped_lock lock(m_mutex);
 
 		// 先整理.
 		if (m_need_gc)
@@ -81,6 +106,8 @@ public:
 	// @备注: 输出的区间是一个半开区间[left, right), 即不包含右边界.
 	inline bool out_space(boost::int64_t &left, boost::int64_t &right)
 	{
+		boost::mutex::scoped_lock lock(m_mutex);
+
 		// 先整理.
 		if (m_need_gc)
 			gc();
@@ -130,6 +157,44 @@ public:
 		return true;
 	}
 
+	///按指定大小输出为位图块.
+	// @param bitfield以int为单位的位图数组, 每个元素表示1个piece, 为0表示空, 为1表示满.
+	// @param piece_size指定的piece大小.
+	inline void range_to_bitfield(std::vector<int> &bitfield, int piece_size)
+	{
+		// 先整理.
+		if (m_need_gc)
+			gc();
+
+		int piece_num = (m_size / piece_size) + (m_size % piece_size == 0 ? 0 : 1);
+		boost::int64_t l = 0;
+		boost::int64_t r = 0;
+		for (int i = 0; i < piece_num; i++)
+		{
+			l = i * piece_size;
+			r = (i + 1) * piece_size;
+			r = r > m_size ? m_size : r;
+
+			if (in_range(l, r))
+				bitfield.push_back(1);
+			else
+				bitfield.push_back(0);
+		}
+	}
+
+	///输出range内容, 调试使用.
+	inline void print()
+	{
+		boost::mutex::scoped_lock lock(m_mutex);
+
+		for (std::map<boost::int64_t, boost::int64_t>::iterator i = m_ranges.begin();
+			i != m_ranges.end(); i++)
+		{
+			std::cout << i->first << "   ---    " << i->second << "\n";
+		}
+	}
+
+protected:
 	///整理回收range中的重叠部分.
 	inline void gc()
 	{
@@ -184,45 +249,11 @@ public:
 		m_need_gc = false;
 	}
 
-	///按指定大小输出为位图块.
-	// @param bitfield以int为单位的位图数组, 每个元素表示1个piece, 为0表示空, 为1表示满.
-	// @param piece_size指定的piece大小.
-	inline void range_to_bitfield(std::vector<int> &bitfield, int piece_size)
-	{
-		// 先整理.
-		if (m_need_gc)
-			gc();
-
-		int piece_num = (m_size / piece_size) + (m_size % piece_size == 0 ? 0 : 1);
-		boost::int64_t l = 0;
-		boost::int64_t r = 0;
-		for (int i = 0; i < piece_num; i++)
-		{
-			l = i * piece_size;
-			r = (i + 1) * piece_size;
-			r = r > m_size ? m_size : r;
-
-			if (in_range(l, r))
-				bitfield.push_back(1);
-			else
-				bitfield.push_back(0);
-		}
-	}
-
-	///输出range内容, 调试使用.
-	inline void print()
-	{
-		for (std::map<boost::int64_t, boost::int64_t>::iterator i = m_ranges.begin();
-			i != m_ranges.end(); i++)
-		{
-			std::cout << i->first << "   ---    " << i->second << "\n";
-		}
-	}
-
 private:
 	bool m_need_gc;
 	boost::int64_t m_size;
 	std::map<boost::int64_t, boost::int64_t> m_ranges;
+	boost::mutex m_mutex;
 };
 
 } // namespace avhttp
