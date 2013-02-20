@@ -60,9 +60,10 @@ struct settings
 {
 	settings ()
 		: m_download_rate_limit(-1)
-		, m_connections_limit(-1)
-		, m_piece_size(-1)
-		, m_time_out(11)
+		, m_connections_limit(default_connections_limit)
+		, m_piece_size(default_piece_size)
+		, m_time_out(default_time_out)
+		, m_request_piece_num(default_request_piece_num)
 		, m_downlad_mode(dispersion_mode)
 	{}
 
@@ -70,15 +71,13 @@ struct settings
 	int m_connections_limit;			// 连接数限制, -1为默认.
 	int m_piece_size;					// 分块大小, 默认根据文件大小自动计算.
 	int m_time_out;						// 超时断开, 默认为11秒.
+	int m_request_piece_num;			// 每次请求的分片数, 默认为10.
 	downlad_mode m_downlad_mode;		// 下载模式, 默认为dispersion_mode.
 	fs::path m_meta_file;				// meta_file路径, 默认为当前路径下同文件名的.meta文件.
 };
 
 // 重定义http_stream_ptr指针.
 typedef boost::shared_ptr<http_stream> http_stream_ptr;
-
-// 定义请求数据范围类型.
-typedef std::pair<boost::int64_t, boost::int64_t> request_range;
 
 // 定义http_stream_obj.
 struct http_stream_object
@@ -96,7 +95,7 @@ struct http_stream_object
 	boost::array<char, 2048> m_buffer;
 
 	// 请求的数据范围, 每次由multi_download分配一个下载范围, m_stream按这个范围去下载.
-	request_range m_request_range;
+	range m_request_range;
 
 	// 本次请求已经下载的数据, 相对于m_request_range, 当一个m_request_range下载完成后,
 	// m_bytes_transferred自动置为0.
@@ -113,6 +112,7 @@ struct http_stream_object
 typedef boost::shared_ptr<http_stream_object> http_object_ptr;
 
 
+// multi_download类的具体实现.
 class multi_download : public boost::noncopyable
 {
 public:
@@ -137,7 +137,6 @@ public:
 	boost::system::error_code open(const url &u, const settings &s, storage_constructor_type p = NULL)
 	{
 		boost::system::error_code ec;
-
 		// 清空所有连接.
 		m_streams.clear();
 		m_file_size = -1;
@@ -207,6 +206,9 @@ public:
 					m_accept_multi = false;
 				}
 			}
+
+			// 按文件大小分配rangefield.
+			m_rangefield.reset(m_file_size);
 		}
 
 		// 是否支持长连接模式.
@@ -256,8 +258,23 @@ public:
 			{
 				http_object_ptr p(new http_stream_object());
 				http_stream_ptr ptr(new http_stream(m_io_service));
+				range req_range;
 
-				// TODO: 这里需要分配数据请求段.
+				// 从文件间区中得到一段空间.
+				if (!allocate_range(req_range))
+				{
+					// 分配空间失败, 说明可能已经没有空闲的空间提供给这个stream进行下载了
+					// 直接跳过好了.
+					continue;
+				}
+
+				// 保存请求区间.
+				p->m_request_range = req_range;
+
+				// 设置请求区间到请求选项中.
+				req_opt.remove("Range");
+				req_opt.insert("Range",
+					boost::str(boost::format("bytes=%lld-%lld") % req_range.left % req_range.right));
 
 				// 设置请求选项.
 				ptr->request_options(req_opt);
@@ -277,16 +294,52 @@ public:
 		}
 
 		// 为已经第1个已经打开的http_stream发起异步数据请求, index标识为0.
+		do
 		{
+			if (m_accept_multi)
+			{
+				range req_range;
+
+				// 从文件间区中得到一段空间.
+				if (!allocate_range(req_range))
+				{
+					// 分配空间失败, 说明可能已经没有空闲的空间提供给这个stream进行下载了
+					// 直接跳过好了.
+					break;
+				}
+
+				// 保存请求区间.
+				obj->m_request_range = req_range;
+
+				// 设置请求区间到请求选项中.
+				req_opt.remove("Range");
+				req_opt.insert("Range",
+					boost::str(boost::format("bytes=%lld-%lld") % req_range.left % req_range.right));
+
+				// 设置请求选项.
+				h.request_options(req_opt);
+			}
+			else
+			{
+				range req_range;
+				if (!allocate_range(req_range))
+				{
+					// 用于调试, 不可能执行到这里! 因为单socket模式没有其它stream和它竞争文件区间.
+					BOOST_ASSERT(0);
+				}
+
+				// 保存请求范围.
+				obj->m_request_range = req_range;
+			}
+
 			// 保存最后请求时间, 方便检查超时重置.
 			obj->m_last_request_time = boost::posix_time::microsec_clock::local_time();
-
-			// TODO: 这里需要分配数据请求段, 然后再发起异步请求.
 
 			// 发起异步http数据请求.
 			h.async_request(req_opt, boost::bind(&multi_download::handle_request, this,
 				0, obj->m_stream, boost::asio::placeholders::error));
-		}
+
+		} while (0);
 
 		// 开启定时器, 执行任务.
 		m_timer.async_wait(boost::bind(&multi_download::on_tick, this));
@@ -337,6 +390,7 @@ protected:
 			http_object_ptr &ptr = m_streams[i];
 			boost::posix_time::time_duration duration =
 				boost::posix_time::microsec_clock::local_time() - ptr->m_last_request_time;
+
 			if (duration > boost::posix_time::seconds(m_settings.m_time_out))
 			{
 				// 超时, 关闭并重新创建连接.
@@ -353,6 +407,36 @@ protected:
 					i, ptr->m_stream, boost::asio::placeholders::error));
 			}
 		}
+	}
+
+	bool allocate_range(range &r)
+	{
+		range temp(-1, -1);
+		do
+		{
+			// 从文件间区中得到一段空间.
+			if (!m_rangefield.out_space(temp))
+				return false;
+
+			// 用于调试.
+			BOOST_ASSERT(temp != r);
+			BOOST_ASSERT(temp.size() >= 0);
+
+			// 重新计算为最大max_request_bytes大小.
+			boost::int64_t max_request_bytes = m_settings.m_request_piece_num * m_settings.m_piece_size;
+			if (temp.size() > max_request_bytes)
+				temp.right = temp.left + max_request_bytes;
+
+			r = temp;
+
+			// 从m_rangefield中分配这个空间.
+			if (!m_rangefield.update(temp))
+				continue;
+			else
+				break;
+		} while (!m_abort);
+
+		return true;
 	}
 
 private:
@@ -382,6 +466,9 @@ private:
 
 	// 下载数据存储接口指针, 可由用户定义, 并在open时指定.
 	boost::scoped_ptr<storage_interface> m_storage;
+
+	// 文件区间图, 每次请求将由m_rangefield来分配空间区间.
+	rangefield m_rangefield;
 
 	// 是否中止工作.
 	bool m_abort;
