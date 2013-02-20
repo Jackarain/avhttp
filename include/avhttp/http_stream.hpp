@@ -731,6 +731,7 @@ public:
 			// 检查http状态码, version_major和version_minor是http协议的版本号.
 			int version_major = 0;
 			int version_minor = 0;
+			m_status_code = 0;
 			if (!detail::parse_http_status_line(
 				std::istreambuf_iterator<char>(&m_response),
 				std::istreambuf_iterator<char>(),
@@ -1107,6 +1108,7 @@ protected:
 		// 检查http状态码, version_major和version_minor是http协议的版本号.
 		int version_major = 0;
 		int version_minor = 0;
+		m_status_code = 0;
 		if (!detail::parse_http_status_line(
 			std::istreambuf_iterator<char>(&m_response),
 			std::istreambuf_iterator<char>(),
