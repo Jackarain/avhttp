@@ -109,7 +109,7 @@
     <ClInclude Include="..\include\avhttp\url.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\avhttp.cpp" />
+    <ClCompile Include="..\test\avhttp.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

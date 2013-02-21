@@ -8,5 +8,5 @@ find_package(Threads)
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(include)
 
-add_library(avhttp STATIC src/avhttp.cpp)
-target_link_libraries(avhttp ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+add_library(test STATIC test/avhttp.cpp)
+target_link_libraries(test ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
