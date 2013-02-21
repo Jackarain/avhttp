@@ -446,7 +446,11 @@ protected:
 
 			// 单连接模式, 表示下载停止, 终止下载.
 			if (!m_accept_multi)
+			{
 				m_abort = true;
+				boost::system::error_code ignore;
+				m_timer.cancel(ignore);
+			}
 
 			return;
 		}
@@ -487,7 +491,11 @@ protected:
 
 			// 单连接模式, 表示下载停止, 终止下载.
 			if (!m_accept_multi)
+			{
 				m_abort = true;
+				boost::system::error_code ignore;
+				m_timer.cancel(ignore);
+			}
 
 			return;
 		}
@@ -553,7 +561,9 @@ protected:
 			if (!m_accept_multi &&
 				(m_file_size != -1 && object.m_bytes_downloaded == m_file_size))
 			{
-				object.m_direct_reconnect = true;
+				m_abort = true;
+				boost::system::error_code ignore;
+				m_timer.cancel(ignore);
 				return;
 			}
 
@@ -580,7 +590,11 @@ protected:
 
 			// 单连接模式, 表示下载停止, 终止下载.
 			if (!m_accept_multi)
+			{
 				m_abort = true;
+				boost::system::error_code ignore;
+				m_timer.cancel(ignore);
+			}
 
 			return;
 		}
@@ -598,10 +612,10 @@ protected:
 
 	void on_tick()
 	{
-		// 每隔64毫秒进行一次on_tick.
+		// 每隔1秒进行一次on_tick.
 		if (!m_abort)
 		{
-			m_timer.expires_at(m_timer.expires_at() + boost::posix_time::millisec(64));
+			m_timer.expires_at(m_timer.expires_at() + boost::posix_time::seconds(1));
 			m_timer.async_wait(boost::bind(&multi_download::on_tick, this));
 		}
 		else
