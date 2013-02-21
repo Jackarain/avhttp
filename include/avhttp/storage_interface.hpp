@@ -23,36 +23,36 @@ namespace avhttp {
 
 namespace fs = boost::filesystem;
 
-// Êı¾İ´æ´¢½Ó¿Ú.
+// æ•°æ®å­˜å‚¨æ¥å£.
 struct storage_interface
 {
 	storage_interface() {}
 	virtual ~storage_interface() {}
 
-	// ´æ´¢×é¼ş³õÊ¼»¯.
-	// @param file_pathÖ¸¶¨ÁËÎÄ¼şÃûÂ·¾¶ĞÅÏ¢.
-	// @param ecÔÚ³ö´íÊ±±£´æÁËÏêÏ¸µÄ´íÎóĞÅÏ¢.
+	// å­˜å‚¨ç»„ä»¶åˆå§‹åŒ–.
+	// @param file_pathæŒ‡å®šäº†æ–‡ä»¶åè·¯å¾„ä¿¡æ¯.
+	// @param ecåœ¨å‡ºé”™æ—¶ä¿å­˜äº†è¯¦ç»†çš„é”™è¯¯ä¿¡æ¯.
 	virtual void open(fs::path &file_path, boost::system::error_code &ec) = 0;
 
-	// ¹Ø±Õ´æ´¢×é¼ş.
+	// å…³é—­å­˜å‚¨ç»„ä»¶.
 	virtual void close() = 0;
 
-	// Ğ´ÈëÊı¾İ.
-	// @param bufÊÇĞèÒªĞ´ÈëµÄÊı¾İ»º³å.
-	// @param offsetÊÇĞ´ÈëµÄÆ«ÒÆÎ»ÖÃ.
-	// @param sizeÖ¸¶¨ÁËĞ´ÈëµÄÊı¾İ»º³å´óĞ¡.
-	// @·µ»ØÖµÎªÊµ¼ÊĞ´ÈëµÄ×Ö½ÚÊı, ·µ»Ø-1±íÊ¾Ğ´ÈëÊ§°Ü.
+	// å†™å…¥æ•°æ®.
+	// @param bufæ˜¯éœ€è¦å†™å…¥çš„æ•°æ®ç¼“å†².
+	// @param offsetæ˜¯å†™å…¥çš„åç§»ä½ç½®.
+	// @param sizeæŒ‡å®šäº†å†™å…¥çš„æ•°æ®ç¼“å†²å¤§å°.
+	// @è¿”å›å€¼ä¸ºå®é™…å†™å…¥çš„å­—èŠ‚æ•°, è¿”å›-1è¡¨ç¤ºå†™å…¥å¤±è´¥.
 	virtual int write(const char *buf, boost::uint64_t offset, int size) = 0;
 
-	// ¶ÁÈ¡Êı¾İ.
-	// @param bufÊÇĞèÒª¶ÁÈ¡µÄÊı¾İ»º³å.
-	// @param offsetÊÇ¶ÁÈ¡µÄÆ«ÒÆÎ»ÖÃ.
-	// @param sizeÖ¸¶¨ÁË¶ÁÈ¡µÄÊı¾İ»º³å´óĞ¡.
-	// @·µ»ØÖµÎªÊµ¼Ê¶ÁÈ¡µÄ×Ö½ÚÊı, ·µ»Ø-1±íÊ¾¶ÁÈ¡Ê§°Ü.
+	// è¯»å–æ•°æ®.
+	// @param bufæ˜¯éœ€è¦è¯»å–çš„æ•°æ®ç¼“å†².
+	// @param offsetæ˜¯è¯»å–çš„åç§»ä½ç½®.
+	// @param sizeæŒ‡å®šäº†è¯»å–çš„æ•°æ®ç¼“å†²å¤§å°.
+	// @è¿”å›å€¼ä¸ºå®é™…è¯»å–çš„å­—èŠ‚æ•°, è¿”å›-1è¡¨ç¤ºè¯»å–å¤±è´¥.
 	virtual int read(char *buf, boost::uint64_t offset, int size) = 0;
 };
 
-// ÖØ¶¨Òåstorage_interface´´½¨º¯ÊıÖ¸Õë, ÔÚmulti_downloadÄÚ²¿Í¨¹ıµ÷ÓÃËüÀ´Íê³É´´½¨storage_interface.
+// é‡å®šä¹‰storage_interfaceåˆ›å»ºå‡½æ•°æŒ‡é’ˆ, åœ¨multi_downloadå†…éƒ¨é€šè¿‡è°ƒç”¨å®ƒæ¥å®Œæˆåˆ›å»ºstorage_interface.
 typedef storage_interface* (*storage_constructor_type)();
 
 }
