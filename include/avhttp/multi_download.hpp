@@ -555,6 +555,12 @@ public:
 		}
 	}
 
+	///返回当前设置信息.
+	const settings& set() const
+	{
+		return m_settings;
+	}
+
 	///返回当前下载的文件大小.
 	// @如果服务器不支持多点下载, 则可能文件大小为-1.
 	boost::int64_t file_size() const
@@ -563,6 +569,7 @@ public:
 	}
 
 	///得到当前下载的文件名.
+	// @如果请求的url不太规则, 则可能返回错误的文件名.
 	std::string file_name() const
 	{
 		return boost::filesystem::path(m_final_url.path()).leaf().string();
@@ -591,6 +598,18 @@ public:
 	int download_rate() const
 	{
 		return m_byte_rate.m_byte_rate;
+	}
+
+	///设置下载速率, -1为无限制, 单位byte/s.
+	void download_rate_limit(int rate)
+	{
+		m_settings.m_download_rate_limit = rate;
+	}
+
+	///返回当前限速.
+	int download_rate_limit() const
+	{
+		return m_settings.m_download_rate_limit;
 	}
 
 protected:
