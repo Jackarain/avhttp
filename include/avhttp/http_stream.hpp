@@ -21,7 +21,7 @@
 #include "options.hpp"
 #include "detail/parsers.hpp"
 #include "detail/error_codec.hpp"
-#ifdef ENABLE_AVHTTP_OPENSSL
+#ifdef AVHTTP_ENABLE_OPENSSL
 #include "detail/ssl_stream.hpp"
 #endif
 #include "detail/socket_type.hpp"
@@ -132,13 +132,13 @@ class http_stream : public boost::noncopyable
 	// 定义socket_type类型, socket_type是variant_stream的重定义, 它的作用
 	// 可以为ssl_socket或nossl_socket, 这样, 在访问socket的时候, 就不需要
 	// 区别编写不同的代码.
-#ifdef ENABLE_AVHTTP_OPENSSL
+#ifdef AVHTTP_ENABLE_OPENSSL
 	typedef avhttp::detail::ssl_stream<tcp::socket> ssl_socket;
 #endif
 	typedef tcp::socket nossl_socket;
 	typedef avhttp::detail::variant_stream<
 		nossl_socket
-#ifdef ENABLE_AVHTTP_OPENSSL
+#ifdef AVHTTP_ENABLE_OPENSSL
 		, ssl_socket
 #endif
 	> socket_type;
@@ -217,7 +217,7 @@ public:
 		{
 			m_protocol = "http";
 		}
-#ifdef ENABLE_AVHTTP_OPENSSL
+#ifdef AVHTTP_ENABLE_OPENSSL
 		else if (protocol == "https")
 		{
 			m_protocol = "https";
@@ -236,7 +236,7 @@ public:
 			{
 				m_sock.instantiate<nossl_socket>(m_io_service);
 			}
-#ifdef ENABLE_AVHTTP_OPENSSL
+#ifdef AVHTTP_ENABLE_OPENSSL
 			else if (protocol == "https")
 			{
 				m_sock.instantiate<ssl_socket>(m_io_service);
@@ -278,7 +278,7 @@ public:
 				return;
 			}
 
-#ifdef ENABLE_AVHTTP_OPENSSL
+#ifdef AVHTTP_ENABLE_OPENSSL
 			if (m_protocol == "https")
 			{
 				// 认证证书.
@@ -376,7 +376,7 @@ public:
 		// 获得请求的url类型.
 		if (protocol == "http")
 			m_protocol = "http";
-#ifdef ENABLE_AVHTTP_OPENSSL
+#ifdef AVHTTP_ENABLE_OPENSSL
 		else if (protocol == "https")
 			m_protocol = "https";
 #endif
@@ -393,7 +393,7 @@ public:
 			{
 				m_sock.instantiate<nossl_socket>(m_io_service);
 			}
-#ifdef ENABLE_AVHTTP_OPENSSL
+#ifdef AVHTTP_ENABLE_OPENSSL
 			else if (protocol == "https")
 			{
 				m_sock.instantiate<ssl_socket>(m_io_service);
@@ -970,7 +970,7 @@ public:
 	// 默认为认证服务器证书.
 	void check_certificate(bool is_check)
 	{
-#ifdef ENABLE_AVHTTP_OPENSSL
+#ifdef AVHTTP_ENABLE_OPENSSL
 		m_check_certificate = is_check;
 #endif
 	}
@@ -990,7 +990,7 @@ protected:
 					boost::bind(&http_stream::handle_connect<Handler>, this,
 					handler, endpoint_iterator, boost::asio::placeholders::error));
 			}
-#ifdef ENABLE_AVHTTP_OPENSSL
+#ifdef AVHTTP_ENABLE_OPENSSL
 			else if (m_protocol == "https")
 			{
 				ssl_socket *sock = m_sock.get<ssl_socket>();
@@ -1017,7 +1017,7 @@ protected:
 	{
 		if (!err)
 		{
-#ifdef ENABLE_AVHTTP_OPENSSL
+#ifdef AVHTTP_ENABLE_OPENSSL
 			if (m_protocol == "https")
 			{
 				// 认证证书.
@@ -1065,7 +1065,7 @@ protected:
 						boost::bind(&http_stream::handle_connect<Handler>, this,
 						handler, endpoint_iterator, boost::asio::placeholders::error));
 				}
-#ifdef ENABLE_AVHTTP_OPENSSL
+#ifdef AVHTTP_ENABLE_OPENSSL
 				else if (m_protocol == "https")
 				{
 					ssl_socket *sock = m_sock.get<ssl_socket>();
@@ -1177,7 +1177,7 @@ protected:
 		handler(ec);
 	}
 
-#ifdef ENABLE_AVHTTP_OPENSSL
+#ifdef AVHTTP_ENABLE_OPENSSL
 	inline bool certificate_matches_host(X509* cert, const std::string& host)
 	{
 		// Try converting host name to an address. If it is an address then we need
@@ -1253,7 +1253,7 @@ protected:
 
 		return false;
 	}
-#endif // ENABLE_AVHTTP_OPENSSL
+#endif // AVHTTP_ENABLE_OPENSSL
 
 protected:
 	boost::asio::io_service &m_io_service;			// io_service引用.

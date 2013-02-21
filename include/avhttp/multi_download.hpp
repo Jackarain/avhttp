@@ -460,7 +460,7 @@ public:
 		return bytes_count;
 	}
 
-	///当前下载速率, 单位byts/s.
+	///当前下载速率, 单位byte/s.
 	int download_rate() const
 	{
 		return m_byte_rate.m_byte_rate;
