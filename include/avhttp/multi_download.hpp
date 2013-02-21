@@ -499,8 +499,7 @@ protected:
 		object.m_bytes_downloaded += bytes_transferred;
 
 		// 判断请求区间的数据已经下载完成, 如果下载完成, 则分配新的区间, 发起新的请求.
-		if (m_accept_multi &&
-			(object.m_bytes_transferred >= object.m_request_range.size()))
+		if (m_accept_multi && object.m_bytes_transferred >= object.m_request_range.size())
 		{
 			// 不支持长连接, 则创建新的连接.
 			if (!m_keep_alive)
@@ -550,6 +549,14 @@ protected:
 		}
 		else
 		{
+			// 服务器不支持多点下载, 说明数据已经下载完成.
+			if (!m_accept_multi &&
+				(m_file_size != -1 && object.m_bytes_downloaded == m_file_size))
+			{
+				object.m_direct_reconnect = true;
+				return;
+			}
+
 			// 保存最后请求时间, 方便检查超时重置.
 			object.m_last_request_time = boost::posix_time::microsec_clock::local_time();
 
@@ -591,10 +598,10 @@ protected:
 
 	void on_tick()
 	{
-		// 每隔1秒进行一次on_tick.
+		// 每隔64毫秒进行一次on_tick.
 		if (!m_abort)
 		{
-			m_timer.expires_at(m_timer.expires_at() + boost::posix_time::seconds(1));
+			m_timer.expires_at(m_timer.expires_at() + boost::posix_time::millisec(64));
 			m_timer.async_wait(boost::bind(&multi_download::on_tick, this));
 		}
 		else
@@ -628,7 +635,7 @@ protected:
 				{
 					m_abort = true;
 					object_item_ptr->m_done = true;
-					break;
+					continue;
 				}
 
 				// 重置重连标识.
