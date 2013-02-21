@@ -66,6 +66,7 @@ struct settings
 		, m_time_out(default_time_out)
 		, m_request_piece_num(default_request_piece_num)
 		, m_downlad_mode(dispersion_mode)
+		, m_storage(NULL)
 	{}
 
 	int m_download_rate_limit;			// 下载速率限制, -1为无限制.
@@ -75,6 +76,7 @@ struct settings
 	int m_request_piece_num;			// 每次请求的分片数, 默认为10.
 	downlad_mode m_downlad_mode;		// 下载模式, 默认为dispersion_mode.
 	fs::path m_meta_file;				// meta_file路径, 默认为当前路径下同文件名的.meta文件.
+	storage_constructor_type m_storage;	// 存储接口创建函数指针, 默认为multi_download提供的file.hpp实现.
 };
 
 // 重定义http_stream_ptr指针.
@@ -164,40 +166,37 @@ public:
 
 public:
 
-	///打开multi_download开始下载.
+	///开始multi_download开始下载.
 	// @param u指定的url.
 	// @param ec当发生错误时, 包含详细的错误信息.
 	// @备注: 直接使用内部的file.hpp下载数据到文件, 若想自己指定数据下载到指定的地方
 	// 可以通过调用另一个open来完成, 具体见另一个open的详细说明.
-	void open(const url &u, boost::system::error_code &ec)
+	void start(const url &u, boost::system::error_code &ec)
 	{
 		settings s;
-		ec = open(u, s);
+		ec = start(u, s);
 	}
 
-	///打开multi_download开始下载, 打开失败抛出一个异常.
+	///开始multi_download开始下载, 打开失败抛出一个异常.
 	// @param u指定的url.
 	// @备注: 直接使用内部的file.hpp下载数据到文件, 若想自己指定数据下载到指定的地方
 	// 可以通过调用另一个open来完成, 具体见另一个open的详细说明.
-	void open(const url &u)
+	void start(const url &u)
 	{
 		settings s;
 		boost::system::error_code ec;
-		ec = open(u, s);
+		ec = start(u, s);
 		if (ec)
 		{
 			boost::throw_exception(boost::system::system_error(ec));
 		}
 	}
 
-	///打开multi_download开始下载.
+	///开始multi_download开始下载.
 	// @param u指定的url.
 	// @param s指定的设置信息.
-	// @param p指定的storage创建函数指针, 默认为default_storage_constructor.
 	// @返回error_code, 包含详细的错误信息.
-	// @备注: 如果需要自定义multi_download存储数据方式, 需要按照storage_interface.hpp中的storage_interface
-	// 虚接口来实现, 并实现一个storage_constructor_type函数用于创建你实现的存储接口, 通过这个open函数的参数3传入.
-	boost::system::error_code open(const url &u, const settings &s, storage_constructor_type p = NULL)
+	boost::system::error_code start(const url &u, const settings &s)
 	{
 		boost::system::error_code ec;
 
@@ -290,10 +289,10 @@ public:
 			m_keep_alive = false;
 
 		// 创建存储对象.
-		if (!p)
+		if (!s.m_storage)
 			m_storage.reset(default_storage_constructor());
 		else
-			m_storage.reset(p());
+			m_storage.reset(s.m_storage());
 		BOOST_ASSERT(m_storage);
 
 		// 打开文件, 构造文件名.
@@ -432,8 +431,70 @@ public:
 		return ec;
 	}
 
-	// close当前所有连接, 停止工作.
-	void close()
+	///异步启动下载, 启动完成将回调对应的Handler.
+	// @param u 将要下载的URL.
+	// @param s 下载设置参数信息.
+	// @param handler 将被调用在启动完成时. 它必须满足以下条件:
+	// @begin code
+	//  void handler(
+	//    const boost::system::error_code& ec // 用于返回操作状态.
+	//  );
+	// @end code
+	// @begin example
+	//  void start_handler(const boost::system::error_code& ec)
+	//  {
+	//    if (!ec)
+	//    {
+	//      // 启动下载成功!
+	//    }
+	//  }
+	//  ...
+	//  avhttp::multi_download h(io_service);
+	//  settings s;
+	//  h.async_open("http://www.boost.org", s, start_handler);
+	// @end example
+	// @备注: handler也可以使用boost.bind来绑定一个符合规定的函数作
+	// 为async_start的参数handler.
+	template <typename Handler>
+	void async_start(const url &u, const settings &s, Handler handler)
+	{
+		// 清空所有连接.
+		{
+#ifndef AVHTTP_DISABLE_THREAD
+			boost::mutex::scoped_lock lock(m_streams_mutex);
+#endif
+			m_streams.clear();
+		}
+
+		// 清空文件大小.
+		m_file_size = -1;
+
+		// 保存参数.
+		m_final_url = u;
+		m_settings = s;
+
+		// 创建一个http_stream对象.
+		http_object_ptr obj(new http_stream_object);
+
+		request_opts req_opt;
+		req_opt.insert("Range", "bytes=0-");
+		req_opt.insert("Connection", "keep-alive");
+
+		// 创建http_stream并同步打开, 检查返回状态码是否为206, 如果非206则表示该http服务器不支持多点下载.
+		obj->m_stream.reset(new http_stream(m_io_service));
+		http_stream &h = *obj->m_stream;
+
+		h.request_options(req_opt);
+
+		typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
+		h.async_open(u, boost::bind(&multi_download::handle_start<HandlerWrapper>, this,
+			HandlerWrapper(handler), obj, boost::asio::placeholders::error));
+
+		return;
+	}
+
+	// stop当前所有连接, 停止工作.
+	void stop()
 	{
 		m_abort = true;
 
@@ -666,6 +727,226 @@ protected:
 			index, object_ptr,
 			boost::asio::placeholders::bytes_transferred,
 			boost::asio::placeholders::error));
+	}
+
+	template <typename Handler>
+	void handle_start(Handler handler, http_object_ptr object_ptr, const boost::system::error_code &ec)
+	{
+		// 打开失败则退出.
+		if (ec)
+		{
+			handler(ec);
+			return;
+		}
+
+		// 下面使用引用http_stream_object对象.
+		http_stream_object &object = *object_ptr;
+
+		// 同样引用http_stream对象.
+		http_stream &h = *object.m_stream;
+
+		// 保存最终url信息.
+		std::string location = h.location();
+		if (!location.empty())
+			m_final_url = location;
+
+		// 判断是否支持多点下载.
+		std::string status_code;
+		h.response_options().find("_status_code", status_code);
+		if (status_code != "206")
+			m_accept_multi = false;
+		else
+			m_accept_multi = true;
+
+		// 得到文件大小.
+		std::string length;
+		h.response_options().find("Content-Length", length);
+		if (length.empty())
+		{
+			h.response_options().find("Content-Range", length);
+			std::string::size_type f = length.find('/');
+			if (f++ != std::string::npos)
+				length = length.substr(f);
+			else
+				length = "";
+			if (length.empty())
+			{
+				// 得到不文件长度, 设置为不支持多下载模式.
+				m_accept_multi = false;
+			}
+		}
+
+		if (!length.empty())
+		{
+			try
+			{
+				m_file_size = boost::lexical_cast<boost::int64_t>(length);
+			}
+			catch (boost::bad_lexical_cast &)
+			{
+				// 得不到正确的文件长度, 设置为不支持多下载模式.
+				m_accept_multi = false;
+			}
+		}
+
+		// 按文件大小分配rangefield.
+		if (m_file_size != -1)
+		{
+			m_rangefield.reset(m_file_size);
+		}
+
+		// 是否支持长连接模式.
+		std::string keep_alive;
+		h.response_options().find("Connection", keep_alive);
+		boost::to_lower(keep_alive);
+		if (keep_alive == "keep-alive")
+			m_keep_alive = true;
+		else
+			m_keep_alive = false;
+
+		// 创建存储对象.
+		if (!m_settings.m_storage)
+			m_storage.reset(default_storage_constructor());
+		else
+			m_storage.reset(m_settings.m_storage());
+		BOOST_ASSERT(m_storage);
+
+		// 打开文件, 构造文件名.
+		std::string file_name = boost::filesystem::path(m_final_url.path()).leaf().string();
+		if (file_name == "/" || file_name == "")
+			file_name = boost::filesystem::path(m_final_url.query()).leaf().string();
+		if (file_name == "/" || file_name == "")
+			file_name = "index.html";
+		m_storage->open(boost::filesystem::path(file_name), ec);
+		if (ec)
+		{
+			handler(ec);
+			return;
+		}
+
+		// 处理默认设置.
+		if (m_settings.m_connections_limit == -1)
+			m_settings.m_connections_limit = default_connections_limit;
+		if (m_settings.m_piece_size == -1 && m_file_size != -1)
+			m_settings.m_piece_size = default_piece_size;
+
+		// 关闭stream.
+		h.close(ec);
+		if (ec)
+		{
+			handler(ec);
+			return;
+		}
+
+		{
+#ifndef AVHTTP_DISABLE_THREAD
+			boost::mutex::scoped_lock lock(m_streams_mutex);
+#endif
+			m_streams.push_back(object_ptr);
+		}
+
+		// 根据第1个连接返回的信息, 设置请求选项.
+		request_opts req_opt;
+		if (m_keep_alive)
+			req_opt.insert("Connection", "keep-alive");
+		else
+			req_opt.insert("Connection", "close");
+
+		// 修改终止状态.
+		m_abort = false;
+
+		// 如果支持多点下载, 按设置创建其它http_stream.
+		if (m_accept_multi)
+		{
+			for (int i = 1; i < m_settings.m_connections_limit; i++)
+			{
+				http_object_ptr p(new http_stream_object());
+				http_stream_ptr ptr(new http_stream(m_io_service));
+				range req_range;
+
+				// 从文件间区中得到一段空间.
+				if (!allocate_range(req_range))
+				{
+					// 分配空间失败, 说明可能已经没有空闲的空间提供给这个stream进行下载了直接跳过好了.
+					p->m_done = true;
+					continue;
+				}
+
+				// 保存请求区间.
+				p->m_request_range = req_range;
+
+				// 设置请求区间到请求选项中.
+				req_opt.remove("Range");
+				req_opt.insert("Range",
+					boost::str(boost::format("bytes=%lld-%lld") % req_range.left % req_range.right));
+
+				// 设置请求选项.
+				ptr->request_options(req_opt);
+
+				// 将连接添加到容器中.
+				p->m_stream = ptr;
+
+				{
+#ifndef AVHTTP_DISABLE_THREAD
+					boost::mutex::scoped_lock lock(m_streams_mutex);
+#endif
+					m_streams.push_back(p);
+				}
+
+				// 保存最后请求时间, 方便检查超时重置.
+				p->m_last_request_time = boost::posix_time::microsec_clock::local_time();
+
+				// 开始异步打开, 传入指针http_object_ptr, 以确保多线程安全.
+				p->m_stream->async_open(m_final_url,
+					boost::bind(&multi_download::handle_open, this,
+					i, p, boost::asio::placeholders::error));
+			}
+		}
+
+		// 为已经第1个已经打开的http_stream发起异步数据请求, index标识为0.
+		do
+		{
+			if (m_accept_multi)
+			{
+				range req_range;
+
+				// 从文件间区中得到一段空间.
+				if (!allocate_range(req_range))
+				{
+					// 分配空间失败, 说明可能已经没有空闲的空间提供给这个stream进行下载了直接跳过好了.
+					object.m_done = true;
+					break;
+				}
+
+				// 保存请求区间.
+				object.m_request_range = req_range;
+
+				// 设置请求区间到请求选项中.
+				req_opt.remove("Range");
+				req_opt.insert("Range",
+					boost::str(boost::format("bytes=%lld-%lld") % req_range.left % req_range.right));
+
+				// 设置请求选项.
+				h.request_options(req_opt);
+			}
+
+			// 保存最后请求时间, 方便检查超时重置.
+			object.m_last_request_time = boost::posix_time::microsec_clock::local_time();
+
+			// 开始异步打开.
+			h.async_open(m_final_url,
+				boost::bind(&multi_download::handle_open, this,
+				0, object_ptr, boost::asio::placeholders::error));
+
+		} while (0);
+
+		// 开启定时器, 执行任务.
+		m_timer.async_wait(boost::bind(&multi_download::on_tick, this));
+
+		// 回调通知用户, 已经成功启动下载.
+		handler(ec);
+
+		return;
 	}
 
 	void on_tick()

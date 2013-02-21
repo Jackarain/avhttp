@@ -73,7 +73,7 @@ int main(int argc, char* argv[])
 		boost::asio::io_service io;
 		avhttp::multi_download d(io);
 
-		d.open(argv[1]);
+		d.start(argv[1]);
 		if (d.file_size() != -1)
 			std::cout << "file \'" << d.file_name().c_str() <<
 			"\' size is: " << "(" << d.file_size() << " bytes) " << add_suffix(d.file_size()).c_str() << std::endl;
