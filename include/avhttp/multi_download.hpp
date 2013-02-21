@@ -203,7 +203,9 @@ public:
 
 		// 清空所有连接.
 		{
+#ifndef AVHTTP_DISABLE_THREAD
 			boost::mutex::scoped_lock lock(m_streams_mutex);
+#endif
 			m_streams.clear();
 		}
 		m_file_size = -1;
@@ -323,7 +325,9 @@ public:
 		}
 
 		{
+#ifndef AVHTTP_DISABLE_THREAD
 			boost::mutex::scoped_lock lock(m_streams_mutex);
+#endif
 			m_streams.push_back(obj);
 		}
 
@@ -369,7 +373,9 @@ public:
 				p->m_stream = ptr;
 
 				{
+#ifndef AVHTTP_DISABLE_THREAD
 					boost::mutex::scoped_lock lock(m_streams_mutex);
+#endif
 					m_streams.push_back(p);
 				}
 
@@ -448,7 +454,9 @@ public:
 	///当前已经下载的字节总数.
 	boost::int64_t bytes_download() const
 	{
+#ifndef AVHTTP_DISABLE_THREAD
 		boost::mutex::scoped_lock lock(m_streams_mutex);
+#endif
 		boost::int64_t bytes_count = 0;
 		for (std::size_t i = 0; i < m_streams.size(); i++)
 		{
@@ -677,8 +685,10 @@ protected:
 		// 统计操作功能完成的http_stream的个数.
 		int done = 0;
 
+#ifndef AVHTTP_DISABLE_THREAD
 		// 锁定m_streams容器进行操作, 保证m_streams操作的唯一性.
 		boost::mutex::scoped_lock lock(m_streams_mutex);
+#endif
 		for (std::size_t i = 0; i < m_streams.size(); i++)
 		{
 			http_object_ptr &object_item_ptr = m_streams[i];
@@ -816,8 +826,10 @@ private:
 	// m_streams!!!
 	std::vector<http_object_ptr> m_streams;
 
+#ifndef AVHTTP_DISABLE_THREAD
 	// 为m_streams在多线程环境下线程安全.
 	mutable boost::mutex m_streams_mutex;
+#endif
 
 	// 最终的url, 如果有跳转的话, 是跳转最后的那个url.
 	url m_final_url;

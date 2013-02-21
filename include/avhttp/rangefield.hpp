@@ -80,8 +80,9 @@ public:
 	// @param size表示区间的总大小.
 	void reset(boost::int64_t size = 0)
 	{
+#ifndef AVHTTP_DISABLE_THREAD
 		boost::mutex::scoped_lock lock(m_mutex);
-
+#endif
 		m_size = size;
 		m_need_gc = false;
 		m_ranges.clear();
@@ -110,7 +111,9 @@ public:
 	{
 		BOOST_ASSERT((left >= 0 && left < right) && right <= m_size);
 
+#ifndef AVHTTP_DISABLE_THREAD
 		boost::mutex::scoped_lock lock(m_mutex);
+#endif
 
 		if ((left < 0 || right > m_size) || (right <= left))
 			return false;
@@ -141,7 +144,9 @@ public:
 		if (m_need_gc)
 			gc();
 
+#ifndef AVHTTP_DISABLE_THREAD
 		boost::mutex::scoped_lock lock(m_mutex);
+#endif
 
 		for (std::map<boost::int64_t, boost::int64_t>::iterator i = m_ranges.begin();
 			i != m_ranges.end(); i++)
@@ -173,7 +178,9 @@ public:
 		if (m_need_gc)
 			gc();
 
+#ifndef AVHTTP_DISABLE_THREAD
 		boost::mutex::scoped_lock lock(m_mutex);
+#endif
 
 		if (m_ranges.size() == 0)
 		{
@@ -227,7 +234,9 @@ public:
 		if (m_need_gc)
 			gc();
 
+#ifndef AVHTTP_DISABLE_THREAD
 		boost::mutex::scoped_lock lock(m_mutex);
+#endif
 
 		// 直接判断区间边界.
 		if (m_ranges.size() == 1)
@@ -269,7 +278,9 @@ public:
 	///输出range内容, 调试使用.
 	inline void print()
 	{
+#ifndef AVHTTP_DISABLE_THREAD
 		boost::mutex::scoped_lock lock(m_mutex);
+#endif
 
 		for (std::map<boost::int64_t, boost::int64_t>::iterator i = m_ranges.begin();
 			i != m_ranges.end(); i++)
@@ -282,7 +293,10 @@ protected:
 	///整理回收range中的重叠部分.
 	inline void gc()
 	{
+
+#ifndef AVHTTP_DISABLE_THREAD
 		boost::mutex::scoped_lock lock(m_mutex);
+#endif
 
 		std::map<boost::int64_t, boost::int64_t> result;
 		std::pair<boost::int64_t, boost::int64_t> max_value;
@@ -339,7 +353,9 @@ private:
 	bool m_need_gc;
 	boost::int64_t m_size;
 	std::map<boost::int64_t, boost::int64_t> m_ranges;
+#ifndef AVHTTP_DISABLE_THREAD
 	boost::mutex m_mutex;
+#endif
 };
 
 } // namespace avhttp
