@@ -88,11 +88,11 @@ int main(int argc, char* argv[])
 				boost::this_thread::sleep(boost::posix_time::millisec(200));
 				show_progress += (d.bytes_download() - show_progress.count());
 			}
-
-			std::cout << "\n*** download completed! ***\n";
 		}
 
 		t.join();
+
+		std::cout << "\n*** download completed! ***\n";
 	}
 	catch (boost::system::system_error &e)
 	{
