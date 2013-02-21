@@ -27,6 +27,7 @@ namespace avhttp {
 #endif
 
 namespace httpoptions {
+
 	// 定义一些常用的　http 选项为 const string , 这样就不用记忆那些单词了，呵呵.
 	static const std::string request_method("_request_method");
 	static const std::string request_body("_request_body");
@@ -36,7 +37,7 @@ namespace httpoptions {
 	static const std::string content_type("Content-Type");
 	static const std::string content_length("Content-Length");
 	static const std::string connection("Connection");
-}
+} // namespace httpoptions
 
 class option
 {

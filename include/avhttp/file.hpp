@@ -20,8 +20,7 @@
 
 #include "storage_interface.hpp"
 
-namespace avhttp
-{
+namespace avhttp {
 
 class file
 	: public storage_interface

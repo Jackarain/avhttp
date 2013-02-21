@@ -67,7 +67,6 @@ int main(int argc, char* argv[])
 		std::cerr << "usage: " << argv[0] << " <url>\n";
 		return -1;
 	}
-
 	try {
 		boost::asio::io_service io;
 		avhttp::multi_download d(io);
@@ -97,7 +96,7 @@ int main(int argc, char* argv[])
 
 		std::cout << "\n*** download completed! ***\n";
 	}
-	catch (boost::system::system_error &e)
+	catch (std::exception &e)
 	{
 		std::cerr << e.what() << std::endl;
 		return -1;

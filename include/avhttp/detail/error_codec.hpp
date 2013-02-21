@@ -59,6 +59,9 @@ enum errc_t
 	/// The response's headers were malformed.
 	malformed_response_headers = 2,
 
+	/// The entry type error.
+	invalid_entry_type = 10,
+
 	// Server-generated status codes.
 
 	/// The server-generated status code "100 Continue".
@@ -228,6 +231,8 @@ class error_category_impl
 			return "Malformed status line";
 		case errc::malformed_response_headers:
 			return "Malformed response headers";
+		case errc::invalid_entry_type:
+			return "invalid type requested from entry";
 		case errc::continue_request:
 			return "Continue";
 		case errc::switching_protocols:

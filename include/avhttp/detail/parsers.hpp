@@ -26,42 +26,10 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include "escape_string.hpp"
+
 namespace avhttp {
 namespace detail {
-
-inline bool is_char(int c)
-{
-	return c >= 0 && c <= 127;
-}
-
-inline bool is_ctl(int c)
-{
-	return (c >= 0 && c <= 31) || c == 127;
-}
-
-inline bool is_tspecial(int c)
-{
-	switch (c)
-	{
-	case '(': case ')': case '<': case '>': case '@':
-	case ',': case ';': case ':': case '\\': case '"':
-	case '/': case '[': case ']': case '?': case '=':
-	case '{': case '}': case ' ': case '\t':
-		return true;
-	default:
-		return false;
-	}
-}
-
-inline bool is_digit(int c)
-{
-	return c >= '0' && c <= '9';
-}
-
-inline bool tolower_compare(char a, char b)
-{
-	return std::tolower(a) == std::tolower(b);
-}
 
 inline bool headers_equal(const std::string &a, const std::string &b)
 {

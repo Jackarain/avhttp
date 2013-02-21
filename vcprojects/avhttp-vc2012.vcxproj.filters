@@ -66,12 +66,15 @@
     <ClInclude Include="..\include\avhttp\rangefield.hpp">
       <Filter>头文件\avhttp</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\avhttp\detail\escape_string.hpp">
+      <Filter>头文件\avhttp\detail</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\avhttp.cpp">
+    <ClCompile Include="..\test\avhttp.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
