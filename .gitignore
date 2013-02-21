@@ -11,3 +11,10 @@
 *.lai
 *.la
 *.a
+
+.kdev4/
+*.kdev4
+build/
+Debug/
+Release/
+

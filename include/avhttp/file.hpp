@@ -36,7 +36,7 @@ public:
 	// 存储组件初始化.
 	// @param file_path指定了文件名路径信息.
 	// @param ec在出错时保存了详细的错误信息.
-	virtual void open(fs::path &file_path, boost::system::error_code &ec)
+	virtual void open(const fs::path &file_path, boost::system::error_code &ec)
 	{
 		m_fstream.open(file_path, std::ios::binary|std::ios::trunc|std::ios::in|std::ios::out);
 		if (!m_fstream.is_open())
