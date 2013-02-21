@@ -432,10 +432,23 @@ public:
 		return ec;
 	}
 
-	// TODO: 实现close.
+	// close当前所有连接, 停止工作.
 	void close()
 	{
 		m_abort = true;
+
+		boost::system::error_code ignore;
+		m_timer.cancel(ignore);
+
+#ifndef AVHTTP_DISABLE_THREAD
+		boost::mutex::scoped_lock lock(m_streams_mutex);
+#endif
+		for (std::size_t i = 0; i < m_streams.size(); i++)
+		{
+			const http_object_ptr &ptr = m_streams[i];
+			if (ptr && ptr->m_stream)
+				ptr->m_stream->close(ignore);
+		}
 	}
 
 	///返回当前下载的文件大小.
@@ -461,6 +474,8 @@ public:
 		for (std::size_t i = 0; i < m_streams.size(); i++)
 		{
 			const http_object_ptr &ptr = m_streams[i];
+			if (!ptr)
+				continue;
 			if (ptr->m_bytes_downloaded)
 				bytes_count += ptr->m_bytes_downloaded;
 		}
