@@ -55,6 +55,7 @@ static const int default_request_piece_num = 10;
 static const int default_time_out = 11;
 static const int default_piece_size = 32768;
 static const int default_connections_limit = 5;
+static const int default_buffer_size = 1024;
 
 // 下载设置.
 struct settings
@@ -69,7 +70,7 @@ struct settings
 		, m_storage(NULL)
 	{}
 
-	int m_download_rate_limit;			// 下载速率限制, -1为无限制.
+	int m_download_rate_limit;			// 下载速率限制, -1为无限制, 单位为: byte/s.
 	int m_connections_limit;			// 连接数限制, -1为默认.
 	int m_piece_size;					// 分块大小, 默认根据文件大小自动计算.
 	int m_time_out;						// 超时断开, 默认为11秒.
@@ -97,7 +98,7 @@ struct http_stream_object
 	http_stream_ptr m_stream;
 
 	// 数据缓冲, 下载时的缓冲.
-	boost::array<char, 2048> m_buffer;
+	boost::array<char, default_buffer_size> m_buffer;
 
 	// 请求的数据范围, 每次由multi_download分配一个下载范围, m_stream按这个范围去下载.
 	range m_request_range;
@@ -126,7 +127,7 @@ typedef boost::shared_ptr<http_stream_object> http_object_ptr;
 // multi_download类的具体实现.
 class multi_download : public boost::noncopyable
 {
-
+	// 用于计算下载速率.
 	struct byte_rate
 	{
 		byte_rate()
@@ -158,6 +159,8 @@ public:
 		, m_accept_multi(false)
 		, m_keep_alive(false)
 		, m_file_size(-1)
+		, m_drop_size(-1)
+		, m_number_of_connections(0)
 		, m_timer(io, boost::posix_time::seconds(0))
 		, m_abort(false)
 	{}
@@ -207,6 +210,8 @@ public:
 #endif
 			m_streams.clear();
 		}
+
+		// 默认文件大小为-1.
 		m_file_size = -1;
 
 		// 创建一个http_stream对象.
@@ -309,6 +314,8 @@ public:
 
 		// 保存设置.
 		m_settings = s;
+		// 保存限速大小.
+		m_drop_size = s.m_download_rate_limit;
 
 		// 处理默认设置.
 		if (m_settings.m_connections_limit == -1)
@@ -339,6 +346,9 @@ public:
 
 		// 修改终止状态.
 		m_abort = false;
+
+		// 连接计数清0.
+		m_number_of_connections = 0;
 
 		// 如果支持多点下载, 按设置创建其它http_stream.
 		if (m_accept_multi)
@@ -381,6 +391,8 @@ public:
 				// 保存最后请求时间, 方便检查超时重置.
 				p->m_last_request_time = boost::posix_time::microsec_clock::local_time();
 
+				m_number_of_connections++;
+
 				// 开始异步打开, 传入指针http_object_ptr, 以确保多线程安全.
 				p->m_stream->async_open(m_final_url,
 					boost::bind(&multi_download::handle_open, this,
@@ -417,6 +429,8 @@ public:
 
 			// 保存最后请求时间, 方便检查超时重置.
 			obj->m_last_request_time = boost::posix_time::microsec_clock::local_time();
+
+			m_number_of_connections++;
 
 			// 开始异步打开.
 			h.async_open(m_final_url,
@@ -603,10 +617,24 @@ protected:
 		// 保存最后请求时间, 方便检查超时重置.
 		object.m_last_request_time = boost::posix_time::microsec_clock::local_time();
 
+		// 计算可请求的字节数.
+		int available_bytes = default_buffer_size;
+		if (m_drop_size != -1)
+		{
+			available_bytes = std::min(m_drop_size, default_buffer_size);
+			m_drop_size -= available_bytes;
+			if (available_bytes == 0)
+			{
+				// 避免空请求占用大量CPU, 让出CPU资源.
+				boost::this_thread::sleep(boost::posix_time::millisec(1));
+			}
+		}
+
 		// 发起数据读取请求.
 		http_stream_ptr &stream_ptr = object.m_stream;
+
 		// 传入指针http_object_ptr, 以确保多线程安全.
-		stream_ptr->async_read_some(boost::asio::buffer(object.m_buffer),
+		stream_ptr->async_read_some(boost::asio::buffer(object.m_buffer, available_bytes),
 			boost::bind(&multi_download::handle_read, this,
 			index, object_ptr,
 			boost::asio::placeholders::bytes_transferred,
@@ -718,8 +746,21 @@ protected:
 			// 保存最后请求时间, 方便检查超时重置.
 			object.m_last_request_time = boost::posix_time::microsec_clock::local_time();
 
+			// 计算可请求的字节数.
+			int available_bytes = default_buffer_size;
+			if (m_drop_size != -1)
+			{
+				available_bytes = std::min(m_drop_size, default_buffer_size);
+				m_drop_size -= available_bytes;
+				if (available_bytes == 0)
+				{
+					// 避免空请求占用大量CPU, 让出CPU资源.
+					boost::this_thread::sleep(boost::posix_time::millisec(1));
+				}
+			}
+
 			// 继续读取数据, 传入指针http_object_ptr, 以确保多线程安全.
-			object.m_stream->async_read_some(boost::asio::buffer(object.m_buffer),
+			object.m_stream->async_read_some(boost::asio::buffer(object.m_buffer, available_bytes),
 				boost::bind(&multi_download::handle_read, this,
 				index, object_ptr,
 				boost::asio::placeholders::bytes_transferred,
@@ -750,8 +791,21 @@ protected:
 		// 保存最后请求时间, 方便检查超时重置.
 		object.m_last_request_time = boost::posix_time::microsec_clock::local_time();
 
+		// 计算可请求的字节数.
+		int available_bytes = default_buffer_size;
+		if (m_drop_size != -1)
+		{
+			available_bytes = std::min(m_drop_size, default_buffer_size);
+			m_drop_size -= available_bytes;
+			if (available_bytes == 0)
+			{
+				// 避免空请求占用大量CPU, 让出CPU资源.
+				boost::this_thread::sleep(boost::posix_time::millisec(1));
+			}
+		}
+
 		// 发起数据读取请求, 传入指针http_object_ptr, 以确保多线程安全.
-		object_ptr->m_stream->async_read_some(boost::asio::buffer(object.m_buffer),
+		object_ptr->m_stream->async_read_some(boost::asio::buffer(object.m_buffer, available_bytes),
 			boost::bind(&multi_download::handle_read, this,
 			index, object_ptr,
 			boost::asio::placeholders::bytes_transferred,
@@ -885,6 +939,9 @@ protected:
 		// 修改终止状态.
 		m_abort = false;
 
+		// 连接计数清0.
+		m_number_of_connections = 0;
+
 		// 如果支持多点下载, 按设置创建其它http_stream.
 		if (m_accept_multi)
 		{
@@ -926,6 +983,8 @@ protected:
 				// 保存最后请求时间, 方便检查超时重置.
 				p->m_last_request_time = boost::posix_time::microsec_clock::local_time();
 
+				m_number_of_connections++;
+
 				// 开始异步打开, 传入指针http_object_ptr, 以确保多线程安全.
 				p->m_stream->async_open(m_final_url,
 					boost::bind(&multi_download::handle_open, this,
@@ -962,6 +1021,8 @@ protected:
 
 			// 保存最后请求时间, 方便检查超时重置.
 			object.m_last_request_time = boost::posix_time::microsec_clock::local_time();
+
+			m_number_of_connections++;
 
 			// 开始异步打开.
 			h.async_open(m_final_url,
@@ -1008,6 +1069,9 @@ protected:
 				m_byte_rate.m_last_byte_rate[++m_byte_rate.m_index] = 0;
 		}
 
+		// 计算限速.
+		m_drop_size = m_settings.m_download_rate_limit;
+
 		// 统计操作功能完成的http_stream的个数.
 		int done = 0;
 
@@ -1035,6 +1099,7 @@ protected:
 				{
 					m_abort = true;
 					object_item_ptr->m_done = true;
+					m_number_of_connections--;
 					continue;
 				}
 
@@ -1069,6 +1134,7 @@ protected:
 						if (!allocate_range(object.m_request_range))
 						{
 							object.m_done = true;	// 已经没什么可以下载了.
+							m_number_of_connections--;
 							continue;
 						}
 
@@ -1178,6 +1244,9 @@ private:
 	// 动态计算速率.
 	byte_rate m_byte_rate;
 
+	// 实际连接数.
+	int m_number_of_connections;
+
 	// 下载数据存储接口指针, 可由用户定义, 并在open时指定.
 	boost::scoped_ptr<storage_interface> m_storage;
 
@@ -1186,6 +1255,9 @@ private:
 
 	// 保证分配空闲区间的唯一性.
 	boost::mutex m_rangefield_mutex;
+
+	// 用于限速.
+	int m_drop_size;
 
 	// 是否中止工作.
 	bool m_abort;

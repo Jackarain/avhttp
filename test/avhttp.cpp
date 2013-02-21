@@ -72,7 +72,10 @@ int main(int argc, char* argv[])
 		boost::asio::io_service io;
 		avhttp::multi_download d(io);
 
-		d.start(argv[1]);
+		avhttp::settings s;
+		s.m_download_rate_limit = 102400;
+
+		d.start(argv[1], s);
 
 		if (d.file_size() != -1)
 			std::cout << "file \'" << d.file_name().c_str() <<
