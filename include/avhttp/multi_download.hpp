@@ -433,6 +433,35 @@ public:
 
 	///异步启动下载, 启动完成将回调对应的Handler.
 	// @param u 将要下载的URL.
+	// @param handler 将被调用在启动完成时. 它必须满足以下条件:
+	// @begin code
+	//  void handler(
+	//    const boost::system::error_code& ec // 用于返回操作状态.
+	//  );
+	// @end code
+	// @begin example
+	//  void start_handler(const boost::system::error_code& ec)
+	//  {
+	//    if (!ec)
+	//    {
+	//      // 启动下载成功!
+	//    }
+	//  }
+	//  ...
+	//  avhttp::multi_download h(io_service);
+	//  h.async_open("http://www.boost.org", start_handler);
+	// @end example
+	// @备注: handler也可以使用boost.bind来绑定一个符合规定的函数作
+	// 为async_start的参数handler.
+	template <typename Handler>
+	void async_start(const url &u, Handler handler)
+	{
+		settings s;
+		async_start(u, s, handler);
+	}
+
+	///异步启动下载, 启动完成将回调对应的Handler.
+	// @param u 将要下载的URL.
 	// @param s 下载设置参数信息.
 	// @param handler 将被调用在启动完成时. 它必须满足以下条件:
 	// @begin code
@@ -817,10 +846,11 @@ protected:
 			file_name = boost::filesystem::path(m_final_url.query()).leaf().string();
 		if (file_name == "/" || file_name == "")
 			file_name = "index.html";
-		m_storage->open(boost::filesystem::path(file_name), ec);
-		if (ec)
+		boost::system::error_code ignore;
+		m_storage->open(boost::filesystem::path(file_name), ignore);
+		if (ignore)
 		{
-			handler(ec);
+			handler(ignore);
 			return;
 		}
 
@@ -831,10 +861,10 @@ protected:
 			m_settings.m_piece_size = default_piece_size;
 
 		// 关闭stream.
-		h.close(ec);
-		if (ec)
+		h.close(ignore);
+		if (ignore)
 		{
-			handler(ec);
+			handler(ignore);
 			return;
 		}
 

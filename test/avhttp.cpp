@@ -60,7 +60,6 @@ std::string add_suffix(float val, char const* suffix = 0)
 	return ret;
 }
 
-
 int main(int argc, char* argv[])
 {
 	if (argc != 2)
@@ -74,6 +73,7 @@ int main(int argc, char* argv[])
 		avhttp::multi_download d(io);
 
 		d.start(argv[1]);
+
 		if (d.file_size() != -1)
 			std::cout << "file \'" << d.file_name().c_str() <<
 			"\' size is: " << "(" << d.file_size() << " bytes) " << add_suffix(d.file_size()).c_str() << std::endl;
