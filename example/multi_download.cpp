@@ -1,5 +1,8 @@
 #include <iostream>
 #include <boost/array.hpp>
+#include <boost/progress.hpp>
+#include <cmath>
+
 #include "avhttp.hpp"
 
 std::string to_string(int v, int width)
@@ -57,6 +60,7 @@ std::string add_suffix(float val, char const* suffix = 0)
 	return ret;
 }
 
+
 int main(int argc, char* argv[])
 {
 	if (argc != 2)
@@ -74,7 +78,21 @@ int main(int argc, char* argv[])
 			std::cout << "file \'" << d.file_name().c_str() <<
 			"\' size is: " << "(" << d.file_size() << " bytes) " << add_suffix(d.file_size()).c_str() << std::endl;
 
-		io.run();
+		boost::thread t(boost::bind(&boost::asio::io_service::run, &io));
+
+		if (d.file_size() != -1)
+		{
+			boost::progress_display show_progress(d.file_size());
+			while (show_progress.count() != d.file_size())
+			{
+				boost::this_thread::sleep(boost::posix_time::millisec(200));
+				show_progress += (d.bytes_download() - show_progress.count());
+			}
+
+			std::cout << "\n*** download completed! ***\n";
+		}
+
+		t.join();
 	}
 	catch (boost::system::system_error &e)
 	{

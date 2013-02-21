@@ -174,8 +174,12 @@ public:
 	boost::system::error_code open(const url &u, const settings &s, storage_constructor_type p = NULL)
 	{
 		boost::system::error_code ec;
+
 		// 清空所有连接.
-		m_streams.clear();
+		{
+			boost::mutex::scoped_lock lock(m_streams_mutex);
+			m_streams.clear();
+		}
 		m_file_size = -1;
 
 		// 创建一个http_stream对象.
@@ -292,7 +296,10 @@ public:
 			return ec;
 		}
 
-		m_streams.push_back(obj);
+		{
+			boost::mutex::scoped_lock lock(m_streams_mutex);
+			m_streams.push_back(obj);
+		}
 
 		// 根据第1个连接返回的信息, 重新设置请求选项.
 		req_opt.clear();
@@ -334,12 +341,16 @@ public:
 
 				// 将连接添加到容器中.
 				p->m_stream = ptr;
-				m_streams.push_back(p);
+
+				{
+					boost::mutex::scoped_lock lock(m_streams_mutex);
+					m_streams.push_back(p);
+				}
 
 				// 保存最后请求时间, 方便检查超时重置.
 				p->m_last_request_time = boost::posix_time::microsec_clock::local_time();
 
-				// 开始异步打开.
+				// 开始异步打开, 传入指针http_object_ptr, 以确保多线程安全.
 				p->m_stream->async_open(m_final_url,
 					boost::bind(&multi_download::handle_open, this,
 					i, p, boost::asio::placeholders::error));
@@ -408,6 +419,21 @@ public:
 		return boost::filesystem::path(m_final_url.path()).leaf().string();
 	}
 
+	///当前已经下载的字节总数.
+	boost::int64_t bytes_download() const
+	{
+		boost::mutex::scoped_lock lock(m_streams_mutex);
+		boost::int64_t bytes_count = 0;
+		for (std::size_t i = 0; i < m_streams.size(); i++)
+		{
+			const http_object_ptr &ptr = m_streams[i];
+			if (ptr->m_bytes_downloaded)
+				bytes_count += ptr->m_bytes_downloaded;
+		}
+
+		return bytes_count;
+	}
+
 protected:
 	void handle_open(const int index,
 		http_object_ptr object_ptr, const boost::system::error_code &ec)
@@ -416,7 +442,7 @@ protected:
 		if (ec || m_abort)
 		{
 			// 输出错误信息, 然后退出, 让on_tick检查到超时后重新连接.
-			std::cerr << index << " handle_open: " << ec.message().c_str() << std::endl;
+			// std::cerr << index << " handle_open: " << ec.message().c_str() << std::endl;
 
 			// 单连接模式, 表示下载停止, 终止下载.
 			if (!m_accept_multi)
@@ -430,6 +456,7 @@ protected:
 
 		// 发起数据读取请求.
 		http_stream_ptr &stream_ptr = object.m_stream;
+		// 传入指针http_object_ptr, 以确保多线程安全.
 		stream_ptr->async_read_some(boost::asio::buffer(object.m_buffer),
 			boost::bind(&multi_download::handle_read, this,
 			index, object_ptr,
@@ -456,7 +483,7 @@ protected:
 		if (ec || m_abort)
 		{
 			// 输出错误信息, 然后退出, 让on_tick检查到超时后重新连接.
-			std::cerr << index << " handle_read: " << ec.message().c_str() << std::endl;
+			// std::cerr << index << " handle_read: " << ec.message().c_str() << std::endl;
 
 			// 单连接模式, 表示下载停止, 终止下载.
 			if (!m_accept_multi)
@@ -479,7 +506,8 @@ protected:
 			if (!m_keep_alive)
 			{
 				// 新建新的http_stream对象.
-				object.m_stream.reset(new http_stream(m_io_service));
+				object.m_direct_reconnect = true;
+				return;
 			}
 
 			http_stream &stream = *object.m_stream;
@@ -512,7 +540,7 @@ protected:
 			// 保存最后请求时间, 方便检查超时重置.
 			object.m_last_request_time = boost::posix_time::microsec_clock::local_time();
 
-			// 发起异步http数据请求.
+			// 发起异步http数据请求, 传入指针http_object_ptr, 以确保多线程安全.
 			if (!m_keep_alive)
 				stream.async_open(m_final_url, boost::bind(&multi_download::handle_open, this,
 					index, object_ptr, boost::asio::placeholders::error));
@@ -525,7 +553,7 @@ protected:
 			// 保存最后请求时间, 方便检查超时重置.
 			object.m_last_request_time = boost::posix_time::microsec_clock::local_time();
 
-			// 继续读取数据.
+			// 继续读取数据, 传入指针http_object_ptr, 以确保多线程安全.
 			object.m_stream->async_read_some(boost::asio::buffer(object.m_buffer),
 				boost::bind(&multi_download::handle_read, this,
 				index, object_ptr,
@@ -541,7 +569,7 @@ protected:
 		if (ec || m_abort)
 		{
 			// 输出错误信息, 然后退出, 让on_tick检查到超时后重新连接.
-			std::cerr << index << " handle_request: " << ec.message().c_str() << std::endl;
+			// std::cerr << index << " handle_request: " << ec.message().c_str() << std::endl;
 
 			// 单连接模式, 表示下载停止, 终止下载.
 			if (!m_accept_multi)
@@ -553,7 +581,7 @@ protected:
 		// 保存最后请求时间, 方便检查超时重置.
 		object.m_last_request_time = boost::posix_time::microsec_clock::local_time();
 
-		// 发起数据读取请求.
+		// 发起数据读取请求, 传入指针http_object_ptr, 以确保多线程安全.
 		object_ptr->m_stream->async_read_some(boost::asio::buffer(object.m_buffer),
 			boost::bind(&multi_download::handle_read, this,
 			index, object_ptr,
@@ -578,6 +606,8 @@ protected:
 		// 统计操作功能完成的http_stream的个数.
 		int done = 0;
 
+		// 锁定m_streams容器进行操作, 保证m_streams操作的唯一性.
+		boost::mutex::scoped_lock lock(m_streams_mutex);
 		for (std::size_t i = 0; i < m_streams.size(); i++)
 		{
 			http_object_ptr &object_item_ptr = m_streams[i];
@@ -591,7 +621,7 @@ protected:
 				boost::system::error_code ec;
 				object_item_ptr->m_stream->close(ec);
 
-				std::cerr << "connection: " << i << " time out!!!" << std::endl;
+				// std::cerr << "connection: " << i << " time out!!!" << std::endl;
 
 				// 单连接模式, 表示下载停止, 终止下载.
 				if (!m_accept_multi)
@@ -601,11 +631,16 @@ protected:
 					break;
 				}
 
+				// 重置重连标识.
+				object_item_ptr->m_direct_reconnect = false;
+
 				// 重新创建http_object和http_stream.
 				object_item_ptr.reset(new http_stream_object(*object_item_ptr));
 				http_stream_object &object = *object_item_ptr;
+
 				// 使用新的http_stream对象.
 				object.m_stream.reset(new http_stream(m_io_service));
+
 				http_stream &stream = *object.m_stream;
 
 				// 配置请求选项.
@@ -645,7 +680,7 @@ protected:
 				// 保存最后请求时间, 方便检查超时重置.
 				object.m_last_request_time = boost::posix_time::microsec_clock::local_time();
 
-				// 重新发起异步请求.
+				// 重新发起异步请求, 传入object_item_ptr指针, 以确保线程安全.
 				stream.async_open(m_final_url, boost::bind(&multi_download::handle_open, this,
 					i, object_item_ptr, boost::asio::placeholders::error));
 			}
@@ -658,7 +693,7 @@ protected:
 		// 检查位图是否已经满以及异步操作是否完成.
 		if (done == m_streams.size() && (m_rangefield.is_full() || !m_accept_multi))
 		{
-			std::cout << "*** download completed! ***" << std::endl;
+			// std::cout << "\n*** download completed! ***" << std::endl;
 			m_abort = true;
 			return;
 		}
@@ -704,7 +739,14 @@ private:
 	boost::asio::io_service &m_io_service;
 
 	// 每一个http_stream_obj是一个http连接.
+	// 注意: 容器中的http_object_ptr只能在on_tick一处进行写操作, 并且确保其它地方
+	// 是新的副本, 这主要体现在发起新的异步操作的时候将http_object_ptr作为参数形式
+	// 传入, 这样在异步回调中只需要访问http_object_ptr的副本指针, 而不是直接访问
+	// m_streams!!!
 	std::vector<http_object_ptr> m_streams;
+
+	// 为m_streams在多线程环境下线程安全.
+	mutable boost::mutex m_streams_mutex;
 
 	// 最终的url, 如果有跳转的话, 是跳转最后的那个url.
 	url m_final_url;
