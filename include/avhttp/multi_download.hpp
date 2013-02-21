@@ -124,6 +124,32 @@ typedef boost::shared_ptr<http_stream_object> http_object_ptr;
 // multi_download类的具体实现.
 class multi_download : public boost::noncopyable
 {
+
+	struct byte_rate
+	{
+		byte_rate()
+			: m_byte_rate(0)
+			, m_index(0)
+			, m_seconds(5)
+		{
+			m_last_byte_rate.resize(m_seconds);
+			for (int i = 0; i < m_seconds; i++)
+				m_last_byte_rate[i] = 0;
+		}
+
+		// 用于统计速率的时间.
+		const int m_seconds;
+
+		// 最后的byte_rate.
+		std::vector<int> m_last_byte_rate;
+
+		// m_last_byte_rate的下标.
+		int m_index;
+
+		// 当前byte_rate.
+		int m_byte_rate;
+	};
+
 public:
 	multi_download(boost::asio::io_service &io)
 		: m_io_service(io)
@@ -434,6 +460,12 @@ public:
 		return bytes_count;
 	}
 
+	///当前下载速率, 单位byts/s.
+	int download_rate() const
+	{
+		return m_byte_rate.m_byte_rate;
+	}
+
 protected:
 	void handle_open(const int index,
 		http_object_ptr object_ptr, const boost::system::error_code &ec)
@@ -505,6 +537,9 @@ protected:
 
 		// 统计总下载字节数.
 		object.m_bytes_downloaded += bytes_transferred;
+
+		// 用于计算下载速率.
+		m_byte_rate.m_last_byte_rate[m_byte_rate.m_index] += bytes_transferred;
 
 		// 判断请求区间的数据已经下载完成, 如果下载完成, 则分配新的区间, 发起新的请求.
 		if (m_accept_multi && object.m_bytes_transferred >= object.m_request_range.size())
@@ -622,6 +657,21 @@ protected:
 		{
 			// 已经终止.
 			return;
+		}
+
+		// 用于计算动态下载速率.
+		{
+			int bytes_count = 0;
+
+			for (int i = 0; i < m_byte_rate.m_seconds; i++)
+				bytes_count += m_byte_rate.m_last_byte_rate[i];
+
+			m_byte_rate.m_byte_rate = (double)bytes_count / m_byte_rate.m_seconds;
+
+			if (m_byte_rate.m_index + 1 >= m_byte_rate.m_seconds)
+				m_byte_rate.m_last_byte_rate[m_byte_rate.m_index = 0] = 0;
+			else
+				m_byte_rate.m_last_byte_rate[++m_byte_rate.m_index] = 0;
 		}
 
 		// 统计操作功能完成的http_stream的个数.
@@ -786,6 +836,9 @@ private:
 
 	// 定时器, 用于定时执行一些任务, 比如检查连接是否超时之类.
 	boost::asio::deadline_timer m_timer;
+
+	// 动态计算速率.
+	byte_rate m_byte_rate;
 
 	// 下载数据存储接口指针, 可由用户定义, 并在open时指定.
 	boost::scoped_ptr<storage_interface> m_storage;
