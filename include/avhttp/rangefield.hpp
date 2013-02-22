@@ -275,13 +275,56 @@ public:
 		}
 	}
 
+	///按指定的分片大小bitfield更新rangefield.
+	// @param bf为指定的bitfield.
+	// @param piece_size是指定的分片大小.
+	inline void bitfield_to_range(const bitfield &bf, int piece_size)
+	{
+#ifndef AVHTTP_DISABLE_THREAD
+		boost::mutex::scoped_lock lock(m_mutex);
+#endif
+		m_ranges.clear();
+
+		boost::int64_t left = 0;
+		boost::int64_t right = 0;
+		bool left_record = false;
+		int index = 0;
+
+		for (bitfield::const_iterator i = bf.begin(); i != bf.end(); i++, index++)
+		{
+			BOOST_ASSERT(index * piece_size < m_size);
+
+			if (*i && !left_record)
+			{
+				left = index * piece_size;
+				right = left + piece_size;
+
+				left_record = true;
+			}
+
+			if (*i && left_record)
+			{
+				right += piece_size;
+			}
+
+			if (!(*i))
+			{
+				// 得到区间.
+				right = std::min(right, m_size);
+				m_ranges[left] = right;
+				left_record = false;
+			}
+		}
+
+		m_need_gc = true;
+	}
+
 	///输出range内容, 调试使用.
 	inline void print()
 	{
 #ifndef AVHTTP_DISABLE_THREAD
 		boost::mutex::scoped_lock lock(m_mutex);
 #endif
-
 		for (std::map<boost::int64_t, boost::int64_t>::iterator i = m_ranges.begin();
 			i != m_ranges.end(); i++)
 		{
@@ -297,7 +340,6 @@ protected:
 #ifndef AVHTTP_DISABLE_THREAD
 		boost::mutex::scoped_lock lock(m_mutex);
 #endif
-
 		std::map<boost::int64_t, boost::int64_t> result;
 		std::pair<boost::int64_t, boost::int64_t> max_value;
 		max_value.first = 0;
