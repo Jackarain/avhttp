@@ -9,8 +9,8 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef ERROR_CODEC_HPP__
-#define ERROR_CODEC_HPP__
+#ifndef __ERROR_CODEC_HPP__
+#define __ERROR_CODEC_HPP__
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
@@ -339,4 +339,4 @@ _attribute_weak_ detail::error_category_impl error_category_instance;
 
 } // namespace avhttp
 
-#endif // ERROR_CODEC_HPP__
+#endif // __ERROR_CODEC_HPP__

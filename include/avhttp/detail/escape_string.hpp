@@ -1,3 +1,13 @@
+//
+// escape_string.hpp
+// ~~~~~~~~~~~~~~~~~
+//
+// Copyright (c) 2009 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// path LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
+
 #ifndef __ESCAPE_STRING_HPP__
 #define __ESCAPE_STRING_HPP__
 
