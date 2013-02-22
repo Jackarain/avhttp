@@ -295,7 +295,7 @@ public:
 			}
 		}
 
-		boost::int64_t file_size = 0;
+		boost::int64_t file_size = -1;
 		if (!length.empty())
 		{
 			try
@@ -315,6 +315,14 @@ public:
 			m_file_size = file_size;
 			m_rangefield.reset(m_file_size);
 			m_downlaoded_field.reset(m_file_size);
+		}
+
+		// 得不到文件大小, 删除meta文件.
+		if (m_file_size == -1 || !m_accept_multi)
+		{
+			m_file_meta.close();
+			boost::system::error_code ignore;
+			fs::remove(m_settings.m_meta_file, ignore);
 		}
 
 		// 是否支持长连接模式.
@@ -337,7 +345,7 @@ public:
 		std::string file_name = boost::filesystem::path(m_final_url.path()).leaf().string();
 		if (file_name == "/" || file_name == "")
 			file_name = boost::filesystem::path(m_final_url.query()).leaf().string();
-		if (file_name == "/" || file_name == "")
+		if (file_name == "/" || file_name == "" || file_name == ".")
 			file_name = "index.html";
 		m_storage->open(boost::filesystem::path(file_name), ec);
 		if (ec)
@@ -622,7 +630,22 @@ public:
 	///当前已经下载的字节总数.
 	boost::int64_t bytes_download() const
 	{
-		return m_downlaoded_field.range_size();
+		if (m_file_size != -1)
+			return m_downlaoded_field.range_size();
+
+		boost::int64_t bytes_count = 0;
+
+#ifndef AVHTTP_DISABLE_THREAD
+		boost::mutex::scoped_lock lock(m_streams_mutex);
+#endif
+		for (std::size_t i = 0; i < m_streams.size(); i++)
+		{
+			const http_object_ptr &ptr = m_streams[i];
+			if (ptr)
+				bytes_count += ptr->m_bytes_downloaded;
+		}
+
+		return bytes_count;
 	}
 
 	///当前下载速率, 单位byte/s.
@@ -702,7 +725,8 @@ protected:
 			boost::int64_t offset = object.m_request_range.left + object.m_bytes_transferred;
 
 			// 更新完成下载区间位图.
-			m_downlaoded_field.update(offset, offset + bytes_transferred);
+			if (m_file_size != -1)
+				m_downlaoded_field.update(offset, offset + bytes_transferred);
 
 			// 使用m_storage写入.
 			m_storage->write(object.m_buffer.c_array(),	offset, bytes_transferred);
@@ -895,7 +919,7 @@ protected:
 
 		// 得到文件大小.
 		std::string length;
-		boost::int64_t file_size = 0;
+		boost::int64_t file_size = -1;
 		h.response_options().find("Content-Length", length);
 		if (length.empty())
 		{
@@ -933,6 +957,14 @@ protected:
 			m_downlaoded_field.reset(m_file_size);
 		}
 
+		// 得不到文件大小, 删除meta文件.
+		if (m_file_size == -1 || !m_accept_multi)
+		{
+			m_file_meta.close();
+			boost::system::error_code ignore;
+			fs::remove(m_settings.m_meta_file, ignore);
+		}
+
 		// 是否支持长连接模式.
 		std::string keep_alive;
 		h.response_options().find("Connection", keep_alive);
@@ -953,7 +985,7 @@ protected:
 		std::string file_name = boost::filesystem::path(m_final_url.path()).leaf().string();
 		if (file_name == "/" || file_name == "")
 			file_name = boost::filesystem::path(m_final_url.query()).leaf().string();
-		if (file_name == "/" || file_name == "")
+		if (file_name == "/" || file_name == "" || file_name == ".")
 			file_name = "index.html";
 		boost::system::error_code ignore;
 		m_storage->open(boost::filesystem::path(file_name), ignore);
