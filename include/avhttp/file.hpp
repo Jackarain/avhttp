@@ -39,16 +39,22 @@ public:
 	// @param ec在出错时保存了详细的错误信息.
 	virtual void open(const fs::path &file_path, boost::system::error_code &ec)
 	{
-		m_fstream.open("test.txt", ios::binary|ios::in|ios::out);
+		m_fstream.open(file_path, ios::binary|ios::in|ios::out);
 		if (!m_fstream.is_open())
 		{
 			m_fstream.clear();
-			m_fstream.open("test.txt", ios::trunc|ios::binary|ios::out|ios::in);
+			m_fstream.open(file_path, ios::trunc|ios::binary|ios::out|ios::in);
 		}
 		if (!m_fstream.is_open())
 		{
 			ec = boost::system::errc::make_error_code(boost::system::errc::bad_file_descriptor);
 		}
+	}
+
+	///是否打开.
+	inline bool is_open() const
+	{
+		return m_fstream.is_open();
 	}
 
 	// 关闭存储组件.
