@@ -216,6 +216,22 @@ public:
 		// 默认文件大小为-1.
 		m_file_size = -1;
 
+		// 保存设置.
+		m_settings = s;
+
+		// 解析meta文件.
+		if (!fs::exists(m_settings.m_meta_file))
+		{
+			// filename + ".meta".
+			m_settings.m_meta_file = (boost::filesystem::path(u.path()).leaf().string() + ".meta");
+		}
+
+		// 打开meta文件, 如果打开成功, 则表示解析出相应的位图了.
+		if (!open_meta(m_settings.m_meta_file))
+		{
+			// 位图打开失败, 无所谓, 下载过程中会创建新的位图.
+		}
+
 		// 创建一个http_stream对象.
 		http_object_ptr obj(new http_stream_object);
 
@@ -267,11 +283,12 @@ public:
 			}
 		}
 
+		boost::int64_t file_size = 0;
 		if (!length.empty())
 		{
 			try
 			{
-				m_file_size = boost::lexical_cast<boost::int64_t>(length);
+				file_size = boost::lexical_cast<boost::int64_t>(length);
 			}
 			catch (boost::bad_lexical_cast &)
 			{
@@ -280,10 +297,12 @@ public:
 			}
 		}
 
-		// 按文件大小分配rangefield.
-		if (m_file_size != -1)
+		// 按文件大小重新分配rangefield.
+		if (file_size != -1 && file_size != m_file_size)
 		{
+			m_file_size = file_size;
 			m_rangefield.reset(m_file_size);
+			m_downlaoded_field.reset(m_file_size);
 		}
 
 		// 是否支持长连接模式.
@@ -314,8 +333,6 @@ public:
 			return ec;
 		}
 
-		// 保存设置.
-		m_settings = s;
 		// 保存限速大小.
 		m_drop_size = s.m_download_rate_limit;
 
@@ -518,6 +535,19 @@ public:
 		m_final_url = u;
 		m_settings = s;
 
+		// 解析meta文件.
+		if (!fs::exists(m_settings.m_meta_file))
+		{
+			// filename + ".meta".
+			m_settings.m_meta_file = (boost::filesystem::path(u.path()).leaf().string() + ".meta");
+		}
+
+		// 打开meta文件, 如果打开成功, 则表示解析出相应的位图了.
+		if (!open_meta(m_settings.m_meta_file))
+		{
+			// 位图打开失败, 无所谓, 下载过程中会创建新的位图.
+		}
+
 		// 创建一个http_stream对象.
 		http_object_ptr obj(new http_stream_object);
 
@@ -580,20 +610,7 @@ public:
 	///当前已经下载的字节总数.
 	boost::int64_t bytes_download() const
 	{
-#ifndef AVHTTP_DISABLE_THREAD
-		boost::mutex::scoped_lock lock(m_streams_mutex);
-#endif
-		boost::int64_t bytes_count = 0;
-		for (std::size_t i = 0; i < m_streams.size(); i++)
-		{
-			const http_object_ptr &ptr = m_streams[i];
-			if (!ptr)
-				continue;
-			if (ptr->m_bytes_downloaded)
-				bytes_count += ptr->m_bytes_downloaded;
-		}
-
-		return bytes_count;
+		return m_downlaoded_field.range_size();
 	}
 
 	///当前下载速率, 单位byte/s.
@@ -672,9 +689,11 @@ protected:
 			// 计算offset.
 			boost::int64_t offset = object.m_request_range.left + object.m_bytes_transferred;
 
+			// 更新完成下载区间位图.
+			m_downlaoded_field.update(offset, offset + bytes_transferred);
+
 			// 使用m_storage写入.
-			m_storage->write(object.m_buffer.c_array(),
-				object.m_request_range.left + object.m_bytes_transferred, bytes_transferred);
+			m_storage->write(object.m_buffer.c_array(),	offset, bytes_transferred);
 		}
 
 		// 如果发生错误或终止.
@@ -864,6 +883,7 @@ protected:
 
 		// 得到文件大小.
 		std::string length;
+		boost::int64_t file_size = 0;
 		h.response_options().find("Content-Length", length);
 		if (length.empty())
 		{
@@ -884,7 +904,7 @@ protected:
 		{
 			try
 			{
-				m_file_size = boost::lexical_cast<boost::int64_t>(length);
+				file_size = boost::lexical_cast<boost::int64_t>(length);
 			}
 			catch (boost::bad_lexical_cast &)
 			{
@@ -894,9 +914,11 @@ protected:
 		}
 
 		// 按文件大小分配rangefield.
-		if (m_file_size != -1)
+		if (file_size == -1 && file_size != m_file_size)
 		{
+			m_file_size = file_size;
 			m_rangefield.reset(m_file_size);
+			m_downlaoded_field.reset(m_file_size);
 		}
 
 		// 是否支持长连接模式.
@@ -1063,6 +1085,11 @@ protected:
 
 	void on_tick()
 	{
+		// 在这里更新位图.
+		{
+			update_meta();
+		}
+
 		// 每隔1秒进行一次on_tick.
 		if (!m_abort)
 		{
@@ -1185,7 +1212,7 @@ protected:
 		}
 
 		// 检查位图是否已经满以及异步操作是否完成.
-		if (done == m_streams.size() && (m_rangefield.is_full() || !m_accept_multi))
+		if (done == m_streams.size() && (m_downlaoded_field.is_full() || !m_accept_multi))
 		{
 			// std::cout << "\n*** download completed! ***" << std::endl;
 			m_abort = true;
@@ -1226,6 +1253,89 @@ protected:
 			return false;
 
 		return true;
+	}
+
+	bool open_meta(const fs::path &file_path)
+	{
+		boost::system::error_code ec;
+
+		// 得到文件大小.
+		boost::uintmax_t size = fs::file_size(file_path, ec);
+		if (ec)
+			size = 0;
+
+		// 打开文件.
+		m_file_meta.open(file_path, ec);
+		if (ec)
+			return false;
+
+		// 如果有数据, 则解码meta数据.
+		if (size != 0)
+		{
+			std::vector<char> buffer;
+
+			buffer.resize(size);
+			m_file_meta.read(&buffer[0], 0, size);
+
+			entry e = bdecode(buffer.begin(), buffer.end());
+
+#ifdef _DEBUG
+			e.print(std::cout);
+#endif
+			// 最终的url.
+			m_final_url = e["final_url"].string();
+
+			// 文件大小.
+			m_file_size = e["file_size"].integer();
+			m_rangefield.reset(m_file_size);
+			m_downlaoded_field.reset(m_file_size);
+
+			// 分片大小.
+			m_settings.m_piece_size = e["piece_size"].integer();
+
+			// 分片数.
+			int piece_num = e["piece_num"].integer();
+
+			// 位图数据.
+			std::string bitfield_data = e["bitfield"].string();
+
+			// 构造到位图.
+			bitfield bf(bitfield_data.c_str(), piece_num);
+
+			// 更新到区间范围.
+			m_rangefield.bitfield_to_range(bf, m_settings.m_piece_size);
+			m_downlaoded_field.bitfield_to_range(bf, m_settings.m_piece_size);
+		}
+
+		return true;
+	}
+
+	void update_meta()
+	{
+		if (!m_file_meta.is_open())
+		{
+			boost::system::error_code ec;
+			m_file_meta.open(m_settings.m_meta_file, ec);
+			if (ec)
+				return ;
+		}
+
+		entry e;
+
+		e["final_url"] = m_final_url.to_string();
+		e["file_size"] = m_file_size;
+		e["piece_size"] = m_settings.m_piece_size;
+		e["piece_num"] = (m_file_size / m_settings.m_piece_size) +
+			(m_file_size % m_settings.m_piece_size == 0 ? 0 : 1);
+		bitfield bf;
+		m_downlaoded_field.range_to_bitfield(bf, m_settings.m_piece_size);
+		std::string str(bf.bytes(), bf.bytes_size());
+		e["bitfield"] = str;
+
+		std::vector<char> buffer;
+		bencode(back_inserter(buffer), e);
+
+		m_file_meta.write(&buffer[0], 0, buffer.size());
 	}
 
 private:
@@ -1272,10 +1382,13 @@ private:
 	boost::scoped_ptr<storage_interface> m_storage;
 
 	// meta文件, 用于续传.
-	boost::filesystem::fstream m_file_meta;
+	file m_file_meta;
 
 	// 文件区间图, 每次请求将由m_rangefield来分配空间区间.
 	rangefield m_rangefield;
+
+	// 已经下载的文件区间.
+	rangefield m_downlaoded_field;
 
 	// 保证分配空闲区间的唯一性.
 	boost::mutex m_rangefield_mutex;
