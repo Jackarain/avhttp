@@ -195,6 +195,10 @@
 				Name="avhttp"
 				>
 				<File
+					RelativePath="..\include\avhttp\entry.hpp"
+					>
+				</File>
+				<File
 					RelativePath="..\include\avhttp\file.hpp"
 					>
 				</File>

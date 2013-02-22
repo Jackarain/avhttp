@@ -8,6 +8,7 @@
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // path LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
+
 #ifndef __ENTRY_HPP__
 #define __ENTRY_HPP__
 
@@ -16,6 +17,7 @@
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 #include "detail/error_codec.hpp"
+#include "detail/escape_string.hpp"
 
 namespace avhttp {
 
@@ -53,6 +55,13 @@ namespace
 		BOOST_ASSERT(o);
 		o->~T();
 	}
+}
+
+inline void throw_type_error(std::string str = "")
+{
+	if (str.empty())
+		boost::throw_exception(boost::system::system_error(avhttp::errc::invalid_entry_type));
+	boost::throw_exception(std::runtime_error(str.c_str()));
 }
 
 class entry;
@@ -269,16 +278,66 @@ public:
 
 	// these functions requires that the entry
 	// is a dictionary, otherwise they will throw	
-	entry& operator[](char const* key);
-	entry& operator[](std::string const& key);
+	entry& operator[](char const* key)
+	{
+		dictionary_type::iterator i = dict().find(key);
+		if (i != dict().end()) return i->second;
+		dictionary_type::iterator ret = dict().insert(
+			std::pair<const std::string, entry>(key, entry())).first;
+		return ret->second;
+	}
+
+	entry& operator[](std::string const& key)
+	{
+		dictionary_type::iterator i = dict().find(key);
+		if (i != dict().end()) return i->second;
+		dictionary_type::iterator ret = dict().insert(
+			std::make_pair(key, entry())).first;
+		return ret->second;
+	}
+
 #ifndef BOOST_NO_EXCEPTIONS
-	const entry& operator[](char const* key) const;
-	const entry& operator[](std::string const& key) const;
+	const entry& operator[](char const* key) const
+	{
+		dictionary_type::const_iterator i = dict().find(key);
+		if (i == dict().end()) throw_type_error(
+			(std::string("key not found: ") + key).c_str());
+		return i->second;
+	}
+
+	const entry& operator[](std::string const& key) const
+	{
+		return (*this)[key.c_str()];
+	}
 #endif
-	entry* find_key(char const* key);
-	entry const* find_key(char const* key) const;
-	entry* find_key(std::string const& key);
-	entry const* find_key(std::string const& key) const;
+
+	entry* find_key(char const* key)
+	{
+		dictionary_type::iterator i = dict().find(key);
+		if (i == dict().end()) return 0;
+		return &i->second;
+	}
+
+	entry const* find_key(char const* key) const
+	{
+		dictionary_type::const_iterator i = dict().find(key);
+		if (i == dict().end()) return 0;
+		return &i->second;
+	}
+
+	entry* find_key(std::string const& key)
+	{
+		dictionary_type::iterator i = dict().find(key);
+		if (i == dict().end()) return 0;
+		return &i->second;
+	}
+
+	entry const* find_key(std::string const& key) const
+	{
+		dictionary_type::const_iterator i = dict().find(key);
+		if (i == dict().end()) return 0;
+		return &i->second;
+	}
 
 #ifdef _DEBUG
 	void print(std::ostream& os, int indent = 0) const
@@ -295,13 +354,13 @@ public:
 				bool binary_string = false;
 				for (std::string::const_iterator i = string().begin(); i != string().end(); ++i)
 				{
-					if (!is_print(static_cast<unsigned char>(*i)))
+					if (!detail::is_print(static_cast<unsigned char>(*i)))
 					{
 						binary_string = true;
 						break;
 					}
 				}
-				if (binary_string) os << to_hex(string()) << "\n";
+				if (binary_string) os << detail::to_hex(string()) << "\n";
 				else os << string() << "\n";
 			} break;
 		case list_t:
@@ -320,7 +379,7 @@ public:
 					bool binary_string = false;
 					for (std::string::const_iterator k = i->first.begin(); k != i->first.end(); ++k)
 					{
-						if (!is_print(static_cast<unsigned char>(*k)))
+						if (!detail::is_print(static_cast<unsigned char>(*k)))
 						{
 							binary_string = true;
 							break;
@@ -328,7 +387,7 @@ public:
 					}
 					for (int j = 0; j < indent+1; ++j) os << " ";
 					os << "[";
-					if (binary_string) os << to_hex(i->first);
+					if (binary_string) os << detail::to_hex(i->first);
 					else os << i->first;
 					os << "]";
 
@@ -347,9 +406,72 @@ public:
 
 protected:
 
-	void construct(data_type t);
-	void copy(const entry& e);
-	void destruct();
+	void construct(data_type t)
+	{
+		switch(t)
+		{
+		case int_t:
+			new(m_data) integer_type;
+			break;
+		case string_t:
+			new(m_data) string_type;
+			break;
+		case list_t:
+			new(m_data) list_type;
+			break;
+		case dictionary_t:
+			new (m_data) dictionary_type;
+			break;
+		default:
+			BOOST_ASSERT(t == undefined_t);
+		}
+		m_type = t;
+	}
+
+	void copy(const entry& e)
+	{
+		switch (e.type())
+		{
+		case int_t:
+			new(m_data) integer_type(e.integer());
+			break;
+		case string_t:
+			new(m_data) string_type(e.string());
+			break;
+		case list_t:
+			new(m_data) list_type(e.list());
+			break;
+		case dictionary_t:
+			new (m_data) dictionary_type(e.dict());
+			break;
+		default:
+			BOOST_ASSERT(e.type() == undefined_t);
+		}
+		m_type = e.type();
+	}
+
+	void destruct()
+	{
+		switch(m_type)
+		{
+		case int_t:
+			call_destructor(reinterpret_cast<integer_type*>(m_data));
+			break;
+		case string_t:
+			call_destructor(reinterpret_cast<string_type*>(m_data));
+			break;
+		case list_t:
+			call_destructor(reinterpret_cast<list_type*>(m_data));
+			break;
+		case dictionary_t:
+			call_destructor(reinterpret_cast<dictionary_type*>(m_data));
+			break;
+		default:
+			BOOST_ASSERT(m_type == undefined_t);
+			break;
+		}
+		m_type = undefined_t;
+	}
 
 private:
 	// the bitfield is used so that the m_type_queried
@@ -381,14 +503,6 @@ private:
 	integer_type m_data[(union_size + sizeof(integer_type) - 1)
 		/ sizeof(integer_type)];
 };
-
-
-inline void throw_type_error(std::string str = "")
-{
-	if (str.empty())
-		boost::throw_exception(boost::system::system_error(avhttp::errc::invalid_entry_type));
-	boost::throw_exception(std::runtime_error(str.c_str()));
-}
 
 } // namespace avhttp
 

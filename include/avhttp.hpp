@@ -26,7 +26,7 @@
 #include <boost/noncopyable.hpp>
 
 #include "avhttp/detail/error_codec.hpp"
-// #include "avhttp/entry.hpp"
+#include "avhttp/entry.hpp"
 #include "avhttp/url.hpp"
 #include "avhttp/http_stream.hpp"
 #include "avhttp/rangefield.hpp"
