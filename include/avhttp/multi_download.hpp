@@ -179,7 +179,7 @@ public:
 	void start(const url &u, boost::system::error_code &ec)
 	{
 		settings s;
-		ec = start(u, s);
+		start(u, s, ec);
 	}
 
 	///开始multi_download开始下载, 打开失败抛出一个异常.
@@ -190,7 +190,21 @@ public:
 	{
 		settings s;
 		boost::system::error_code ec;
-		ec = start(u, s);
+		start(u, s, ec);
+		if (ec)
+		{
+			boost::throw_exception(boost::system::system_error(ec));
+		}
+	}
+
+	///开始multi_download开始下载.
+	// @param u指定的url.
+	// @param s指定的设置信息.
+	// @失败抛出一个boost::system::system_error异常, 包含详细的错误信息.
+	void start(const url &u, const settings &s)
+	{
+		boost::system::error_code ec;
+		start(u, s, ec);
 		if (ec)
 		{
 			boost::throw_exception(boost::system::system_error(ec));
@@ -201,10 +215,8 @@ public:
 	// @param u指定的url.
 	// @param s指定的设置信息.
 	// @返回error_code, 包含详细的错误信息.
-	boost::system::error_code start(const url &u, const settings &s)
+	void start(const url &u, const settings &s, boost::system::error_code &ec)
 	{
-		boost::system::error_code ec;
-
 		// 清空所有连接.
 		{
 #ifndef AVHTTP_DISABLE_THREAD
@@ -247,7 +259,7 @@ public:
 		// 打开失败则退出.
 		if (ec)
 		{
-			return ec;
+			return;
 		}
 
 		// 保存最终url信息.
@@ -330,7 +342,7 @@ public:
 		m_storage->open(boost::filesystem::path(file_name), ec);
 		if (ec)
 		{
-			return ec;
+			return;
 		}
 
 		// 保存限速大小.
@@ -346,7 +358,7 @@ public:
 		h.close(ec);
 		if (ec)
 		{
-			return ec;
+			return;
 		}
 
 		{
@@ -461,7 +473,7 @@ public:
 		// 开启定时器, 执行任务.
 		m_timer.async_wait(boost::bind(&multi_download::on_tick, this));
 
-		return ec;
+		return;
 	}
 
 	///异步启动下载, 启动完成将回调对应的Handler.

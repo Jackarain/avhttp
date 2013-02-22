@@ -765,7 +765,11 @@ public:
 		std::size_t bytes_transferred = boost::asio::read_until(m_sock, m_response, "\r\n\r\n", read_err);
 		if (read_err)
 		{
-			ec = read_err;
+			// 说明读到了结束还没有得到Http header, 返回错误的文件头信息而不返回eof.
+			if (read_err == boost::asio::error::eof)
+				ec = avhttp::errc::malformed_response_headers;
+			else
+				ec = read_err;
 			return;
 		}
 
