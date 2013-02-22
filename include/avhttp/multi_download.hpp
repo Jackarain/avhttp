@@ -1086,6 +1086,7 @@ protected:
 	void on_tick()
 	{
 		// 在这里更新位图.
+		if (m_accept_multi)
 		{
 			update_meta();
 		}
@@ -1119,9 +1120,6 @@ protected:
 
 		// 计算限速.
 		m_drop_size = m_settings.m_download_rate_limit;
-
-		// 统计操作功能完成的http_stream的个数.
-		int done = 0;
 
 #ifndef AVHTTP_DISABLE_THREAD
 		// 锁定m_streams容器进行操作, 保证m_streams操作的唯一性.
@@ -1205,8 +1203,13 @@ protected:
 				stream.async_open(m_final_url, boost::bind(&multi_download::handle_open, this,
 					i, object_item_ptr, boost::asio::placeholders::error));
 			}
+		}
 
-			// 计算已经完成操作的object.
+		// 统计操作功能完成的http_stream的个数.
+		int done = 0;
+		for (std::size_t i = 0; i < m_streams.size(); i++)
+		{
+			http_object_ptr &object_item_ptr = m_streams[i];
 			if (object_item_ptr->m_done)
 				done++;
 		}
@@ -1214,8 +1217,9 @@ protected:
 		// 检查位图是否已经满以及异步操作是否完成.
 		if (done == m_streams.size() && (m_downlaoded_field.is_full() || !m_accept_multi))
 		{
-			// std::cout << "\n*** download completed! ***" << std::endl;
+			boost::system::error_code ignore;
 			m_abort = true;
+			m_timer.cancel(ignore);
 			return;
 		}
 	}
