@@ -195,6 +195,10 @@
 				Name="avhttp"
 				>
 				<File
+					RelativePath="..\include\avhttp\bencode.hpp"
+					>
+				</File>
+				<File
 					RelativePath="..\include\avhttp\entry.hpp"
 					>
 				</File>
@@ -235,6 +239,10 @@
 					</File>
 					<File
 						RelativePath="..\include\avhttp\detail\error_codec.hpp"
+						>
+					</File>
+					<File
+						RelativePath="..\include\avhttp\detail\escape_string.hpp"
 						>
 					</File>
 					<File
