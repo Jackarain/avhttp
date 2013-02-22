@@ -68,6 +68,7 @@ public:
 	{
 		m_opts.push_back(option_item(key, val));
 	}
+
 	// 添加选项，由 std::part 形式.
 	void insert(value_type & item)
 	{
