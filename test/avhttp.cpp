@@ -1,6 +1,5 @@
 #include <iostream>
 #include <boost/array.hpp>
-#include <boost/progress.hpp>
 #include <cmath>
 
 #include "avhttp.hpp"
@@ -84,12 +83,27 @@ int main(int argc, char* argv[])
 
 		if (d.file_size() != -1)
 		{
-			boost::progress_display show_progress(d.file_size());
-			while (show_progress.count() != d.file_size())
+			printf("\n");
+			int percent = 0;
+			boost::int64_t file_size = d.file_size();
+			boost::int64_t bytes_download = 0;
+			while (percent != 100)
 			{
+				bytes_download = d.bytes_download();
+				percent = ((double)bytes_download / (double)file_size) * 100.0f;
 				boost::this_thread::sleep(boost::posix_time::millisec(200));
-				show_progress += (d.bytes_download() - show_progress.count());
+				printf("\r");
+				printf("%3d%% [", percent);
+				int progress = percent / 2;
+				for (int i = 0; i < progress; i++)
+					printf("=");
+				if (progress != 50)
+					printf(">");
+				for (int i = 0; i < 49 - progress; i++)
+					printf(" ");
+				printf("]  %s  %s/s", add_suffix(bytes_download).c_str(), add_suffix(d.download_rate()).c_str());
 			}
+			printf("\n");
 		}
 
 		t.join();
