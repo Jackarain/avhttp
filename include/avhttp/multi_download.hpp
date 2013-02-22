@@ -1283,9 +1283,6 @@ protected:
 
 			entry e = bdecode(buffer.begin(), buffer.end());
 
-#ifdef _DEBUG
-			e.print(std::cout);
-#endif
 			// 最终的url.
 			m_final_url = e["final_url"].string();
 
