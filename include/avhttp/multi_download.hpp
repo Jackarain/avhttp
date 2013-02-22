@@ -27,11 +27,13 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/date_time.hpp>
 #include <boost/format.hpp>
+#include <boost/filesystem/fstream.hpp>
 
 #include "storage_interface.hpp"
 #include "file.hpp"
 #include "http_stream.hpp"
 #include "rangefield.hpp"
+#include "entry.hpp"
 
 namespace avhttp
 {
@@ -1268,6 +1270,9 @@ private:
 
 	// 下载数据存储接口指针, 可由用户定义, 并在open时指定.
 	boost::scoped_ptr<storage_interface> m_storage;
+
+	// meta文件, 用于续传.
+	boost::filesystem::fstream m_file_meta;
 
 	// 文件区间图, 每次请求将由m_rangefield来分配空间区间.
 	rangefield m_rangefield;
