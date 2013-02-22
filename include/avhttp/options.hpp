@@ -46,7 +46,8 @@ public:
 	typedef std::pair<std::string, std::string> option_item;
 	// 定义option_item_list类型.
 	typedef std::vector<option_item> option_item_list;
-
+	// for boost::assign::insert
+	typedef option_item value_type;
 public:
 	option() {}
 	~option() {}
@@ -66,6 +67,11 @@ public:
 	void insert(const std::string &key, const std::string &val)
 	{
 		m_opts.push_back(option_item(key, val));
+	}
+	// 添加选项，由 std::part 形式.
+	void insert(value_type & item)
+	{
+		m_opts.push_back(item);
 	}
 
 	// 删除选项.
