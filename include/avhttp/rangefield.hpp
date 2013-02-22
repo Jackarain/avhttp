@@ -248,6 +248,22 @@ public:
 		return false;
 	}
 
+	///得到区间所有大小.
+	boost::int64_t range_size() const
+	{
+#ifndef AVHTTP_DISABLE_THREAD
+		boost::mutex::scoped_lock lock(m_mutex);
+#endif
+		boost::int64_t size = 0;
+		for (std::map<boost::int64_t, boost::int64_t>::const_iterator i = m_ranges.begin();
+			i != m_ranges.end(); i++)
+		{
+			size += i->second - i->first;
+		}
+
+		return size;
+	}
+
 	///按指定大小输出为位图块.
 	// @param bitfield以int为单位的位图数组, 每个元素表示1个piece, 为0表示空, 为1表示满.
 	// @param piece_size指定的piece大小.
@@ -396,7 +412,7 @@ private:
 	boost::int64_t m_size;
 	std::map<boost::int64_t, boost::int64_t> m_ranges;
 #ifndef AVHTTP_DISABLE_THREAD
-	boost::mutex m_mutex;
+	mutable boost::mutex m_mutex;
 #endif
 };
 
