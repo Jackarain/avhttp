@@ -316,6 +316,7 @@ public:
 				right = left + piece_size;
 
 				left_record = true;
+				continue;
 			}
 
 			if (*i && left_record)
@@ -323,13 +324,20 @@ public:
 				right += piece_size;
 			}
 
-			if (!(*i))
+			if (left_record && !(*i))
 			{
 				// 得到区间.
 				right = std::min(right, m_size);
 				m_ranges[left] = right;
 				left_record = false;
 			}
+		}
+
+		if (left_record)
+		{
+			right = std::min(right, m_size);
+			m_ranges[left] = right;
+			left_record = false;
 		}
 
 		m_need_gc = true;
