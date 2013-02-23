@@ -63,96 +63,95 @@ static const int default_buffer_size = 1024;
 struct settings
 {
 	settings ()
-		: m_download_rate_limit(-1)
-		, m_connections_limit(default_connections_limit)
-		, m_piece_size(default_piece_size)
-		, m_time_out(default_time_out)
-		, m_request_piece_num(default_request_piece_num)
-		, m_downlad_mode(dispersion_mode)
-		, m_storage(NULL)
+		: download_rate_limit(-1)
+		, connections_limit(default_connections_limit)
+		, piece_size(default_piece_size)
+		, time_out(default_time_out)
+		, request_piece_num(default_request_piece_num)
+		, downlad_mode(dispersion_mode)
+		, storage(NULL)
 	{}
 
-	int m_download_rate_limit;			// 下载速率限制, -1为无限制, 单位为: byte/s.
-	int m_connections_limit;			// 连接数限制, -1为默认.
-	int m_piece_size;					// 分块大小, 默认根据文件大小自动计算.
-	int m_time_out;						// 超时断开, 默认为11秒.
-	int m_request_piece_num;			// 每次请求的分片数, 默认为10.
-	downlad_mode m_downlad_mode;		// 下载模式, 默认为dispersion_mode.
+	int download_rate_limit;			// 下载速率限制, -1为无限制, 单位为: byte/s.
+	int connections_limit;				// 连接数限制, -1为默认.
+	int piece_size;						// 分块大小, 默认根据文件大小自动计算.
+	int time_out;						// 超时断开, 默认为11秒.
+	int request_piece_num;				// 每次请求的分片数, 默认为10.
+	downlad_mode downlad_mode;			// 下载模式, 默认为dispersion_mode.
 	fs::path m_meta_file;				// meta_file路径, 默认为当前路径下同文件名的.meta文件.
-	storage_constructor_type m_storage;	// 存储接口创建函数指针, 默认为multi_download提供的file.hpp实现.
+	storage_constructor_type storage;	// 存储接口创建函数指针, 默认为multi_download提供的file.hpp实现.
 };
-
-// 重定义http_stream_ptr指针.
-typedef boost::shared_ptr<http_stream> http_stream_ptr;
-
-// 定义http_stream_obj.
-struct http_stream_object
-{
-	http_stream_object()
-		: m_request_range(0, 0)
-		, m_bytes_transferred(0)
-		, m_bytes_downloaded(0)
-		, m_done(false)
-		, m_direct_reconnect(false)
-	{}
-
-	// http_stream对象.
-	http_stream_ptr m_stream;
-
-	// 数据缓冲, 下载时的缓冲.
-	boost::array<char, default_buffer_size> m_buffer;
-
-	// 请求的数据范围, 每次由multi_download分配一个下载范围, m_stream按这个范围去下载.
-	range m_request_range;
-
-	// 本次请求已经下载的数据, 相对于m_request_range, 当一个m_request_range下载完成后,
-	// m_bytes_transferred自动置为0.
-	boost::int64_t m_bytes_transferred;
-
-	// 当前对象下载的数据统计.
-	boost::int64_t m_bytes_downloaded;
-
-	// 最后请求的时间.
-	boost::posix_time::ptime m_last_request_time;
-
-	// 是否操作功能完成.
-	bool m_done;
-
-	// 立即重新尝试连接.
-	bool m_direct_reconnect;
-};
-
-// 重定义http_object_ptr指针.
-typedef boost::shared_ptr<http_stream_object> http_object_ptr;
-
 
 // multi_download类的具体实现.
 class multi_download : public boost::noncopyable
 {
+	// 重定义http_stream_ptr指针.
+	typedef boost::shared_ptr<http_stream> http_stream_ptr;
+
+	// 定义http_stream_obj.
+	struct http_stream_object
+	{
+		http_stream_object()
+			: request_range(0, 0)
+			, bytes_transferred(0)
+			, bytes_downloaded(0)
+			, done(false)
+			, direct_reconnect(false)
+		{}
+
+		// http_stream对象.
+		http_stream_ptr m_stream;
+
+		// 数据缓冲, 下载时的缓冲.
+		boost::array<char, default_buffer_size> m_buffer;
+
+		// 请求的数据范围, 每次由multi_download分配一个下载范围, stream按这个范围去下载.
+		range request_range;
+
+		// 本次请求已经下载的数据, 相对于request_range, 当一个request_range下载完成后,
+		// bytes_transferred自动置为0.
+		boost::int64_t bytes_transferred;
+
+		// 当前对象下载的数据统计.
+		boost::int64_t bytes_downloaded;
+
+		// 最后请求的时间.
+		boost::posix_time::ptime m_last_request_time;
+
+		// 是否操作功能完成.
+		bool done;
+
+		// 立即重新尝试连接.
+		bool direct_reconnect;
+	};
+
+	// 重定义http_object_ptr指针.
+	typedef boost::shared_ptr<http_stream_object> http_object_ptr;
+
 	// 用于计算下载速率.
 	struct byte_rate
 	{
 		byte_rate()
-			: m_byte_rate(0)
-			, m_index(0)
-			, m_seconds(5)
+			: current_byte_rate(0)
+			, index(0)
+			, seconds(5)
 		{
-			m_last_byte_rate.resize(m_seconds);
-			for (int i = 0; i < m_seconds; i++)
-				m_last_byte_rate[i] = 0;
+			last_byte_rate.resize(seconds);
+			for (int i = 0; i < seconds; i++)
+				last_byte_rate[i] = 0;
 		}
 
 		// 用于统计速率的时间.
-		const int m_seconds;
+		const int seconds;
 
 		// 最后的byte_rate.
-		std::vector<int> m_last_byte_rate;
+		std::vector<int> last_byte_rate;
 
-		// m_last_byte_rate的下标.
-		int m_index;
+		// last_byte_rate的下标.
+		int index;
 
 		// 当前byte_rate.
-		int m_byte_rate;
+		int current_byte_rate;
 	};
 
 public:
@@ -330,10 +329,10 @@ public:
 			m_keep_alive = false;
 
 		// 创建存储对象.
-		if (!s.m_storage)
+		if (!s.storage)
 			m_storage.reset(default_storage_constructor());
 		else
-			m_storage.reset(s.m_storage());
+			m_storage.reset(s.storage());
 		BOOST_ASSERT(m_storage);
 
 		// 打开文件, 构造文件名.
@@ -349,13 +348,13 @@ public:
 		}
 
 		// 保存限速大小.
-		m_drop_size = s.m_download_rate_limit;
+		m_drop_size = s.download_rate_limit;
 
 		// 处理默认设置.
-		if (m_settings.m_connections_limit == -1)
-			m_settings.m_connections_limit = default_connections_limit;
-		if (m_settings.m_piece_size == -1 && m_file_size != -1)
-			m_settings.m_piece_size = default_piece_size;
+		if (m_settings.connections_limit == -1)
+			m_settings.connections_limit = default_connections_limit;
+		if (m_settings.piece_size == -1 && m_file_size != -1)
+			m_settings.piece_size = default_piece_size;
 
 		// 关闭stream.
 		h.close(ec);
@@ -387,7 +386,7 @@ public:
 		// 如果支持多点下载, 按设置创建其它http_stream.
 		if (m_accept_multi)
 		{
-			for (int i = 1; i < m_settings.m_connections_limit; i++)
+			for (int i = 1; i < m_settings.connections_limit; i++)
 			{
 				http_object_ptr p(new http_stream_object());
 				http_stream_ptr ptr(new http_stream(m_io_service));
@@ -397,12 +396,12 @@ public:
 				if (!allocate_range(req_range))
 				{
 					// 分配空间失败, 说明可能已经没有空闲的空间提供给这个stream进行下载了直接跳过好了.
-					p->m_done = true;
+					p->done = true;
 					continue;
 				}
 
 				// 保存请求区间.
-				p->m_request_range = req_range;
+				p->request_range = req_range;
 
 				// 设置请求区间到请求选项中.
 				req_opt.remove("Range");
@@ -445,12 +444,12 @@ public:
 				if (!allocate_range(req_range))
 				{
 					// 分配空间失败, 说明可能已经没有空闲的空间提供给这个stream进行下载了直接跳过好了.
-					obj->m_done = true;
+					obj->done = true;
 					break;
 				}
 
 				// 保存请求区间.
-				obj->m_request_range = req_range;
+				obj->request_range = req_range;
 
 				// 设置请求区间到请求选项中.
 				req_opt.remove("Range");
@@ -640,7 +639,7 @@ public:
 		{
 			const http_object_ptr &ptr = m_streams[i];
 			if (ptr)
-				bytes_count += ptr->m_bytes_downloaded;
+				bytes_count += ptr->bytes_downloaded;
 		}
 
 		return bytes_count;
@@ -649,19 +648,19 @@ public:
 	///当前下载速率, 单位byte/s.
 	int download_rate() const
 	{
-		return m_byte_rate.m_byte_rate;
+		return m_byte_rate.current_byte_rate;
 	}
 
 	///设置下载速率, -1为无限制, 单位byte/s.
 	void download_rate_limit(int rate)
 	{
-		m_settings.m_download_rate_limit = rate;
+		m_settings.download_rate_limit = rate;
 	}
 
 	///返回当前限速.
 	int download_rate_limit() const
 	{
-		return m_settings.m_download_rate_limit;
+		return m_settings.download_rate_limit;
 	}
 
 protected:
@@ -720,7 +719,7 @@ protected:
 		if (m_storage && !ec && bytes_transferred != 0)
 		{
 			// 计算offset.
-			boost::int64_t offset = object.m_request_range.left + object.m_bytes_transferred;
+			boost::int64_t offset = object.request_range.left + object.bytes_transferred;
 
 			// 更新完成下载区间位图.
 			if (m_file_size != -1)
@@ -748,22 +747,22 @@ protected:
 		}
 
 		// 统计本次已经下载的总字节数.
-		object.m_bytes_transferred += bytes_transferred;
+		object.bytes_transferred += bytes_transferred;
 
 		// 统计总下载字节数.
-		object.m_bytes_downloaded += bytes_transferred;
+		object.bytes_downloaded += bytes_transferred;
 
 		// 用于计算下载速率.
-		m_byte_rate.m_last_byte_rate[m_byte_rate.m_index] += bytes_transferred;
+		m_byte_rate.last_byte_rate[m_byte_rate.index] += bytes_transferred;
 
 		// 判断请求区间的数据已经下载完成, 如果下载完成, 则分配新的区间, 发起新的请求.
-		if (m_accept_multi && object.m_bytes_transferred >= object.m_request_range.size())
+		if (m_accept_multi && object.bytes_transferred >= object.request_range.size())
 		{
 			// 不支持长连接, 则创建新的连接.
 			if (!m_keep_alive)
 			{
 				// 新建新的http_stream对象.
-				object.m_direct_reconnect = true;
+				object.direct_reconnect = true;
 				return;
 			}
 
@@ -777,19 +776,19 @@ protected:
 				req_opt.insert("Connection", "keep-alive");
 
 			// 如果分配空闲空间失败, 则跳过这个socket, 并立即尝试连接这个socket.
-			if (!allocate_range(object.m_request_range))
+			if (!allocate_range(object.request_range))
 			{
-				object.m_direct_reconnect = true;
+				object.direct_reconnect = true;
 				return;
 			}
 
 			// 清空计数.
-			object.m_bytes_transferred = 0;
+			object.bytes_transferred = 0;
 
 			// 插入新的区间请求.
 			req_opt.insert("Range",
 				boost::str(boost::format("bytes=%lld-%lld")
-				% object.m_request_range.left % object.m_request_range.right));
+				% object.request_range.left % object.request_range.right));
 
 			// 设置到请求选项中.
 			stream.request_options(req_opt);
@@ -809,7 +808,7 @@ protected:
 		{
 			// 服务器不支持多点下载, 说明数据已经下载完成.
 			if (!m_accept_multi &&
-				(m_file_size != -1 && object.m_bytes_downloaded == m_file_size))
+				(m_file_size != -1 && object.bytes_downloaded == m_file_size))
 			{
 				m_abort = true;
 				boost::system::error_code ignore;
@@ -965,10 +964,10 @@ protected:
 			m_keep_alive = false;
 
 		// 创建存储对象.
-		if (!m_settings.m_storage)
+		if (!m_settings.storage)
 			m_storage.reset(default_storage_constructor());
 		else
-			m_storage.reset(m_settings.m_storage());
+			m_storage.reset(m_settings.storage());
 		BOOST_ASSERT(m_storage);
 
 		// 打开文件, 构造文件名.
@@ -986,10 +985,10 @@ protected:
 		}
 
 		// 处理默认设置.
-		if (m_settings.m_connections_limit == -1)
-			m_settings.m_connections_limit = default_connections_limit;
-		if (m_settings.m_piece_size == -1 && m_file_size != -1)
-			m_settings.m_piece_size = default_piece_size;
+		if (m_settings.connections_limit == -1)
+			m_settings.connections_limit = default_connections_limit;
+		if (m_settings.piece_size == -1 && m_file_size != -1)
+			m_settings.piece_size = default_piece_size;
 
 		// 关闭stream.
 		h.close(ignore);
@@ -1022,7 +1021,7 @@ protected:
 		// 如果支持多点下载, 按设置创建其它http_stream.
 		if (m_accept_multi)
 		{
-			for (int i = 1; i < m_settings.m_connections_limit; i++)
+			for (int i = 1; i < m_settings.connections_limit; i++)
 			{
 				http_object_ptr p(new http_stream_object());
 				http_stream_ptr ptr(new http_stream(m_io_service));
@@ -1032,12 +1031,12 @@ protected:
 				if (!allocate_range(req_range))
 				{
 					// 分配空间失败, 说明可能已经没有空闲的空间提供给这个stream进行下载了直接跳过好了.
-					p->m_done = true;
+					p->done = true;
 					continue;
 				}
 
 				// 保存请求区间.
-				p->m_request_range = req_range;
+				p->request_range = req_range;
 
 				// 设置请求区间到请求选项中.
 				req_opt.remove("Range");
@@ -1080,12 +1079,12 @@ protected:
 				if (!allocate_range(req_range))
 				{
 					// 分配空间失败, 说明可能已经没有空闲的空间提供给这个stream进行下载了直接跳过好了.
-					object.m_done = true;
+					object.done = true;
 					break;
 				}
 
 				// 保存请求区间.
-				object.m_request_range = req_range;
+				object.request_range = req_range;
 
 				// 设置请求区间到请求选项中.
 				req_opt.remove("Range");
@@ -1141,19 +1140,19 @@ protected:
 		{
 			int bytes_count = 0;
 
-			for (int i = 0; i < m_byte_rate.m_seconds; i++)
-				bytes_count += m_byte_rate.m_last_byte_rate[i];
+			for (int i = 0; i < m_byte_rate.seconds; i++)
+				bytes_count += m_byte_rate.last_byte_rate[i];
 
-			m_byte_rate.m_byte_rate = (double)bytes_count / m_byte_rate.m_seconds;
+			m_byte_rate.current_byte_rate = (double)bytes_count / m_byte_rate.seconds;
 
-			if (m_byte_rate.m_index + 1 >= m_byte_rate.m_seconds)
-				m_byte_rate.m_last_byte_rate[m_byte_rate.m_index = 0] = 0;
+			if (m_byte_rate.index + 1 >= m_byte_rate.seconds)
+				m_byte_rate.last_byte_rate[m_byte_rate.index = 0] = 0;
 			else
-				m_byte_rate.m_last_byte_rate[++m_byte_rate.m_index] = 0;
+				m_byte_rate.last_byte_rate[++m_byte_rate.index] = 0;
 		}
 
 		// 计算限速.
-		m_drop_size = m_settings.m_download_rate_limit;
+		m_drop_size = m_settings.download_rate_limit;
 
 #ifndef AVHTTP_DISABLE_THREAD
 		// 锁定m_streams容器进行操作, 保证m_streams操作的唯一性.
@@ -1165,8 +1164,8 @@ protected:
 			boost::posix_time::time_duration duration =
 				boost::posix_time::microsec_clock::local_time() - object_item_ptr->m_last_request_time;
 
-			if (!object_item_ptr->m_done &&	(duration > boost::posix_time::seconds(m_settings.m_time_out)
-				|| object_item_ptr->m_direct_reconnect))
+			if (!object_item_ptr->done &&	(duration > boost::posix_time::seconds(m_settings.time_out)
+				|| object_item_ptr->direct_reconnect))
 			{
 				// 超时, 关闭并重新创建连接.
 				boost::system::error_code ec;
@@ -1178,13 +1177,13 @@ protected:
 				if (!m_accept_multi)
 				{
 					m_abort = true;
-					object_item_ptr->m_done = true;
+					object_item_ptr->done = true;
 					m_number_of_connections--;
 					continue;
 				}
 
 				// 重置重连标识.
-				object_item_ptr->m_direct_reconnect = false;
+				object_item_ptr->direct_reconnect = false;
 
 				// 重新创建http_object和http_stream.
 				object_item_ptr.reset(new http_stream_object(*object_item_ptr));
@@ -1205,22 +1204,22 @@ protected:
 				// 继续从上次未完成的位置开始请求.
 				if (m_accept_multi)
 				{
-					boost::int64_t begin = object.m_request_range.left + object.m_bytes_transferred;
-					boost::int64_t end = object.m_request_range.right;
+					boost::int64_t begin = object.request_range.left + object.bytes_transferred;
+					boost::int64_t end = object.request_range.right;
 
 					if (end - begin <= 0)
 					{
 						// 如果分配空闲空间失败, 则跳过这个socket.
-						if (!allocate_range(object.m_request_range))
+						if (!allocate_range(object.request_range))
 						{
-							object.m_done = true;	// 已经没什么可以下载了.
+							object.done = true;	// 已经没什么可以下载了.
 							m_number_of_connections--;
 							continue;
 						}
 
-						object.m_bytes_transferred = 0;
-						begin = object.m_request_range.left;
-						end = object.m_request_range.right;
+						object.bytes_transferred = 0;
+						begin = object.request_range.left;
+						end = object.request_range.right;
 					}
 
 					req_opt.insert("Range",
@@ -1244,7 +1243,7 @@ protected:
 		for (std::size_t i = 0; i < m_streams.size(); i++)
 		{
 			http_object_ptr &object_item_ptr = m_streams[i];
-			if (object_item_ptr->m_done)
+			if (object_item_ptr->done)
 				done++;
 		}
 
@@ -1273,7 +1272,7 @@ protected:
 			BOOST_ASSERT(temp.size() >= 0);
 
 			// 重新计算为最大max_request_bytes大小.
-			boost::int64_t max_request_bytes = m_settings.m_request_piece_num * m_settings.m_piece_size;
+			boost::int64_t max_request_bytes = m_settings.request_piece_num * m_settings.piece_size;
 			if (temp.size() > max_request_bytes)
 				temp.right = temp.left + max_request_bytes;
 
@@ -1326,7 +1325,7 @@ protected:
 			m_downlaoded_field.reset(m_file_size);
 
 			// 分片大小.
-			m_settings.m_piece_size = e["piece_size"].integer();
+			m_settings.piece_size = e["piece_size"].integer();
 
 			// 分片数.
 			int piece_num = e["piece_num"].integer();
@@ -1338,8 +1337,8 @@ protected:
 			bitfield bf(bitfield_data.c_str(), piece_num);
 
 			// 更新到区间范围.
-			m_rangefield.bitfield_to_range(bf, m_settings.m_piece_size);
-			m_downlaoded_field.bitfield_to_range(bf, m_settings.m_piece_size);
+			m_rangefield.bitfield_to_range(bf, m_settings.piece_size);
+			m_downlaoded_field.bitfield_to_range(bf, m_settings.piece_size);
 		}
 
 		return true;
@@ -1359,11 +1358,11 @@ protected:
 
 		e["final_url"] = m_final_url.to_string();
 		e["file_size"] = m_file_size;
-		e["piece_size"] = m_settings.m_piece_size;
-		e["piece_num"] = (m_file_size / m_settings.m_piece_size) +
-			(m_file_size % m_settings.m_piece_size == 0 ? 0 : 1);
+		e["piece_size"] = m_settings.piece_size;
+		e["piece_num"] = (m_file_size / m_settings.piece_size) +
+			(m_file_size % m_settings.piece_size == 0 ? 0 : 1);
 		bitfield bf;
-		m_downlaoded_field.range_to_bitfield(bf, m_settings.m_piece_size);
+		m_downlaoded_field.range_to_bitfield(bf, m_settings.piece_size);
 		std::string str(bf.bytes(), bf.bytes_size());
 		e["bitfield"] = str;
 
