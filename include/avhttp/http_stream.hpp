@@ -18,7 +18,7 @@
 #include <vector>
 
 #include "url.hpp"
-#include "options.hpp"
+#include "settings.hpp"
 #include "detail/parsers.hpp"
 #include "detail/error_codec.hpp"
 #ifdef AVHTTP_ENABLE_OPENSSL
