@@ -104,7 +104,7 @@
     <ClInclude Include="..\include\avhttp\file.hpp" />
     <ClInclude Include="..\include\avhttp\http_stream.hpp" />
     <ClInclude Include="..\include\avhttp\multi_download.hpp" />
-    <ClInclude Include="..\include\avhttp\options.hpp" />
+    <ClInclude Include="..\include\avhttp\settings.hpp" />
     <ClInclude Include="..\include\avhttp\rangefield.hpp" />
     <ClInclude Include="..\include\avhttp\storage_interface.hpp" />
     <ClInclude Include="..\include\avhttp\url.hpp" />

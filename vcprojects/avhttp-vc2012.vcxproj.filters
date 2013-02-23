@@ -27,9 +27,6 @@
     <ClInclude Include="..\include\avhttp\http_stream.hpp">
       <Filter>头文件\avhttp</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\avhttp\options.hpp">
-      <Filter>头文件\avhttp</Filter>
-    </ClInclude>
     <ClInclude Include="..\include\avhttp\url.hpp">
       <Filter>头文件\avhttp</Filter>
     </ClInclude>
@@ -68,6 +65,9 @@
     </ClInclude>
     <ClInclude Include="..\include\avhttp\detail\escape_string.hpp">
       <Filter>头文件\avhttp\detail</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\avhttp\settings.hpp">
+      <Filter>头文件\avhttp</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
