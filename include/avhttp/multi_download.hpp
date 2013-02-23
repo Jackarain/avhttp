@@ -717,7 +717,7 @@ protected:
 	{
 		http_stream_object &object = *object_ptr;
 		// 保存数据.
-		if (m_storage && !ec)
+		if (m_storage && !ec && bytes_transferred != 0)
 		{
 			// 计算offset.
 			boost::int64_t offset = object.m_request_range.left + object.m_bytes_transferred;
