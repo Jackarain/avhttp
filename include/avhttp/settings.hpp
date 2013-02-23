@@ -26,14 +26,14 @@
 
 namespace avhttp {
 
-// Èç¹ûÃ»ÓĞ¶¨Òå×î´óÖØ¶¨Ïò´ÎÊı, ÔòÄ¬ÈÏÎª5´Î×î´óÖØ¶¨Ïò.
+// å¦‚æœæ²¡æœ‰å®šä¹‰æœ€å¤§é‡å®šå‘æ¬¡æ•°, åˆ™é»˜è®¤ä¸º5æ¬¡æœ€å¤§é‡å®šå‘.
 #ifndef AVHTTP_MAX_REDIRECTS
 #define AVHTTP_MAX_REDIRECTS 5
 #endif
 
 namespace http_options {
 
-	// ¶¨ÒåÒ»Ğ©³£ÓÃµÄ¡¡http Ñ¡ÏîÎª const string , ÕâÑù¾Í²»ÓÃ¼ÇÒäÄÇĞ©µ¥´ÊÁË£¬ºÇºÇ.
+	// å®šä¹‰ä¸€äº›å¸¸ç”¨çš„ã€€http é€‰é¡¹ä¸º const string , è¿™æ ·å°±ä¸ç”¨è®°å¿†é‚£äº›å•è¯äº†ï¼Œå‘µå‘µ.
 	static const std::string request_method("_request_method");
 	static const std::string request_body("_request_body");
 	static const std::string status_code("_status_code");
@@ -44,14 +44,14 @@ namespace http_options {
 	static const std::string connection("Connection");
 } // namespace http_options
 
-// ¾ßÌåµÄhttpµÄoptionÑ¡ÏîÊµÏÖ.
+// å…·ä½“çš„httpçš„optioné€‰é¡¹å®ç°.
 
 class option
 {
 public:
-	// ¶¨Òåoption_itemÀàĞÍ.
+	// å®šä¹‰option_itemç±»å‹.
 	typedef std::pair<std::string, std::string> option_item;
-	// ¶¨Òåoption_item_listÀàĞÍ.
+	// å®šä¹‰option_item_listç±»å‹.
 	typedef std::vector<option_item> option_item_list;
 	// for boost::assign::insert
 	typedef option_item value_type;
@@ -61,7 +61,7 @@ public:
 
 public:
 
-	// ÕâÑù¾ÍÔÊĞíÕâÑùµÄÓ¦ÓÃ:
+	// è¿™æ ·å°±å…è®¸è¿™æ ·çš„åº”ç”¨:
 	// http_stream s;
 	// s.request_options(request_opts()("cookie","XXXXXX"));
 	option & operator()(const std::string &key, const std::string &val)
@@ -70,19 +70,19 @@ public:
 		return *this;
 	}
 
-	// Ìí¼ÓÑ¡Ïî, ÓÉkey/valueĞÎÊ½Ìí¼Ó.
+	// æ·»åŠ é€‰é¡¹, ç”±key/valueå½¢å¼æ·»åŠ .
 	void insert(const std::string &key, const std::string &val)
 	{
 		m_opts.push_back(option_item(key, val));
 	}
 
-	// Ìí¼ÓÑ¡Ïî£¬ÓÉ std::part ĞÎÊ½.
+	// æ·»åŠ é€‰é¡¹ï¼Œç”± std::part å½¢å¼.
 	void insert(value_type & item)
 	{
 		m_opts.push_back(item);
 	}
 
-	// É¾³ıÑ¡Ïî.
+	// åˆ é™¤é€‰é¡¹.
 	void remove(const std::string &key)
 	{
 		for (option_item_list::iterator i = m_opts.begin(); i != m_opts.end(); i++)
@@ -95,7 +95,7 @@ public:
 		}
 	}
 
-	// ²éÕÒÖ¸¶¨keyµÄvalue.
+	// æŸ¥æ‰¾æŒ‡å®škeyçš„value.
 	bool find(const std::string &key, std::string &val) const
 	{
 		std::string s = key;
@@ -113,7 +113,7 @@ public:
 		return false;
 	}
 
-	// ²éÕÒÖ¸¶¨µÄ key µÄ value. Ã»ÕÒµ½·µ»Ø ""£¬¡¡ÕâÊÇ¸öÍµÀÁµÄ°ïÖú.
+	// æŸ¥æ‰¾æŒ‡å®šçš„ key çš„ value. æ²¡æ‰¾åˆ°è¿”å› ""ï¼Œã€€è¿™æ˜¯ä¸ªå·æ‡’çš„å¸®åŠ©.
 	std::string find(const std::string & key) const
 	{
 		std::string v;
@@ -121,7 +121,7 @@ public:
 		return v;
 	}
 
-	// µÃµ½Header×Ö·û´®.
+	// å¾—åˆ°Headerå­—ç¬¦ä¸².
 	std::string header_string() const
 	{
 		std::string str;
@@ -133,13 +133,13 @@ public:
 		return str;
 	}
 
-	// Çå¿Õ.
+	// æ¸…ç©º.
 	void clear()
 	{
 		m_opts.clear();
 	}
 
-	// ·µ»ØËùÓĞoption.
+	// è¿”å›æ‰€æœ‰option.
 	option_item_list& option_all()
 	{
 		return m_opts;
@@ -149,25 +149,25 @@ protected:
 	option_item_list m_opts;
 };
 
-// ÇëÇóÊ±µÄhttpÑ¡Ïî.
-// ÒÔÏÂÑ¡ÏîÎª±ØhttpÑ¡Ïî:
-// _request_method, È¡Öµ "GET/POST/HEAD", Ä¬ÈÏÎª"GET".
-// _request_body, ÇëÇóÖĞµÄbodyÄÚÈİ, È¡ÖµÈÎÒâ, Ä¬ÈÏÎª¿Õ.
-// Host, È¡ÖµÎªhttp·şÎñÆ÷, Ä¬ÈÏÎªhttp·şÎñÆ÷.
-// Accept, È¡ÖµÈÎÒâ, Ä¬ÈÏÎª"*/*".
+// è¯·æ±‚æ—¶çš„httpé€‰é¡¹.
+// ä»¥ä¸‹é€‰é¡¹ä¸ºå¿…httpé€‰é¡¹:
+// _request_method, å–å€¼ "GET/POST/HEAD", é»˜è®¤ä¸º"GET".
+// _request_body, è¯·æ±‚ä¸­çš„bodyå†…å®¹, å–å€¼ä»»æ„, é»˜è®¤ä¸ºç©º.
+// Host, å–å€¼ä¸ºhttpæœåŠ¡å™¨, é»˜è®¤ä¸ºhttpæœåŠ¡å™¨.
+// Accept, å–å€¼ä»»æ„, é»˜è®¤ä¸º"*/*".
 typedef option request_opts;
 
-// http·şÎñÆ÷·µ»ØµÄhttpÑ¡Ïî.
-// Ò»°ã»á°üÀ¨ÒÔÏÂ¼¸¸öÑ¡Ïî:
-// _status_code, http·µ»Ø×´Ì¬.
-// Server, ·şÎñÆ÷Ãû³Æ.
-// Content-Length, Êı¾İÄÚÈİ³¤¶È.
-// Connection, Á¬½Ó×´Ì¬±êÊ¶.
+// httpæœåŠ¡å™¨è¿”å›çš„httpé€‰é¡¹.
+// ä¸€èˆ¬ä¼šåŒ…æ‹¬ä»¥ä¸‹å‡ ä¸ªé€‰é¡¹:
+// _status_code, httpè¿”å›çŠ¶æ€.
+// Server, æœåŠ¡å™¨åç§°.
+// Content-Length, æ•°æ®å†…å®¹é•¿åº¦.
+// Connection, è¿æ¥çŠ¶æ€æ ‡è¯†.
 typedef option response_opts;
 
 
 
-// HttpÇëÇóµÄ´úÀíÉèÖÃ.
+// Httpè¯·æ±‚çš„ä»£ç†è®¾ç½®.
 
 struct proxy_settings
 {
@@ -179,17 +179,17 @@ struct proxy_settings
 
 	enum proxy_type
 	{
-		// Ã»ÓĞÉèÖÃ´úÀí.
+		// æ²¡æœ‰è®¾ç½®ä»£ç†.
 		none,
-		// socks4´úÀí, ĞèÒªusername.
+		// socks4ä»£ç†, éœ€è¦username.
 		socks4,
-		// ²»ĞèÒªÓÃ»§ÃÜÂëµÄsocks5´úÀí.
+		// ä¸éœ€è¦ç”¨æˆ·å¯†ç çš„socks5ä»£ç†.
 		socks5,
-		// ĞèÒªÓÃ»§ÃÜÂëÈÏÖ¤µÄsocks5´úÀí.
+		// éœ€è¦ç”¨æˆ·å¯†ç è®¤è¯çš„socks5ä»£ç†.
 		socks5_pw,
-		// http´úÀí, ²»ĞèÒªÈÏÖ¤.
+		// httpä»£ç†, ä¸éœ€è¦è®¤è¯.
 		http,
-		// http´úÀí, ĞèÒªÈÏÖ¤.
+		// httpä»£ç†, éœ€è¦è®¤è¯.
 		http_pw,
 	};
 
@@ -204,29 +204,29 @@ struct proxy_settings
 };
 
 
-// Ò»Ğ©Ä¬ÈÏµÄÖµ.
+// ä¸€äº›é»˜è®¤çš„å€¼.
 static const int default_request_piece_num = 10;
 static const int default_time_out = 11;
 static const int default_piece_size = 32768;
 static const int default_connections_limit = 5;
 static const int default_buffer_size = 1024;
 
-// multi_downloadÏÂÔØÉèÖÃ.
+// multi_downloadä¸‹è½½è®¾ç½®.
 
 struct settings
 {
-	// ÏÂÔØÄ£Ê½.
+	// ä¸‹è½½æ¨¡å¼.
 	enum downlad_mode
 	{
-		// ½ô´ÕÄ£Ê½ÏÂÔØ, ½ô´ÕÄ£Ê½ÊÇÖ¸, ½«ÎÄ¼ş·ÖÆ¬ºó, ´ÓÎÄ¼şÍ·¿ªÊ¼, Ò»Æ¬½ô½Ó×ÅÒ»Æ¬,
-		// Á¬Ğø²»¶ÏµÄÏÂÔØ.
+		// ç´§å‡‘æ¨¡å¼ä¸‹è½½, ç´§å‡‘æ¨¡å¼æ˜¯æŒ‡, å°†æ–‡ä»¶åˆ†ç‰‡å, ä»æ–‡ä»¶å¤´å¼€å§‹, ä¸€ç‰‡ç´§æ¥ç€ä¸€ç‰‡,
+		// è¿ç»­ä¸æ–­çš„ä¸‹è½½.
 		compact_mode,
 
-		// TODO: ËÉÉ¢Ä£Ê½ÏÂÔØ, ÊÇÖ¸½«ÎÄ¼ş·ÖÆ¬ºó, °´Á¬½ÓÊıÆ½·ÖÎªN´ó¿é½øĞĞÏÂÔØ.
+		// TODO: æ¾æ•£æ¨¡å¼ä¸‹è½½, æ˜¯æŒ‡å°†æ–‡ä»¶åˆ†ç‰‡å, æŒ‰è¿æ¥æ•°å¹³åˆ†ä¸ºNå¤§å—è¿›è¡Œä¸‹è½½.
 		dispersion_mode,
 
-		// TODO: ¿ìËÙ¶ÁÈ¡Ä£Ê½ÏÂÔØ, Õâ¸öÄ£Ê½ÊÇ¸ù¾İÓÃ»§¶ÁÈ¡Êı¾İÎ»ÖÃ¿ªÊ¼ÏÂÔØÊı¾İ, ÊÇ¾¡¿ìÏìÓ¦
-		// ÏÂÔØÓÃ»§ĞèÒªµÄÊı¾İ.
+		// TODO: å¿«é€Ÿè¯»å–æ¨¡å¼ä¸‹è½½, è¿™ä¸ªæ¨¡å¼æ˜¯æ ¹æ®ç”¨æˆ·è¯»å–æ•°æ®ä½ç½®å¼€å§‹ä¸‹è½½æ•°æ®, æ˜¯å°½å¿«å“åº”
+		// ä¸‹è½½ç”¨æˆ·éœ€è¦çš„æ•°æ®.
 		quick_read_mode
 	};
 
@@ -240,28 +240,28 @@ struct settings
 		, storage(NULL)
 	{}
 
-	// ÏÂÔØËÙÂÊÏŞÖÆ, -1ÎªÎŞÏŞÖÆ, µ¥Î»Îª: byte/s.
+	// ä¸‹è½½é€Ÿç‡é™åˆ¶, -1ä¸ºæ— é™åˆ¶, å•ä½ä¸º: byte/s.
 	int download_rate_limit;
 
-	// Á¬½ÓÊıÏŞÖÆ, -1ÎªÄ¬ÈÏ.
+	// è¿æ¥æ•°é™åˆ¶, -1ä¸ºé»˜è®¤.
 	int connections_limit;
 
-	// ·Ö¿é´óĞ¡, Ä¬ÈÏ¸ù¾İÎÄ¼ş´óĞ¡×Ô¶¯¼ÆËã.
+	// åˆ†å—å¤§å°, é»˜è®¤æ ¹æ®æ–‡ä»¶å¤§å°è‡ªåŠ¨è®¡ç®—.
 	int piece_size;
 
-	// ³¬Ê±¶Ï¿ª, Ä¬ÈÏÎª11Ãë.
+	// è¶…æ—¶æ–­å¼€, é»˜è®¤ä¸º11ç§’.
 	int time_out;
 
-	// Ã¿´ÎÇëÇóµÄ·ÖÆ¬Êı, Ä¬ÈÏÎª10.
+	// æ¯æ¬¡è¯·æ±‚çš„åˆ†ç‰‡æ•°, é»˜è®¤ä¸º10.
 	int request_piece_num;
 
-	// ÏÂÔØÄ£Ê½, Ä¬ÈÏÎªdispersion_mode.
+	// ä¸‹è½½æ¨¡å¼, é»˜è®¤ä¸ºdispersion_mode.
 	downlad_mode current_downlad_mode;
 
-	// meta_fileÂ·¾¶, Ä¬ÈÏÎªµ±Ç°Â·¾¶ÏÂÍ¬ÎÄ¼şÃûµÄ.metaÎÄ¼ş.
+	// meta_fileè·¯å¾„, é»˜è®¤ä¸ºå½“å‰è·¯å¾„ä¸‹åŒæ–‡ä»¶åçš„.metaæ–‡ä»¶.
 	fs::path m_meta_file;
 
-	// ´æ´¢½Ó¿Ú´´½¨º¯ÊıÖ¸Õë, Ä¬ÈÏÎªmulti_downloadÌá¹©µÄfile.hppÊµÏÖ.
+	// å­˜å‚¨æ¥å£åˆ›å»ºå‡½æ•°æŒ‡é’ˆ, é»˜è®¤ä¸ºmulti_downloadæä¾›çš„file.hppå®ç°.
 	storage_constructor_type storage;
 };
 
