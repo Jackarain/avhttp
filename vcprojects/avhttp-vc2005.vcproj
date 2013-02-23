@@ -215,7 +215,7 @@
 					>
 				</File>
 				<File
-					RelativePath="..\include\avhttp\options.hpp"
+					RelativePath="..\include\avhttp\settings.hpp"
 					>
 				</File>
 				<File
