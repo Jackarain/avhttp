@@ -182,7 +182,13 @@ enum errc_t
 	gateway_timeout = 504,
 
 	/// The server-generated status code "505 HTTP Version Not Supported".
-	version_not_supported = 505
+	version_not_supported = 505,
+
+	/// SOCKS unsupported version.
+	unsupported_version = 1000,
+
+	/// SOCKS username required.
+	username_required,
 };
 
 /// Converts a value of type @c errc_t to a corresponding object of type
@@ -313,6 +319,10 @@ class error_category_impl
 			return "Gateway time-out";
 		case errc::version_not_supported:
 			return "HTTP version not supported";
+		case  errc::unsupported_version:
+			return "SOCKS unsupported version";
+		case errc::username_required:
+			return "SOCKS username required";
 		default:
 			return "Unknown HTTP error";
 		}

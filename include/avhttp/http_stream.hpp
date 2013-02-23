@@ -19,6 +19,7 @@
 
 #include "url.hpp"
 #include "settings.hpp"
+#include "detail/io.hpp"
 #include "detail/parsers.hpp"
 #include "detail/error_codec.hpp"
 #ifdef AVHTTP_ENABLE_OPENSSL
@@ -931,16 +932,32 @@ public:
 		return m_sock.is_open();
 	}
 
+	///设置代理, 通过设置代理访问http服务器.
+	// @param s 指定了代理参数.
+	// @begin example
+	//  avhttp::http_stream h(io_service);
+	//  proxy_settings s;
+	//  s.type = socks5;
+	//  s.hostname = "example.proxy.com";
+	//  s.port = 8080;
+	//  h.proxy(s);
+	//  ...
+	// @end example
+	void proxy(const proxy_settings &s)
+	{
+		m_proxy = s;
+	}
+
 	///设置请求时的http选项.
 	// @param options 为http的选项. 目前有以下几项特定选项:
 	//  _request_method, 取值 "GET/POST/HEAD", 默认为"GET".
 	//  Host, 取值为http服务器, 默认为http服务器.
 	//  Accept, 取值任意, 默认为"*/*".
 	// @begin example
-	//  avhttp::http_stream h_stream(io_service);
+	//  avhttp::http_stream h(io_service);
 	//  request_opts options;
 	//  options.insert("_request_method", "POST"); // 默认为GET方式.
-	//  h_stream.request_options(options);
+	//  h.request_options(options);
 	//  ...
 	// @end example
 	void request_options(const request_opts& options)
@@ -950,9 +967,9 @@ public:
 
 	///返回请求时的http选项.
 	// @begin example
-	//  avhttp::http_stream h_stream(io_service);
+	//  avhttp::http_stream h(io_service);
 	//  request_opts options;
-	//  options = h_stream.request_options();
+	//  options = h.request_options();
 	//  ...
 	// @end example
 	request_opts request_options(void) const
@@ -985,6 +1002,9 @@ public:
 	}
 
 protected:
+
+	// 异步处理模板成员的相关实现.
+
 	template <typename Handler>
 	void handle_resolve(const boost::system::error_code &err,
 		tcp::resolver::iterator endpoint_iterator, Handler handler)
@@ -1186,6 +1206,103 @@ protected:
 		handler(ec);
 	}
 
+
+protected:
+
+	// 同步相关的其它实现.
+
+	// 连接到socks代理, 在这一步中完成和socks的信息交换过程, 出错信息在ec中.
+	void connect_socks_proxy(const proxy_settings &s, boost::system::error_code &ec)
+	{
+		// 开始解析代理的端口和主机名.
+		tcp::resolver resolver(m_io_service);
+		std::ostringstream port_string;
+		port_string << s.port;
+		tcp::resolver::query query(s.hostname.c_str(), port_string.str());
+		tcp::resolver::iterator endpoint_iterator = resolver.resolve(query, ec);
+		tcp::resolver::iterator end;
+
+		// 如果解析失败, 则返回.
+		if (ec)
+			return;
+
+		// 尝试连接解析出来的服务器地址.
+		ec = boost::asio::error::host_not_found;
+		while (ec && endpoint_iterator != end)
+		{
+			m_sock.close(ec);
+			m_sock.connect(*endpoint_iterator++, ec);
+		}
+		if (ec)
+		{
+			return;
+		}
+
+		if (s.type == proxy_settings::socks5)
+		{
+			m_request.consume(m_request.size());
+
+			std::size_t bytes_to_write = s.username.empty() ? 3 : 4;
+			boost::asio::mutable_buffer b1 = m_request.prepare(bytes_to_write);
+			char *p = boost::asio::buffer_cast<char*>(b1);
+			detail::write_uint8(5, p); // SOCKS VERSION 5.
+			if (s.username.empty())
+			{
+				detail::write_uint8(1, p); // 1 authentication method (no auth)
+				detail::write_uint8(0, p); // no authentication
+			}
+			else
+			{
+				detail::write_uint8(2, p); // 2 authentication methods
+				detail::write_uint8(0, p); // no authentication
+				detail::write_uint8(2, p); // username/password
+			}
+			m_request.commit(bytes_to_write);
+			boost::asio::write(m_sock, m_request, ec);
+			if (ec)
+				return;
+			m_response.consume(m_response.size());
+			boost::asio::read(m_sock, m_response, boost::asio::transfer_exactly(2), ec);
+			if (ec)
+				return;
+
+			boost::asio::const_buffer b2 = m_response.data();
+			const char *p2 = boost::asio::buffer_cast<const char*>(b2);
+			int version = detail::read_uint8(p2);
+			int method = detail::read_uint8(p2);
+			if (version < 5)	// 版本小于5, 不支持socks5.
+			{
+				ec = make_error_code(errc::unsupported_version);
+				return;
+			}
+			if (method == 2)
+			{
+				if (s.username.empty())
+				{
+					ec = make_error_code(errc::username_required);
+					return;
+				}
+
+				// start sub-negotiation.
+				m_request.consume(m_request.size());
+				b1 = m_request.prepare(s.username.size() + s.password.size() + 3);
+				char *p = boost::asio::buffer_cast<char*>(b1);
+				detail::write_uint8(1, p);
+				detail::write_uint8(s.username.size(), p);
+				detail::write_string(s.username, p);
+				detail::write_uint8(s.password.size(), p);
+				detail::write_string(s.password, p);
+
+				// 发送.
+			}
+		}
+		else if (s.type == proxy_settings::socks4)
+		{
+
+		}
+	}
+
+
 #ifdef AVHTTP_ENABLE_OPENSSL
 	inline bool certificate_matches_host(X509* cert, const std::string& host)
 	{
@@ -1271,6 +1388,7 @@ protected:
 	bool m_check_certificate;						// 是否认证服务端证书.
 	request_opts m_request_opts;					// 向http服务器请求的头信息.
 	response_opts m_response_opts;					// http服务器返回的http头信息.
+	proxy_settings m_proxy;							// 代理设置.
 	std::string m_protocol;							// 协议类型(http/https).
 	url m_url;										// 保存当前请求的url.
 	bool m_keep_alive;								// 获得connection选项, 同时受m_response_opts影响.
