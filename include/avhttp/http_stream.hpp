@@ -1316,6 +1316,12 @@ protected:
 				if (ec)
 					return;
 			}
+			else if (method == 0)
+			{
+				socks_connect(u, s, ec);
+				return;
+			}
+
 			{
 				// 读取版本状态.
 				boost::asio::const_buffer b = m_response.data();
@@ -1338,12 +1344,12 @@ protected:
 					return;
 				}
 
-
+				socks_connect(u, s, ec);
 			}
 		}
 		else if (s.type == proxy_settings::socks4)
 		{
-
+			socks_connect(u, s, ec);
 		}
 	}
 
