@@ -201,6 +201,12 @@ enum errc_t
 
 	/// SOCKS command not supported.
 	command_not_supported,
+
+	/// SOCKS no identd running.
+	no_identd,
+
+	/// SOCKS no identd running.
+	identd_error
 };
 
 /// Converts a value of type @c errc_t to a corresponding object of type
@@ -341,6 +347,12 @@ class error_category_impl
 			return "SOCKS authentication error";
 		case errc::general_failure:
 			return "SOCKS general failure";
+		case errc::command_not_supported:
+			return "SOCKS command not supported";
+		case errc::no_identd:
+			return "SOCKS no identd running";
+		case errc::identd_error:
+			return "SOCKS no identd running";
 		default:
 			return "Unknown HTTP error";
 		}

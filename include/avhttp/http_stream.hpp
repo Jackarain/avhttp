@@ -1448,11 +1448,6 @@ protected:
 				ec = boost::system::error_code();	// 没有发生错误, 返回.
 				return;
 			}
-			else if (atyp == 4)	// ipv6 返回, 暂无实现!
-			{
-				ec = boost::asio::error::address_family_not_supported;
-				return;
-			}
 			else if (atyp == 3)	// domainname 返回.
 			{
 				int len = read_uint8(rp);	// 读取domainname长度.
@@ -1467,8 +1462,49 @@ protected:
 				// std::string domain;
 				// domain.resize(len);
 				// std::copy(rp, rp + len, domain.begin());
+				m_response.consume(m_response.size());
+				ec = boost::system::error_code();
 				return;
 			}
+			// else if (atyp == 4)	// ipv6 返回, 暂无实现!
+			// {
+			//	ec = boost::asio::error::address_family_not_supported;
+			//	return;
+			// }
+			else
+			{
+				ec = boost::asio::error::address_family_not_supported;
+				return;
+			}
+		}
+		else if (version == 4)
+		{
+			// 90: request granted.
+			// 91: request rejected or failed.
+			// 92: request rejected becasue SOCKS server cannot connect to identd on the client.
+			// 93: request rejected because the client program and identd report different user-ids.
+			if (response == 90)	// access granted.
+			{
+				m_response.consume(m_response.size());
+				ec = boost::system::error_code();
+				return;
+			}
+			else
+			{
+				ec = errc::general_failure;
+				switch (response)
+				{
+				case 91: ec = errc::authentication_error; break;
+				case 92: ec = errc::no_identd; break;
+				case 93: ec = errc::identd_error; break;
+				}
+				return;
+			}
+		}
+		else
+		{
+			ec = errc::general_failure;
+			return;
 		}
 	}
 
