@@ -1212,8 +1212,10 @@ protected:
 	// 同步相关的其它实现.
 
 	// 连接到socks代理, 在这一步中完成和socks的信息交换过程, 出错信息在ec中.
-	void connect_socks_proxy(const proxy_settings &s, boost::system::error_code &ec)
+	void handshake_socks_proxy(const url &u, const proxy_settings &s, boost::system::error_code &ec)
 	{
+		using namespace avhttp::detail;
+
 		// 开始解析代理的端口和主机名.
 		tcp::resolver resolver(m_io_service);
 		std::ostringstream port_string;
@@ -1240,40 +1242,48 @@ protected:
 
 		if (s.type == proxy_settings::socks5)
 		{
-			m_request.consume(m_request.size());
+			// 发送版本信息.
+			{
+				m_request.consume(m_request.size());
 
-			std::size_t bytes_to_write = s.username.empty() ? 3 : 4;
-			boost::asio::mutable_buffer b1 = m_request.prepare(bytes_to_write);
-			char *p = boost::asio::buffer_cast<char*>(b1);
-			detail::write_uint8(5, p); // SOCKS VERSION 5.
-			if (s.username.empty())
-			{
-				detail::write_uint8(1, p); // 1 authentication method (no auth)
-				detail::write_uint8(0, p); // no authentication
+				std::size_t bytes_to_write = s.username.empty() ? 3 : 4;
+				boost::asio::mutable_buffer b = m_request.prepare(bytes_to_write);
+				char *p = boost::asio::buffer_cast<char*>(b);
+				write_uint8(5, p); // SOCKS VERSION 5.
+				if (s.username.empty())
+				{
+					write_uint8(1, p); // 1 authentication method (no auth)
+					write_uint8(0, p); // no authentication
+				}
+				else
+				{
+					write_uint8(2, p); // 2 authentication methods
+					write_uint8(0, p); // no authentication
+					write_uint8(2, p); // username/password
+				}
+				m_request.commit(bytes_to_write);
+				boost::asio::write(m_sock, m_request, ec);
+				if (ec)
+					return;
 			}
-			else
-			{
-				detail::write_uint8(2, p); // 2 authentication methods
-				detail::write_uint8(0, p); // no authentication
-				detail::write_uint8(2, p); // username/password
-			}
-			m_request.commit(bytes_to_write);
-			boost::asio::write(m_sock, m_request, ec);
-			if (ec)
-				return;
+
+			// 读取版本信息.
 			m_response.consume(m_response.size());
 			boost::asio::read(m_sock, m_response, boost::asio::transfer_exactly(2), ec);
 			if (ec)
 				return;
 
-			boost::asio::const_buffer b2 = m_response.data();
-			const char *p2 = boost::asio::buffer_cast<const char*>(b2);
-			int version = detail::read_uint8(p2);
-			int method = detail::read_uint8(p2);
-			if (version < 5)	// 版本小于5, 不支持socks5.
+			int version, method;
 			{
-				ec = make_error_code(errc::unsupported_version);
-				return;
+				boost::asio::const_buffer b = m_response.data();
+				const char *p = boost::asio::buffer_cast<const char*>(b);
+				version = read_uint8(p);
+				method = read_uint8(p);
+				if (version != 5)	// 版本不等于5, 不支持socks5.
+				{
+					ec = make_error_code(errc::unsupported_version);
+					return;
+				}
 			}
 			if (method == 2)
 			{
@@ -1285,20 +1295,180 @@ protected:
 
 				// start sub-negotiation.
 				m_request.consume(m_request.size());
-				b1 = m_request.prepare(s.username.size() + s.password.size() + 3);
-				char *p = boost::asio::buffer_cast<char*>(b1);
-				detail::write_uint8(1, p);
-				detail::write_uint8(s.username.size(), p);
-				detail::write_string(s.username, p);
-				detail::write_uint8(s.password.size(), p);
-				detail::write_string(s.password, p);
+				std::size_t bytes_to_write = s.username.size() + s.password.size() + 3;
+				boost::asio::mutable_buffer b = m_request.prepare(bytes_to_write);
+				char *p = boost::asio::buffer_cast<char*>(b);
+				write_uint8(1, p);
+				write_uint8(s.username.size(), p);
+				write_string(s.username, p);
+				write_uint8(s.password.size(), p);
+				write_string(s.password, p);
+				m_request.commit(bytes_to_write);
 
-				// 发送.
+				// 发送用户密码信息.
+				boost::asio::write(m_sock, m_request, ec);
+				if (ec)
+					return;
+
+				// 读取状态.
+				m_response.consume(m_response.size());
+				boost::asio::read(m_sock, m_response, boost::asio::transfer_exactly(2), ec);
+				if (ec)
+					return;
+			}
+			{
+				// 读取版本状态.
+				boost::asio::const_buffer b = m_response.data();
+				const char *p = boost::asio::buffer_cast<const char*>(b);
+
+				int version = read_uint8(p);
+				int status = read_uint8(p);
+
+				// 不支持的认证版本.
+				if (version != 1)
+				{
+					ec = make_error_code(errc::unsupported_authentication_version);
+					return;
+				}
+
+				// 认证错误.
+				if (status != 0)
+				{
+					ec = make_error_code(errc::authentication_error);
+					return;
+				}
+
+
 			}
 		}
 		else if (s.type == proxy_settings::socks4)
 		{
 
+		}
+	}
+
+	void socks_connect(const url &u, const proxy_settings &s, boost::system::error_code & ec)
+	{
+		using namespace avhttp::detail;
+
+		m_request.consume(m_request.size());
+		std::string host = u.host();
+		std::size_t bytes_to_write = 6 + host.size() + 1;
+		boost::asio::mutable_buffer mb = m_request.prepare(bytes_to_write);
+		char *wp = boost::asio::buffer_cast<char*>(mb);
+
+		if (s.type == proxy_settings::socks5)
+		{
+			// 发送socks5连接命令.
+			write_uint8(5, wp); // SOCKS VERSION 5.
+			write_uint8(1, wp); // CONNECT command.
+			write_uint8(0, wp); // reserved.
+			write_uint8(3, wp); // address type.
+			BOOST_ASSERT(host.size() <= 255);
+			write_uint8(host.size(), wp);				// domainname size.
+			std::copy(host.begin(), host.end(),wp);		// domainname.
+			wp += host.size();
+			write_uint16(u.port(), wp);					// port.
+		}
+		else if (s.type == proxy_settings::socks4)
+		{
+			write_uint8(4, wp); // SOCKS VERSION 4.
+			write_uint8(1, wp); // CONNECT command.
+			// socks4协议只接受ip地址, 不支持域名.
+			tcp::resolver resolver(m_io_service);
+			std::ostringstream port_string;
+			port_string << u.port();
+			tcp::resolver::query query(host.c_str(), port_string.str());
+			// 解析出域名中的ip地址.
+			unsigned long ip = resolver.resolve(query, ec)->endpoint().address().to_v4().to_ulong();
+			write_uint16(u.port(), wp);	// port.
+			write_uint32(ip, wp);		// ip address.
+			// username.
+			std::copy(s.username.begin(), s.username.end(), wp);
+			wp += s.username.size();
+			// NULL terminator.
+			write_uint8(0, wp);
+		}
+		else
+		{
+			ec = make_error_code(errc::unsupported_version);
+			return;
+		}
+
+		// 发送.
+		m_request.commit(bytes_to_write);
+		boost::asio::write(m_sock, m_request, ec);
+		if (ec)
+			return;
+
+		// 接收socks服务器返回.
+		std::size_t bytes_to_read =
+			s.type == proxy_settings::socks5 ? /*socks5*/6 + 4 : /*socks4*/ 8;
+		m_response.consume(m_response.size());
+		boost::asio::read(m_sock, m_response,
+			boost::asio::transfer_exactly(bytes_to_read), ec);
+
+		// 分析服务器返回.
+		boost::asio::const_buffer cb = m_response.data();
+		const char *rp = boost::asio::buffer_cast<const char*>(cb);
+		int version = read_uint8(rp);
+		int response = read_uint8(rp);
+
+		if (version == 5)
+		{
+			if (s.type != proxy_settings::socks5 || s.type != proxy_settings::socks5_pw)
+			{
+				// 请求的socks协议不是sock5.
+				ec = make_error_code(errc::unsupported_version);
+				return;
+			}
+
+			if (response != 0)
+			{
+				ec = make_error_code(errc::general_failure);
+				// 得到更详细的错误信息.
+				switch (response)
+				{
+				case 2: ec = boost::asio::error::no_permission; break;
+				case 3: ec = boost::asio::error::network_unreachable; break;
+				case 4: ec = boost::asio::error::host_unreachable; break;
+				case 5: ec = boost::asio::error::connection_refused; break;
+				case 6: ec = boost::asio::error::timed_out; break;
+				case 7: ec = make_error_code(errc::command_not_supported); break;
+				case 8: ec = boost::asio::error::address_family_not_supported; break;
+				}
+				return;
+			}
+
+			rp++;	// skip reserved.
+			int atyp = read_uint8(rp);	// atyp.
+
+			if (atyp == 1)		// address / port 形式返回.
+			{
+				ec = boost::system::error_code();	// 没有发生错误, 返回.
+				return;
+			}
+			else if (atyp == 4)	// ipv6 返回, 暂无实现!
+			{
+				ec = boost::asio::error::address_family_not_supported;
+				return;
+			}
+			else if (atyp == 3)	// domainname 返回.
+			{
+				int len = read_uint8(rp);	// 读取domainname长度.
+				bytes_to_read = len - 3;
+				// 继续读取.
+				m_response.commit(boost::asio::read(m_sock,
+					m_response.prepare(bytes_to_read), boost::asio::transfer_exactly(bytes_to_read), ec));
+				// if (ec)
+				//	return;
+				//
+				// 得到domainname.
+				// std::string domain;
+				// domain.resize(len);
+				// std::copy(rp, rp + len, domain.begin());
+				return;
+			}
 		}
 	}
 

@@ -189,6 +189,18 @@ enum errc_t
 
 	/// SOCKS username required.
 	username_required,
+
+	/// SOCKS unsupported authentication version.
+	unsupported_authentication_version,
+
+	/// SOCKS authentication error.
+	authentication_error,
+
+	/// SOCKS general failure.
+	general_failure,
+
+	/// SOCKS command not supported.
+	command_not_supported,
 };
 
 /// Converts a value of type @c errc_t to a corresponding object of type
@@ -323,6 +335,12 @@ class error_category_impl
 			return "SOCKS unsupported version";
 		case errc::username_required:
 			return "SOCKS username required";
+		case errc::unsupported_authentication_version:
+			return "SOCKS unsupported authentication version";
+		case errc::authentication_error:
+			return "SOCKS authentication error";
+		case errc::general_failure:
+			return "SOCKS general failure";
 		default:
 			return "Unknown HTTP error";
 		}
