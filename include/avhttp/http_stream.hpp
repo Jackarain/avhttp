@@ -258,25 +258,36 @@ public:
 		// 开始进行连接.
 		if (m_sock.instantiated() && !m_sock.is_open())
 		{
-			// 开始解析端口和主机名.
-			tcp::resolver resolver(m_io_service);
-			std::ostringstream port_string;
-			port_string << m_url.port();
-			tcp::resolver::query query(m_url.host(), port_string.str());
-			tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
-			tcp::resolver::iterator end;
+			if (m_proxy.type == proxy_settings::none)
+			{
+				// 开始解析端口和主机名.
+				tcp::resolver resolver(m_io_service);
+				std::ostringstream port_string;
+				port_string << m_url.port();
+				tcp::resolver::query query(m_url.host(), port_string.str());
+				tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
+				tcp::resolver::iterator end;
 
-			// 尝试连接解析出来的服务器地址.
-			ec = boost::asio::error::host_not_found;
-			while (ec && endpoint_iterator != end)
-			{
-				m_sock.close(ec);
-				m_sock.connect(*endpoint_iterator++, ec);
+				// 尝试连接解析出来的服务器地址.
+				ec = boost::asio::error::host_not_found;
+				while (ec && endpoint_iterator != end)
+				{
+					m_sock.close(ec);
+					m_sock.connect(*endpoint_iterator++, ec);
+				}
+				if (ec)
+				{
+					return;
+				}
 			}
-			if (ec)
+			else if (m_proxy.type == proxy_settings::socks5 ||
+				proxy_settings::socks4 || proxy_settings::socks5_pw)	// socks代理.
 			{
-				return;
+				handshake_socks_proxy(m_url, m_proxy, ec);
+				if (ec)
+					return;
 			}
+
 			// 禁用Nagle在socket上.
 			m_sock.set_option(tcp::no_delay(true), ec);
 			if (ec)
