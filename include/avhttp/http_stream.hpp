@@ -407,7 +407,8 @@ public:
 #endif
 		else
 		{
-			handler(boost::asio::error::operation_not_supported);
+			m_io_service.post(boost::asio::detail::bind_handler(
+				handler, boost::asio::error::operation_not_supported));
 			return;
 		}
 
@@ -426,7 +427,8 @@ public:
 #endif
 			else
 			{
-				handler(boost::asio::error::operation_not_supported);
+				m_io_service.post(boost::asio::detail::bind_handler(
+					handler, boost::asio::error::operation_not_supported));
 				return;
 			}
 		}
@@ -434,14 +436,16 @@ public:
 		// 判断socket是否打开.
 		if (m_sock.instantiated() && m_sock.is_open())
 		{
-			handler(boost::asio::error::already_open);
+			m_io_service.post(boost::asio::detail::bind_handler(
+				handler, boost::asio::error::already_open));
 			return;
 		}
 
 		// TODO: 暂时还没有支持异步代理功能.
 		if (m_proxy.type != proxy_settings::none)
 		{
-			handler(boost::asio::error::operation_not_supported);
+			m_io_service.post(boost::asio::detail::bind_handler(
+				handler, boost::asio::error::operation_not_supported));
 			return;
 		}
 
