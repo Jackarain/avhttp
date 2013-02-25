@@ -213,6 +213,8 @@ public:
 		obj->m_stream.reset(new http_stream(m_io_service));
 		http_stream &h = *obj->m_stream;
 		h.request_options(req_opt);
+		// 如果是ssl连接, 默认为不检查证书.
+		h.check_certificate(false);
 		h.open(u, ec);
 		// 打开失败则退出.
 		if (ec)
@@ -378,6 +380,8 @@ public:
 
 				// 设置请求选项.
 				ptr->request_options(req_opt);
+				// 如果是ssl连接, 默认为不检查证书.
+				ptr->check_certificate(false);
 
 				// 将连接添加到容器中.
 				p->m_stream = ptr;
@@ -426,6 +430,8 @@ public:
 
 				// 设置请求选项.
 				h.request_options(req_opt);
+				// 如果是ssl连接, 默认为不检查证书.
+				h.check_certificate(false);
 			}
 
 			// 保存最后请求时间, 方便检查超时重置.
@@ -544,7 +550,11 @@ public:
 		obj->m_stream.reset(new http_stream(m_io_service));
 		http_stream &h = *obj->m_stream;
 
+		// 设置请求选项.
 		h.request_options(req_opt);
+
+		// 如果是ssl连接, 默认为不检查证书.
+		h.check_certificate(false);
 
 		typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
 		h.async_open(u, boost::bind(&multi_download::handle_start<HandlerWrapper>, this,
@@ -760,6 +770,9 @@ protected:
 
 			// 设置到请求选项中.
 			stream.request_options(req_opt);
+
+			// 如果是ssl连接, 默认为不检查证书.
+			stream.check_certificate(false);
 
 			// 保存最后请求时间, 方便检查超时重置.
 			object.m_last_request_time = boost::posix_time::microsec_clock::local_time();
@@ -1026,6 +1039,9 @@ protected:
 				// 设置请求选项.
 				ptr->request_options(req_opt);
 
+				// 如果是ssl连接, 默认为不检查证书.
+				ptr->check_certificate(false);
+
 				// 将连接添加到容器中.
 				p->m_stream = ptr;
 
@@ -1208,6 +1224,9 @@ protected:
 
 				// 设置到请求选项中.
 				stream.request_options(req_opt);
+
+				// 如果是ssl连接, 默认为不检查证书.
+				stream.check_certificate(false);
 
 				// 保存最后请求时间, 方便检查超时重置.
 				object.m_last_request_time = boost::posix_time::microsec_clock::local_time();
