@@ -134,7 +134,7 @@ class http_stream : public boost::noncopyable
 	// 可以为ssl_socket或nossl_socket, 这样, 在访问socket的时候, 就不需要
 	// 区别编写不同的代码.
 #ifdef AVHTTP_ENABLE_OPENSSL
-	typedef avhttp::detail::ssl_stream<tcp::socket> ssl_socket;
+	typedef avhttp::detail::ssl_stream<tcp::socket&> ssl_socket;
 #endif
 	typedef tcp::socket nossl_socket;
 	typedef avhttp::detail::variant_stream<
@@ -149,6 +149,7 @@ public:
 		: m_io_service(io)
 		, m_check_certificate(true)
 		, m_sock(io)
+		, m_nossl_socket(io)
 		, m_keep_alive(false)
 		, m_status_code(-1)
 		, m_redirects(0)
@@ -247,7 +248,7 @@ public:
 #ifdef AVHTTP_ENABLE_OPENSSL
 			else if (protocol == "https")
 			{
-				m_sock.instantiate<ssl_socket>(m_io_service);
+				m_sock.instantiate<ssl_socket>(m_nossl_socket);
 			}
 #endif
 			else
@@ -422,7 +423,7 @@ public:
 #ifdef AVHTTP_ENABLE_OPENSSL
 			else if (protocol == "https")
 			{
-				m_sock.instantiate<ssl_socket>(m_io_service);
+				m_sock.instantiate<ssl_socket>(m_nossl_socket);
 			}
 #endif
 			else
@@ -1041,6 +1042,15 @@ protected:
 	{
 		if (!err)
 		{
+			// 解析的是代理服务器, 发起与代理服务器的连接.
+			if (m_proxy.type == proxy_settings::socks4 ||
+				m_proxy.type == proxy_settings::socks5 ||
+				m_proxy.type == proxy_settings::socks5_pw)
+			{
+				// nossl_socket *sock = m_sock.get<nossl_socket>();
+				return;
+			}
+
 			// 发起异步连接.
 			if (m_protocol == "http")
 			{
@@ -1544,6 +1554,24 @@ protected:
 		}
 	}
 
+	// TODO: 和socks代理进行异步握手.
+	template <typename Handler>
+	void async_handshake_socks_proxy(Handler handler)
+	{
+		using namespace avhttp::detail;
+
+		// 构造异步查询HOST.
+		std::ostringstream port_string;
+		port_string << m_url.port();
+		tcp::resolver::query query(m_url.host(), port_string.str());
+
+		// 开始异步解析代理的端口和主机名.
+		typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
+		m_resolver.async_resolve(query,
+			boost::bind(&http_stream::handle_resolve<HandlerWrapper>, this,
+			boost::asio::placeholders::error, boost::asio::placeholders::iterator, HandlerWrapper(handler)));
+	}
+
 
 #ifdef AVHTTP_ENABLE_OPENSSL
 	inline bool certificate_matches_host(X509* cert, const std::string& host)
@@ -1627,6 +1655,7 @@ protected:
 	boost::asio::io_service &m_io_service;			// io_service引用.
 	tcp::resolver m_resolver;						// 解析HOST.
 	socket_type m_sock;								// socket.
+	nossl_socket m_nossl_socket;					// 非ssl socket.
 	bool m_check_certificate;						// 是否认证服务端证书.
 	request_opts m_request_opts;					// 向http服务器请求的头信息.
 	response_opts m_response_opts;					// http服务器返回的http头信息.
