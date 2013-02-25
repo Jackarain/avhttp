@@ -297,6 +297,18 @@ public:
 			file_name = boost::filesystem::path(m_final_url.query()).leaf().string();
 		if (file_name == "/" || file_name == "" || file_name == ".")
 			file_name = "index.html";
+		if (!m_settings.m_save_path.empty())
+		{
+			if (fs::is_directory(m_settings.m_save_path))
+			{
+				fs::path p = m_settings.m_save_path / file_name;
+				file_name = p.string();
+			}
+			else
+			{
+				file_name = m_settings.m_save_path.string();
+			}
+		}
 		m_storage->open(boost::filesystem::path(file_name), ec);
 		if (ec)
 		{
@@ -932,6 +944,18 @@ protected:
 			file_name = boost::filesystem::path(m_final_url.query()).leaf().string();
 		if (file_name == "/" || file_name == "" || file_name == ".")
 			file_name = "index.html";
+		if (!m_settings.m_save_path.empty())
+		{
+			if (fs::is_directory(m_settings.m_save_path))
+			{
+				fs::path p = m_settings.m_save_path / file_name;
+				file_name = p.string();
+			}
+			else
+			{
+				file_name = m_settings.m_save_path.string();
+			}
+		}
 		boost::system::error_code ignore;
 		m_storage->open(boost::filesystem::path(file_name), ignore);
 		if (ignore)

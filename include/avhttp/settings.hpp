@@ -261,6 +261,9 @@ struct settings
 	// meta_file路径, 默认为当前路径下同文件名的.meta文件.
 	fs::path m_meta_file;
 
+	// 下载文件路径, 默认为当前目录.
+	fs::path m_save_path;
+
 	// 存储接口创建函数指针, 默认为multi_download提供的file.hpp实现.
 	storage_constructor_type storage;
 };
