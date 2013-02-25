@@ -636,10 +636,20 @@ public:
 		: m_io_service(ios), m_variant(boost::blank()) {}
 
 	template <class S>
-	void instantiate(boost::asio::io_service& ios)
+	void instantiate(boost::asio::io_service &ios)
 	{
 		BOOST_ASSERT(&ios == &m_io_service);
 		std::auto_ptr<S> owned(new S(ios));
+		boost::apply_visitor(aux::delete_visitor(), m_variant);
+		m_variant = owned.get();
+		owned.release();
+	}
+
+	template <class S>
+	void instantiate(boost::asio::ip::tcp::socket &socket)
+	{
+		BOOST_ASSERT(&socket.get_io_service() == &m_io_service);
+		std::auto_ptr<S> owned(new S(socket, m_io_service));
 		boost::apply_visitor(aux::delete_visitor(), m_variant);
 		m_variant = owned.get();
 		owned.release();

@@ -30,7 +30,7 @@ class ssl_stream
 {
 public:
 
-	explicit ssl_stream(boost::asio::io_service& io_service)
+	explicit ssl_stream(boost::asio::io_service &io_service)
 		: m_context(io_service, boost::asio::ssl::context::sslv23_client)
 		, m_sock(io_service, m_context)
 	{
@@ -38,12 +38,21 @@ public:
 		m_context.set_verify_mode(boost::asio::ssl::context::verify_none, ec);
 	}
 
+	template <typename Arg>
+	explicit ssl_stream(Arg &arg, boost::asio::io_service &io_service)
+		: m_context(io_service, boost::asio::ssl::context::sslv23_client)
+		, m_sock(arg, m_context)
+	{
+		boost::system::error_code ec;
+		m_context.set_verify_mode(boost::asio::ssl::context::verify_none, ec);
+	}
+
 	~ssl_stream() {}
 
-	typedef Stream next_layer_type;
-	typedef typename Stream::lowest_layer_type lowest_layer_type;
-	typedef typename Stream::endpoint_type endpoint_type;
-	typedef typename Stream::protocol_type protocol_type;
+	typedef typename boost::remove_reference<Stream>::type next_layer_type;
+	typedef typename next_layer_type::lowest_layer_type lowest_layer_type;
+	typedef typename lowest_layer_type::endpoint_type endpoint_type;
+	typedef typename lowest_layer_type::protocol_type protocol_type;
 	typedef typename boost::asio::ssl::stream<Stream> sock_type;
 	typedef typename boost::asio::ssl::stream<Stream>::impl_type impl_type;
 
