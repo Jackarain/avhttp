@@ -154,7 +154,9 @@ public:
 		, m_redirects(0)
 		, m_content_length(0)
 		, m_resolver(io)
-	{}
+	{
+		m_proxy.type = proxy_settings::none;
+	}
 
 	virtual ~http_stream()
 	{}
