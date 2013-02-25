@@ -289,6 +289,12 @@ public:
 				if (ec)
 					return;
 			}
+			else
+			{
+				// TODO: 暂时未实现其它代理功能.
+				ec = boost::asio::error::operation_not_supported;
+				return;
+			}
 
 			// 禁用Nagle在socket上.
 			m_sock.set_option(tcp::no_delay(true), ec);
@@ -429,6 +435,13 @@ public:
 		if (m_sock.instantiated() && m_sock.is_open())
 		{
 			handler(boost::asio::error::already_open);
+			return;
+		}
+
+		// TODO: 暂时还没有支持异步代理功能.
+		if (m_proxy.type != proxy_settings::none)
+		{
+			handler(boost::asio::error::operation_not_supported);
 			return;
 		}
 
