@@ -1064,26 +1064,9 @@ protected:
 			}
 
 			// 发起异步连接.
-			if (m_protocol == "http")
-			{
-				nossl_socket *sock = m_sock.get<nossl_socket>();
-				boost::asio::async_connect(*sock, endpoint_iterator,
-					boost::bind(&http_stream::handle_connect<Handler>, this,
-					handler, endpoint_iterator, boost::asio::placeholders::error));
-			}
-#ifdef AVHTTP_ENABLE_OPENSSL
-			else if (m_protocol == "https")
-			{
-				ssl_socket *sock = m_sock.get<ssl_socket>();
-				sock->async_connect(tcp::endpoint(*endpoint_iterator),
-					boost::bind(&http_stream::handle_connect<Handler>, this,
-					handler, endpoint_iterator, boost::asio::placeholders::error));
-			}
-#endif
-			else
-			{
-				handler(boost::asio::error::operation_not_supported);
-			}
+			boost::asio::async_connect(m_sock.lowest_layer(), endpoint_iterator,
+				boost::bind(&http_stream::handle_connect<Handler>, this,
+				handler, endpoint_iterator, boost::asio::placeholders::error));
 		}
 		else
 		{
@@ -1139,26 +1122,9 @@ protected:
 			else
 			{
 				// 继续发起异步连接.
-				if (m_protocol == "http")
-				{
-					nossl_socket *sock = m_sock.get<nossl_socket>();
-					boost::asio::async_connect(*sock, endpoint_iterator,
-						boost::bind(&http_stream::handle_connect<Handler>, this,
-						handler, endpoint_iterator, boost::asio::placeholders::error));
-				}
-#ifdef AVHTTP_ENABLE_OPENSSL
-				else if (m_protocol == "https")
-				{
-					ssl_socket *sock = m_sock.get<ssl_socket>();
-					sock->async_connect(tcp::endpoint(*endpoint_iterator),
-						boost::bind(&http_stream::handle_connect<Handler>, this,
-						handler, endpoint_iterator, boost::asio::placeholders::error));
-				}
-#endif
-				else
-				{
-					handler(boost::asio::error::operation_not_supported);
-				}
+				boost::asio::async_connect(m_sock.lowest_layer(), endpoint_iterator,
+					boost::bind(&http_stream::handle_connect<Handler>, this,
+					handler, endpoint_iterator, boost::asio::placeholders::error));
 			}
 		}
 	}
