@@ -288,14 +288,14 @@ public:
 			{
 				if (protocol == "http")
 				{
-					handshake_socks_proxy(m_sock, ec);
+					socks_proxy_connect(m_sock, ec);
 					if (ec)
 						return;
 				}
 #ifdef AVHTTP_ENABLE_OPENSSL
 				else if (protocol == "https")
 				{
-					handshake_socks_proxy(m_nossl_socket, ec);
+					socks_proxy_connect(m_nossl_socket, ec);
 					if (ec)
 						return;
 				}
@@ -1231,7 +1231,7 @@ protected:
 
 	// 连接到socks代理, 在这一步中完成和socks的信息交换过程, 出错信息在ec中.
 	template <typename Stream>
-	void handshake_socks_proxy(Stream &sock, boost::system::error_code &ec)
+	void socks_proxy_connect(Stream &sock, boost::system::error_code &ec)
 	{
 		using namespace avhttp::detail;
 
@@ -1339,7 +1339,7 @@ protected:
 			}
 			else if (method == 0)
 			{
-				socks_connect(sock, ec);
+				socks_proxy_handshake(sock, ec);
 				return;
 			}
 
@@ -1365,17 +1365,17 @@ protected:
 					return;
 				}
 
-				socks_connect(sock, ec);
+				socks_proxy_handshake(sock, ec);
 			}
 		}
 		else if (s.type == proxy_settings::socks4)
 		{
-			socks_connect(sock, ec);
+			socks_proxy_handshake(sock, ec);
 		}
 	}
 
 	template <typename Stream>
-	void socks_connect(Stream &sock, boost::system::error_code & ec)
+	void socks_proxy_handshake(Stream &sock, boost::system::error_code & ec)
 	{
 		using namespace avhttp::detail;
 
