@@ -77,7 +77,7 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\test\avhttp.cpp">
+    <ClCompile Include="..\test\sync_proxy_test.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
