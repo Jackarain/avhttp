@@ -286,9 +286,21 @@ public:
 			else if (m_proxy.type == proxy_settings::socks5 ||
 				proxy_settings::socks4 || proxy_settings::socks5_pw)	// socks代理.
 			{
-				handshake_socks_proxy(m_url, m_proxy, ec);
-				if (ec)
-					return;
+				if (protocol == "http")
+				{
+					handshake_socks_proxy(m_sock, ec);
+					if (ec)
+						return;
+				}
+#ifdef AVHTTP_ENABLE_OPENSSL
+				else if (protocol == "https")
+				{
+					handshake_socks_proxy(m_nossl_socket, ec);
+					if (ec)
+						return;
+				}
+#endif
+				// 和代理服务器连接握手完成.
 			}
 			else
 			{
@@ -1252,9 +1264,12 @@ protected:
 	// 同步相关的其它实现.
 
 	// 连接到socks代理, 在这一步中完成和socks的信息交换过程, 出错信息在ec中.
-	void handshake_socks_proxy(const url &u, const proxy_settings &s, boost::system::error_code &ec)
+	template <typename Stream>
+	void handshake_socks_proxy(Stream &sock, boost::system::error_code &ec)
 	{
 		using namespace avhttp::detail;
+
+		const proxy_settings &s = m_proxy;
 
 		// 开始解析代理的端口和主机名.
 		tcp::resolver resolver(m_io_service);
@@ -1272,8 +1287,8 @@ protected:
 		ec = boost::asio::error::host_not_found;
 		while (ec && endpoint_iterator != end)
 		{
-			m_sock.close(ec);
-			m_sock.connect(*endpoint_iterator++, ec);
+			sock.close(ec);
+			sock.connect(*endpoint_iterator++, ec);
 		}
 		if (ec)
 		{
@@ -1302,14 +1317,14 @@ protected:
 					write_uint8(2, p); // username/password
 				}
 				m_request.commit(bytes_to_write);
-				boost::asio::write(m_sock, m_request, ec);
+				boost::asio::write(sock, m_request, ec);
 				if (ec)
 					return;
 			}
 
 			// 读取版本信息.
 			m_response.consume(m_response.size());
-			boost::asio::read(m_sock, m_response, boost::asio::transfer_exactly(2), ec);
+			boost::asio::read(sock, m_response, boost::asio::transfer_exactly(2), ec);
 			if (ec)
 				return;
 
@@ -1346,19 +1361,19 @@ protected:
 				m_request.commit(bytes_to_write);
 
 				// 发送用户密码信息.
-				boost::asio::write(m_sock, m_request, ec);
+				boost::asio::write(sock, m_request, ec);
 				if (ec)
 					return;
 
 				// 读取状态.
 				m_response.consume(m_response.size());
-				boost::asio::read(m_sock, m_response, boost::asio::transfer_exactly(2), ec);
+				boost::asio::read(sock, m_response, boost::asio::transfer_exactly(2), ec);
 				if (ec)
 					return;
 			}
 			else if (method == 0)
 			{
-				socks_connect(u, s, ec);
+				socks_connect(sock, ec);
 				return;
 			}
 
@@ -1384,18 +1399,22 @@ protected:
 					return;
 				}
 
-				socks_connect(u, s, ec);
+				socks_connect(sock, ec);
 			}
 		}
 		else if (s.type == proxy_settings::socks4)
 		{
-			socks_connect(u, s, ec);
+			socks_connect(sock, ec);
 		}
 	}
 
-	void socks_connect(const url &u, const proxy_settings &s, boost::system::error_code & ec)
+	template <typename Stream>
+	void socks_connect(Stream &sock, boost::system::error_code & ec)
 	{
 		using namespace avhttp::detail;
+
+		const url &u = m_url;
+		const proxy_settings &s = m_proxy;
 
 		m_request.consume(m_request.size());
 		std::string host = u.host();
@@ -1443,7 +1462,7 @@ protected:
 
 		// 发送.
 		m_request.commit(bytes_to_write);
-		boost::asio::write(m_sock, m_request, ec);
+		boost::asio::write(sock, m_request, ec);
 		if (ec)
 			return;
 
@@ -1451,7 +1470,7 @@ protected:
 		std::size_t bytes_to_read =
 			s.type == proxy_settings::socks5 ? /*socks5*/6 + 4 : /*socks4*/ 8;
 		m_response.consume(m_response.size());
-		boost::asio::read(m_sock, m_response,
+		boost::asio::read(sock, m_response,
 			boost::asio::transfer_exactly(bytes_to_read), ec);
 
 		// 分析服务器返回.
@@ -1499,7 +1518,7 @@ protected:
 				int len = read_uint8(rp);	// 读取domainname长度.
 				bytes_to_read = len - 3;
 				// 继续读取.
-				m_response.commit(boost::asio::read(m_sock,
+				m_response.commit(boost::asio::read(sock,
 					m_response.prepare(bytes_to_read), boost::asio::transfer_exactly(bytes_to_read), ec));
 				// if (ec)
 				//	return;
@@ -1655,7 +1674,7 @@ protected:
 	boost::asio::io_service &m_io_service;			// io_service引用.
 	tcp::resolver m_resolver;						// 解析HOST.
 	socket_type m_sock;								// socket.
-	nossl_socket m_nossl_socket;					// 非ssl socket.
+	nossl_socket m_nossl_socket;					// 非ssl socket, 只用于https的proxy实现.
 	bool m_check_certificate;						// 是否认证服务端证书.
 	request_opts m_request_opts;					// 向http服务器请求的头信息.
 	response_opts m_response_opts;					// http服务器返回的http头信息.
