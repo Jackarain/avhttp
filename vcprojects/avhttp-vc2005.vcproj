@@ -178,7 +178,7 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath="..\test\avhttp.cpp"
+				RelativePath="..\test\sync_proxy_test.cpp"
 				>
 			</File>
 		</Filter>
@@ -215,11 +215,11 @@
 					>
 				</File>
 				<File
-					RelativePath="..\include\avhttp\settings.hpp"
+					RelativePath="..\include\avhttp\rangefield.hpp"
 					>
 				</File>
 				<File
-					RelativePath="..\include\avhttp\rangefield.hpp"
+					RelativePath="..\include\avhttp\settings.hpp"
 					>
 				</File>
 				<File
