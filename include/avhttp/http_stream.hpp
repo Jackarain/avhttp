@@ -1476,6 +1476,7 @@ protected:
 
 			if (atyp == 1)		// address / port 形式返回.
 			{
+				m_response.consume(m_response.size());
 				ec = boost::system::error_code();	// 没有发生错误, 返回.
 				return;
 			}

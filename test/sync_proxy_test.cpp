@@ -21,8 +21,8 @@ int main(int argc, char* argv[])
 
 		avhttp::proxy_settings proxy;
 		proxy.type = avhttp::proxy_settings::socks5;
-		proxy.hostname = "127.0.0.1";
-		proxy.port = 6543;
+		proxy.hostname = "vps.hyq.me";
+		proxy.port = 4567;
 
 		h.proxy(proxy);
 		h.open(argv[1]);
