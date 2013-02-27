@@ -1447,7 +1447,7 @@ protected:
 
 		if (version == 5)
 		{
-			if (s.type != proxy_settings::socks5 || s.type != proxy_settings::socks5_pw)
+			if (s.type != proxy_settings::socks5 && s.type != proxy_settings::socks5_pw)
 			{
 				// 请求的socks协议不是sock5.
 				ec = make_error_code(errc::unsupported_version);
