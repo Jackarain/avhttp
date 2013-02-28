@@ -171,6 +171,10 @@ typedef option response_opts;
 
 struct proxy_settings
 {
+	proxy_settings()
+		: type (none)
+	{}
+
 	std::string hostname;
 	int port;
 
@@ -259,6 +263,9 @@ struct settings
 
 	// 存储接口创建函数指针, 默认为multi_download提供的file.hpp实现.
 	storage_constructor_type storage;
+
+	// 代理设置.
+	proxy_settings proxy;
 };
 
 } // namespace avhttp
