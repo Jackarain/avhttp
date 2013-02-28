@@ -459,7 +459,21 @@ public:
 		{
 			m_io_service.post(boost::asio::detail::bind_handler(
 				handler, boost::asio::error::operation_not_supported));
+
 			return;
+
+			if (protocol == "http")
+			{
+				async_socks_proxy_connect(m_sock, handler);
+			}
+#ifdef AVHTTP_ENABLE_OPENSSL
+			else if (protocol == "https")
+			{
+				socks_proxy_connect(m_nossl_socket, handler);
+			}
+#endif
+			return;
+
 		}
 
 		// 构造异步查询HOST.
@@ -1054,15 +1068,6 @@ protected:
 	{
 		if (!err)
 		{
-			// 解析的是代理服务器, 发起与代理服务器的连接.
-			if (m_proxy.type == proxy_settings::socks4 ||
-				m_proxy.type == proxy_settings::socks5 ||
-				m_proxy.type == proxy_settings::socks5_pw)
-			{
-				// nossl_socket *sock = m_sock.get<nossl_socket>();
-				return;
-			}
-
 			// 发起异步连接.
 			boost::asio::async_connect(m_sock.lowest_layer(), endpoint_iterator,
 				boost::bind(&http_stream::handle_connect<Handler>, this,
@@ -1543,12 +1548,10 @@ protected:
 		}
 	}
 
-	// TODO: 和socks代理进行异步握手.
-	template <typename Handler>
-	void async_handshake_socks_proxy(Handler handler)
+	// socks代理进行异步连接.
+	template <typename Stream, typename Handler>
+	void async_socks_proxy_connect(Stream &sock, Handler handler)
 	{
-		using namespace avhttp::detail;
-
 		// 构造异步查询HOST.
 		std::ostringstream port_string;
 		port_string << m_url.port();
@@ -1557,8 +1560,53 @@ protected:
 		// 开始异步解析代理的端口和主机名.
 		typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
 		m_resolver.async_resolve(query,
-			boost::bind(&http_stream::handle_resolve<HandlerWrapper>, this,
-			boost::asio::placeholders::error, boost::asio::placeholders::iterator, HandlerWrapper(handler)));
+			boost::bind(&http_stream::async_socks_proxy_resolve<Stream, HandlerWrapper>, this,
+			boost::asio::placeholders::error, boost::asio::placeholders::iterator,
+			boost::ref(sock), HandlerWrapper(handler)));
+	}
+
+	// 异步代理查询回调.
+	template <typename Stream, typename Handler>
+	void async_socks_proxy_resolve(const boost::system::error_code &err,
+		tcp::resolver::iterator endpoint_iterator, Stream &sock, Handler handler)
+	{
+		if (err)
+		{
+			handler(err);
+			return;
+		}
+
+		// 开始异步连接代理.
+		boost::asio::async_connect(sock.lowest_layer(), endpoint_iterator,
+			boost::bind(&http_stream::handle_connect_socks<Stream, Handler>,
+			this, boost::ref(sock), handler,
+			endpoint_iterator, boost::asio::placeholders::error));
+	}
+
+	template <typename Stream, typename Handler>
+	void handle_connect_socks(Stream &sock, Handler handler,
+		tcp::resolver::iterator endpoint_iterator, const boost::system::error_code &err)
+	{
+		if (err)
+		{
+			tcp::resolver::iterator end;
+			if (endpoint_iterator == end)
+			{
+				handler(err);
+				return;
+			}
+
+			// 继续尝试连接下一个IP.
+			endpoint_iterator++;
+			boost::asio::async_connect(sock.lowest_layer(), endpoint_iterator,
+				boost::bind(&http_stream::handle_connect_socks<Stream, Handler>,
+				this, boost::ref(sock), handler,
+				endpoint_iterator, boost::asio::placeholders::error));
+			return;
+		}
+
+		// 连接成功, 读取协议版本号.
+
 	}
 
 
