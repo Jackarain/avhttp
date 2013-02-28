@@ -457,6 +457,15 @@ public:
 		// 异步代理功能.
 		if (m_proxy.type != proxy_settings::none)
 		{
+			// HTTP代理协议未实现.
+			if (m_proxy.type != proxy_settings::socks4 && m_proxy.type != proxy_settings::socks5
+				&& m_proxy.type != proxy_settings::socks5_pw)
+			{
+				m_io_service.post(boost::asio::detail::bind_handler(
+					handler, boost::asio::error::operation_not_supported));
+				return;
+			}
+
 			if (protocol == "http")
 			{
 				async_socks_proxy_connect(m_sock, handler);

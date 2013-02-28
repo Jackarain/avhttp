@@ -191,9 +191,9 @@ struct proxy_settings
 		socks5,
 		// 需要用户密码认证的socks5代理.
 		socks5_pw,
-		// http代理, 不需要认证.
+		// TODO: http代理, 不需要认证.
 		http,
-		// http代理, 需要认证.
+		// TODO: http代理, 需要认证.
 		http_pw,
 	};
 
