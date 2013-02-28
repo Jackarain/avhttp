@@ -469,7 +469,7 @@ public:
 #ifdef AVHTTP_ENABLE_OPENSSL
 			else if (protocol == "https")
 			{
-				socks_proxy_connect(m_nossl_socket, handler);
+				async_socks_proxy_connect(m_nossl_socket, handler);
 			}
 #endif
 			return;
