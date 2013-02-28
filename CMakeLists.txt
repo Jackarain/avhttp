@@ -8,5 +8,5 @@ find_package(Threads)
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(include)
 
-add_executable(test test/avhttp.cpp)
+add_executable(test test/multi_download_test.cpp)
 target_link_libraries(test ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
