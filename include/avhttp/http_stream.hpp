@@ -1562,6 +1562,13 @@ protected:
 		socks_send_version,		// 发送socks版本号.
 		socks4_resolve_host,	// 用于socks4查询连接的主机IP端口信息.
 		socks4_response,		// socks4服务器返回请求.
+		socks5_response_version,// socks5返回版本信息.
+		socks5_send_userinfo,	// 发送用户密码信息.
+		socks5_connect_request,	// 发送连接请求.
+		socks5_connect_response,// 服务器返回连接请求.
+		socks5_auth_status,		// 认证状态.
+		socks5_result,			// 最终结局.
+		socks5_read_domainname,	// 读取域名信息.
 	};
 
 	// socks代理进行异步连接.
@@ -1613,7 +1620,7 @@ protected:
 			m_remote_endp.port(m_url.port());
 
 			// 进入状态.
-			handle_socks_write(sock, handler, 0, err);
+			handle_socks_process(sock, handler, 0, err);
 		}
 	}
 
@@ -1670,7 +1677,7 @@ protected:
 
 			typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
 			boost::asio::async_write(sock, m_request, boost::asio::transfer_exactly(bytes_to_write),
-				boost::bind(&http_stream::handle_socks_write<Stream, HandlerWrapper>, this,
+				boost::bind(&http_stream::handle_socks_process<Stream, HandlerWrapper>, this,
 				boost::ref(sock), HandlerWrapper(handler),
 				boost::asio::placeholders::bytes_transferred, boost::asio::placeholders::error)
 			);
@@ -1697,7 +1704,7 @@ protected:
 	}
 
 	template <typename Stream, typename Handler>
-	void handle_socks_write(Stream &sock, Handler handler, int bytes_transferred, const boost::system::error_code &err)
+	void handle_socks_process(Stream &sock, Handler handler, int bytes_transferred, const boost::system::error_code &err)
 	{
 		using namespace avhttp::detail;
 
@@ -1718,15 +1725,35 @@ protected:
 				else if (m_proxy.type == proxy_settings::socks4)
 					bytes_to_read = 8;
 
-				// 修改状态.
-				m_proxy_status = socks4_response;
+				if (m_proxy.type == proxy_settings::socks4)
+				{
+					// 修改状态.
+					m_proxy_status = socks4_response;
 
-				m_response.consume(m_response.size());
-				boost::asio::async_read(sock, m_response, boost::asio::transfer_exactly(bytes_to_read),
-					boost::bind(&http_stream::handle_socks_read<Stream, Handler>, this,
-					boost::ref(sock), handler,
-					boost::asio::placeholders::bytes_transferred,
-					boost::asio::placeholders::error));
+					m_response.consume(m_response.size());
+					boost::asio::async_read(sock, m_response, boost::asio::transfer_exactly(bytes_to_read),
+						boost::bind(&http_stream::handle_socks_process<Stream, Handler>, this,
+						boost::ref(sock), handler,
+						boost::asio::placeholders::bytes_transferred,
+						boost::asio::placeholders::error));
+
+					return;
+				}
+
+				if (m_proxy.type == proxy_settings::socks5 || m_proxy.type == proxy_settings::socks5_pw)
+				{
+					m_proxy_status = socks5_response_version;
+
+					// 读取版本信息.
+					m_response.consume(m_response.size());
+					boost::asio::async_read(sock, m_response, boost::asio::transfer_exactly(2),
+						boost::bind(&http_stream::handle_socks_process<Stream, Handler>, this,
+						boost::ref(sock), handler,
+						boost::asio::placeholders::bytes_transferred,
+						boost::asio::placeholders::error));
+
+					return;
+				}
 			}
 			break;
 		case socks4_resolve_host:	// socks4协议, IP/PORT已经得到, 开始发送版本信息.
@@ -1757,30 +1784,70 @@ protected:
 
 				m_request.commit(bytes_to_write);
 
-				typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
 				boost::asio::async_write(sock, m_request, boost::asio::transfer_exactly(bytes_to_write),
-					boost::bind(&http_stream::handle_socks_write<Stream, HandlerWrapper>, this,
-					boost::ref(sock), HandlerWrapper(handler),
+					boost::bind(&http_stream::handle_socks_process<Stream, Handler>, this,
+					boost::ref(sock), handler,
 					boost::asio::placeholders::bytes_transferred, boost::asio::placeholders::error)
 					);
+
+				return;
 			}
 			break;
-		}
-	}
+		case socks5_send_userinfo:
+			{
+				m_proxy_status = socks5_auth_status;
+				// 读取认证状态.
+				m_response.consume(m_response.size());
+				boost::asio::async_read(sock, m_response, boost::asio::transfer_exactly(2),
+					boost::bind(&http_stream::handle_socks_process<Stream, Handler>, this,
+					boost::ref(sock), handler,
+					boost::asio::placeholders::bytes_transferred,
+					boost::asio::placeholders::error));
+				return;
+			}
+			break;
+		case socks5_connect_request:
+			{
+				m_proxy_status = socks5_connect_response;
 
-	template <typename Stream, typename Handler>
-	void handle_socks_read(Stream &sock, Handler handler, int bytes_transferred, const boost::system::error_code &err)
-	{
-		using namespace avhttp::detail;
+				// 接收状态信息.
+				m_request.consume(m_request.size());
+				std::string host = m_url.host();
+				std::size_t bytes_to_write = 7 + host.size();
+				boost::asio::mutable_buffer mb = m_request.prepare(bytes_to_write);
+				char *wp = boost::asio::buffer_cast<char*>(mb);
+				// 发送socks5连接命令.
+				write_uint8(5, wp); // SOCKS VERSION 5.
+				write_uint8(1, wp); // CONNECT command.
+				write_uint8(0, wp); // reserved.
+				write_uint8(3, wp); // address type.
+				BOOST_ASSERT(host.size() <= 255);
+				write_uint8(host.size(), wp);				// domainname size.
+				std::copy(host.begin(), host.end(),wp);		// domainname.
+				wp += host.size();
+				write_uint16(m_url.port(), wp);				// port.
+				m_request.commit(bytes_to_write);
+				boost::asio::async_write(sock, m_request, boost::asio::transfer_exactly(bytes_to_write),
+					boost::bind(&http_stream::handle_socks_process<Stream, Handler>, this,
+					boost::ref(sock), handler,
+					boost::asio::placeholders::bytes_transferred, boost::asio::placeholders::error)
+					);
 
-		if (err)
-		{
-			handler(err);
-			return;
-		}
-
-		switch (m_proxy_status)
-		{
+				return;
+			}
+			break;
+		case socks5_connect_response:
+			{
+				m_proxy_status = socks5_result;
+				std::size_t bytes_to_read = 10;
+				m_response.consume(m_response.size());
+				boost::asio::async_read(sock, m_response, boost::asio::transfer_exactly(bytes_to_read),
+					boost::bind(&http_stream::handle_socks_process<Stream, Handler>, this,
+					boost::ref(sock), handler,
+					boost::asio::placeholders::bytes_transferred,
+					boost::asio::placeholders::error));
+			}
+			break;
 		case socks4_response:	// socks4服务器返回请求.
 			{
 				// 分析服务器返回.
@@ -1795,7 +1862,7 @@ protected:
 				// 93: request rejected because the client program and identd report different user-ids.
 				if (response == 90)	// access granted.
 				{
-					m_response.consume(m_response.size());
+					m_response.consume(m_response.size());	// 没有发生错误, 开始异步发送请求.
 					async_request(m_request_opts, handler);
 					return;
 				}
@@ -1813,10 +1880,175 @@ protected:
 				}
 			}
 			break;
+		case socks5_response_version:
+			{
+				boost::asio::const_buffer cb = m_response.data();
+				const char *rp = boost::asio::buffer_cast<const char*>(cb);
+				int version = read_uint8(rp);
+				int method = read_uint8(rp);
+				if (version != 5)	// 版本不等于5, 不支持socks5.
+				{
+					boost::system::error_code ec = make_error_code(errc::unsupported_version);
+					handler(ec);
+					return;
+				}
+
+				const proxy_settings &s = m_proxy;
+
+				if (method == 2)
+				{
+					if (s.username.empty())
+					{
+						boost::system::error_code ec = make_error_code(errc::username_required);
+						handler(ec);
+						return;
+					}
+
+					// start sub-negotiation.
+					m_request.consume(m_request.size());
+					std::size_t bytes_to_write = m_proxy.username.size() + m_proxy.password.size() + 3;
+					boost::asio::mutable_buffer mb = m_request.prepare(bytes_to_write);
+					char *wp = boost::asio::buffer_cast<char*>(mb);
+					write_uint8(1, wp);
+					write_uint8(s.username.size(), wp);
+					write_string(s.username, wp);
+					write_uint8(s.password.size(), wp);
+					write_string(s.password, wp);
+					m_request.commit(bytes_to_write);
+
+					// 修改状态.
+					m_proxy_status = socks5_send_userinfo;
+
+					// 发送用户密码信息.
+					boost::asio::async_write(sock, m_request, boost::asio::transfer_exactly(bytes_to_write),
+						boost::bind(&http_stream::handle_socks_process<Stream, Handler>, this,
+						boost::ref(sock), handler,
+						boost::asio::placeholders::bytes_transferred, boost::asio::placeholders::error));
+
+					return;
+				}
+
+				if (method == 0)
+				{
+					m_proxy_status = socks5_connect_request;
+					handle_socks_process(sock, handler, 0, err);
+					return;
+				}
+			}
+			break;
+		case socks5_auth_status:
+			{
+				boost::asio::const_buffer cb = m_response.data();
+				const char *rp = boost::asio::buffer_cast<const char*>(cb);
+
+				int version = read_uint8(rp);
+				int status = read_uint8(rp);
+
+				if (version != 1)	// 不支持的版本.
+				{
+					boost::system::error_code ec = make_error_code(errc::unsupported_authentication_version);
+					handler(ec);
+					return;
+				}
+
+				if (status != 0)	// 认证错误.
+				{
+					boost::system::error_code ec = make_error_code(errc::authentication_error);
+					handler(ec);
+					return;
+				}
+
+				// 发送请求连接命令.
+				m_proxy_status = socks5_connect_request;
+				handle_socks_process(sock, handler, 0, err);
+			}
+			break;
+		case socks5_result:
+			{
+				// 分析服务器返回.
+				boost::asio::const_buffer cb = m_response.data();
+				const char *rp = boost::asio::buffer_cast<const char*>(cb);
+				int version = read_uint8(rp);
+				int response = read_uint8(rp);
+
+				if (version != 5)
+				{
+					boost::system::error_code ec = make_error_code(errc::general_failure);
+					handler(ec);
+					return;
+				}
+
+				if (response != 0)
+				{
+					boost::system::error_code ec = make_error_code(errc::general_failure);
+					// 得到更详细的错误信息.
+					switch (response)
+					{
+					case 2: ec = boost::asio::error::no_permission; break;
+					case 3: ec = boost::asio::error::network_unreachable; break;
+					case 4: ec = boost::asio::error::host_unreachable; break;
+					case 5: ec = boost::asio::error::connection_refused; break;
+					case 6: ec = boost::asio::error::timed_out; break;
+					case 7: ec = make_error_code(errc::command_not_supported); break;
+					case 8: ec = boost::asio::error::address_family_not_supported; break;
+					}
+					handler(ec);
+					return;
+				}
+
+				rp++;	// skip reserved.
+				int atyp = read_uint8(rp);	// atyp.
+
+				if (atyp == 1)		// address / port 形式返回.
+				{
+					m_response.consume(m_response.size());
+
+					// 没有发生错误, 开始异步发送请求.
+					async_request(m_request_opts, handler);
+
+					return;
+				}
+				else if (atyp == 3)				// domainname 返回.
+				{
+					int len = read_uint8(rp);	// 读取domainname长度.
+					std::size_t bytes_to_read = len - 3;
+
+					m_proxy_status = socks5_read_domainname;
+
+					m_response.consume(m_response.size());
+					boost::asio::async_read(sock, m_response, boost::asio::transfer_exactly(bytes_to_read),
+						boost::bind(&http_stream::handle_socks_process<Stream, Handler>, this,
+						boost::ref(sock), handler,
+						boost::asio::placeholders::bytes_transferred,
+						boost::asio::placeholders::error));
+
+					return;
+				}
+				// else if (atyp == 4)	// ipv6 返回, 暂无实现!
+				// {
+				//	ec = boost::asio::error::address_family_not_supported;
+				//	return;
+				// }
+				else
+				{
+					boost::system::error_code ec = boost::asio::error::address_family_not_supported;
+					handler(ec);
+					return;
+				}
+			}
+			break;
+		case socks5_read_domainname:
+			{
+				m_response.consume(m_response.size());
+
+				// 没有发生错误, 开始异步发送请求.
+				async_request(m_request_opts, handler);
+
+				return;
+			}
+			break;
 		}
 	}
-
-
 
 #ifdef AVHTTP_ENABLE_OPENSSL
 	inline bool certificate_matches_host(X509* cert, const std::string& host)
