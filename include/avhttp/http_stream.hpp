@@ -1415,8 +1415,11 @@ protected:
 			write_uint16(u.port(), wp);	// port.
 			write_uint32(ip, wp);		// ip address.
 			// username.
-			std::copy(s.username.begin(), s.username.end(), wp);
-			wp += s.username.size();
+			if (!s.username.empty())
+			{
+				std::copy(s.username.begin(), s.username.end(), wp);
+				wp += s.username.size();
+			}
 			// NULL terminator.
 			write_uint8(0, wp);
 		}
