@@ -194,13 +194,6 @@ struct proxy_settings
 	};
 
 	proxy_type type;
-
-	// when set to true, hostname are resolved
-	// through the proxy (if supported)
-	bool proxy_hostnames;
-
-	// if true, use this proxy for peers too
-	bool proxy_peer_connections;
 };
 
 

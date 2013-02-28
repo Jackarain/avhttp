@@ -22,7 +22,7 @@ public:
 		avhttp::proxy_settings s;
 		s.hostname = "127.0.0.1";
 		s.port = 4567;
-		s.type = proxy_settings::socks5;
+		s.type = avhttp::proxy_settings::socks5;
 
 		m_stream.proxy(s);
 

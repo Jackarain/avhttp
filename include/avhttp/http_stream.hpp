@@ -1266,7 +1266,7 @@ protected:
 			return;
 		}
 
-		if (s.type == proxy_settings::socks5)
+		if (s.type == proxy_settings::socks5 || s.type == proxy_settings::socks5_pw)
 		{
 			// 发送版本信息.
 			{
@@ -1288,7 +1288,7 @@ protected:
 					write_uint8(2, p); // username/password
 				}
 				m_request.commit(bytes_to_write);
-				boost::asio::write(sock, m_request, ec);
+				boost::asio::write(sock, m_request, boost::asio::transfer_exactly(bytes_to_write), ec);
 				if (ec)
 					return;
 			}
@@ -1332,7 +1332,7 @@ protected:
 				m_request.commit(bytes_to_write);
 
 				// 发送用户密码信息.
-				boost::asio::write(sock, m_request, ec);
+				boost::asio::write(sock, m_request, boost::asio::transfer_exactly(bytes_to_write), ec);
 				if (ec)
 					return;
 
@@ -1389,11 +1389,13 @@ protected:
 
 		m_request.consume(m_request.size());
 		std::string host = u.host();
-		std::size_t bytes_to_write = 6 + host.size() + 1;
+		std::size_t bytes_to_write = 7 + host.size();
+		if (s.type == proxy_settings::socks4)
+			bytes_to_write = 9 + s.username.size();
 		boost::asio::mutable_buffer mb = m_request.prepare(bytes_to_write);
 		char *wp = boost::asio::buffer_cast<char*>(mb);
 
-		if (s.type == proxy_settings::socks5)
+		if (s.type == proxy_settings::socks5 || s.type == proxy_settings::socks5_pw)
 		{
 			// 发送socks5连接命令.
 			write_uint8(5, wp); // SOCKS VERSION 5.
@@ -1436,13 +1438,17 @@ protected:
 
 		// 发送.
 		m_request.commit(bytes_to_write);
-		boost::asio::write(sock, m_request, ec);
+		boost::asio::write(sock, m_request, boost::asio::transfer_exactly(bytes_to_write), ec);
 		if (ec)
 			return;
 
 		// 接收socks服务器返回.
-		std::size_t bytes_to_read =
-			s.type == proxy_settings::socks5 ? /*socks5*/6 + 4 : /*socks4*/ 8;
+		std::size_t bytes_to_read;
+		if (s.type == proxy_settings::socks5 || s.type == proxy_settings::socks5_pw)
+			bytes_to_read = 10;
+		else if (s.type == proxy_settings::socks4)
+			bytes_to_read = 8;
+
 		m_response.consume(m_response.size());
 		boost::asio::read(sock, m_response,
 			boost::asio::transfer_exactly(bytes_to_read), ec);
@@ -1548,14 +1554,25 @@ protected:
 		}
 	}
 
+	// socks处理流程状态.
+	enum socks_status
+	{
+		socks_proxy_resolve,	// 查询proxy主机的IP.
+		socks_connect_proxy,	// 连接proxy主机.
+		socks_send_version,		// 发送socks版本号.
+		socks4_resolve_host,	// 用于socks4查询连接的主机IP端口信息.
+	};
+
 	// socks代理进行异步连接.
 	template <typename Stream, typename Handler>
 	void async_socks_proxy_connect(Stream &sock, Handler handler)
 	{
-		// 构造异步查询HOST.
+		// 构造异步查询proxy主机信息.
 		std::ostringstream port_string;
-		port_string << m_url.port();
-		tcp::resolver::query query(m_url.host(), port_string.str());
+		port_string << m_proxy.port;
+		tcp::resolver::query query(m_proxy.hostname, port_string.str());
+
+		m_proxy_status = socks_proxy_resolve;
 
 		// 开始异步解析代理的端口和主机名.
 		typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
@@ -1576,17 +1593,35 @@ protected:
 			return;
 		}
 
-		// 开始异步连接代理.
-		boost::asio::async_connect(sock.lowest_layer(), endpoint_iterator,
-			boost::bind(&http_stream::handle_connect_socks<Stream, Handler>,
-			this, boost::ref(sock), handler,
-			endpoint_iterator, boost::asio::placeholders::error));
+		if (m_proxy_status == socks_proxy_resolve)
+		{
+			m_proxy_status = socks_connect_proxy;
+			// 开始异步连接代理.
+			boost::asio::async_connect(sock.lowest_layer(), endpoint_iterator,
+				boost::bind(&http_stream::handle_connect_socks<Stream, Handler>,
+				this, boost::ref(sock), handler,
+				endpoint_iterator, boost::asio::placeholders::error));
+
+			return;
+		}
+
+		if (m_proxy_status == socks4_resolve_host)
+		{
+			// 保存IP和PORT信息.
+			m_remote_endp = *endpoint_iterator;
+			m_remote_endp.port(m_url.port());
+
+			// 进入状态.
+			handle_socks_write(sock, handler, 0, err);
+		}
 	}
 
 	template <typename Stream, typename Handler>
 	void handle_connect_socks(Stream &sock, Handler handler,
 		tcp::resolver::iterator endpoint_iterator, const boost::system::error_code &err)
 	{
+		using namespace avhttp::detail;
+
 		if (err)
 		{
 			tcp::resolver::iterator end;
@@ -1602,12 +1637,127 @@ protected:
 				boost::bind(&http_stream::handle_connect_socks<Stream, Handler>,
 				this, boost::ref(sock), handler,
 				endpoint_iterator, boost::asio::placeholders::error));
+
 			return;
 		}
 
-		// 连接成功, 读取协议版本号.
+		// 连接成功, 发送协议版本号.
+		if (m_proxy.type == proxy_settings::socks5 || m_proxy.type == proxy_settings::socks5_pw)
+		{
+			// 发送版本信息.
+			m_proxy_status = socks_send_version;
+
+			m_request.consume(m_request.size());
+
+			std::size_t bytes_to_write = m_proxy.username.empty() ? 3 : 4;
+			boost::asio::mutable_buffer b = m_request.prepare(bytes_to_write);
+			char *p = boost::asio::buffer_cast<char*>(b);
+			write_uint8(5, p);		// SOCKS VERSION 5.
+			if (m_proxy.username.empty())
+			{
+				write_uint8(1, p); // 1 authentication method (no auth)
+				write_uint8(0, p); // no authentication
+			}
+			else
+			{
+				write_uint8(2, p); // 2 authentication methods
+				write_uint8(0, p); // no authentication
+				write_uint8(2, p); // username/password
+			}
+
+			m_request.commit(bytes_to_write);
+
+			typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
+			boost::asio::async_write(sock, m_request, boost::asio::transfer_exactly(bytes_to_write),
+				boost::bind(&http_stream::handle_socks_write<Stream, HandlerWrapper>, this,
+				boost::ref(sock), HandlerWrapper(handler),
+				boost::asio::placeholders::bytes_transferred, boost::asio::placeholders::error)
+			);
+
+			return;
+		}
+
+		if (m_proxy.type == proxy_settings::socks4)
+		{
+			m_proxy_status = socks4_resolve_host;
+
+			// 构造异步查询远程主机的HOST.
+			std::ostringstream port_string;
+			port_string << m_url.port();
+			tcp::resolver::query query(m_url.host(), port_string.str());
+
+			// 开始异步解析代理的端口和主机名.
+			typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
+			m_resolver.async_resolve(query,
+				boost::bind(&http_stream::async_socks_proxy_resolve<Stream, HandlerWrapper>, this,
+				boost::asio::placeholders::error, boost::asio::placeholders::iterator,
+				boost::ref(sock), HandlerWrapper(handler)));
+		}
+	}
+
+	template <typename Stream, typename Handler>
+	void handle_socks_write(Stream &sock, Handler handler, int bytes_transferred, const boost::system::error_code &err)
+	{
+		using namespace avhttp::detail;
+
+		if (err)
+		{
+			handler(err);
+			return;
+		}
+
+		switch (m_proxy_status)
+		{
+		case socks_send_version:	// 完成版本号发送.
+			{
+
+			}
+			break;
+		case socks4_resolve_host:	// socks4协议, IP/PORT已经得到, 开始发送版本信息.
+			{
+				m_proxy_status = socks_send_version;
+
+				m_request.consume(m_request.size());
+				std::size_t bytes_to_write = 9 + m_proxy.username.size();
+				boost::asio::mutable_buffer mb = m_request.prepare(bytes_to_write);
+				char *wp = boost::asio::buffer_cast<char*>(mb);
+
+				write_uint8(4, wp); // SOCKS VERSION 4.
+				write_uint8(1, wp); // CONNECT command.
+
+				// socks4协议只接受ip地址, 不支持域名.
+				unsigned long ip = m_remote_endp.address().to_v4().to_ulong();
+				write_uint16(m_remote_endp.port(), wp);	// port.
+				write_uint32(ip, wp);					// ip address.
+
+				// username.
+				if (!m_proxy.username.empty())
+				{
+					std::copy(m_proxy.username.begin(), m_proxy.username.end(), wp);
+					wp += m_proxy.username.size();
+				}
+				// NULL terminator.
+				write_uint8(0, wp);
+
+				m_request.commit(bytes_to_write);
+
+				typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
+				boost::asio::async_write(sock, m_request, boost::asio::transfer_exactly(bytes_to_write),
+					boost::bind(&http_stream::handle_socks_write<Stream, HandlerWrapper>, this,
+					boost::ref(sock), HandlerWrapper(handler),
+					boost::asio::placeholders::bytes_transferred, boost::asio::placeholders::error)
+					);
+			}
+			break;
+		}
+	}
+
+	template <typename Stream, typename Handler>
+	void handle_socks_read(Stream &sock, Handler handler, int bytes_transferred, const boost::system::error_code &err)
+	{
 
 	}
+
 
 
 #ifdef AVHTTP_ENABLE_OPENSSL
@@ -1697,6 +1847,8 @@ protected:
 	request_opts m_request_opts;					// 向http服务器请求的头信息.
 	response_opts m_response_opts;					// http服务器返回的http头信息.
 	proxy_settings m_proxy;							// 代理设置.
+	int m_proxy_status;								// 异步中代理状态.
+	tcp::endpoint m_remote_endp;					// 用于socks4代理中.
 	std::string m_protocol;							// 协议类型(http/https).
 	url m_url;										// 保存当前请求的url.
 	bool m_keep_alive;								// 获得connection选项, 同时受m_response_opts影响.
