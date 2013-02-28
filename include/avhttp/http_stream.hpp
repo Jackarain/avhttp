@@ -1561,6 +1561,7 @@ protected:
 		socks_connect_proxy,	// 连接proxy主机.
 		socks_send_version,		// 发送socks版本号.
 		socks4_resolve_host,	// 用于socks4查询连接的主机IP端口信息.
+		socks4_response,		// socks4服务器返回请求.
 	};
 
 	// socks代理进行异步连接.
@@ -1710,7 +1711,22 @@ protected:
 		{
 		case socks_send_version:	// 完成版本号发送.
 			{
+				// 接收socks服务器返回.
+				std::size_t bytes_to_read;
+				if (m_proxy.type == proxy_settings::socks5 || m_proxy.type == proxy_settings::socks5_pw)
+					bytes_to_read = 10;
+				else if (m_proxy.type == proxy_settings::socks4)
+					bytes_to_read = 8;
 
+				// 修改状态.
+				m_proxy_status = socks4_response;
+
+				m_response.consume(m_response.size());
+				boost::asio::async_read(sock, m_response, boost::asio::transfer_exactly(bytes_to_read),
+					boost::bind(&http_stream::handle_socks_read<Stream, Handler>, this,
+					boost::ref(sock), handler,
+					boost::asio::placeholders::bytes_transferred,
+					boost::asio::placeholders::error));
 			}
 			break;
 		case socks4_resolve_host:	// socks4协议, IP/PORT已经得到, 开始发送版本信息.
@@ -1755,7 +1771,49 @@ protected:
 	template <typename Stream, typename Handler>
 	void handle_socks_read(Stream &sock, Handler handler, int bytes_transferred, const boost::system::error_code &err)
 	{
+		using namespace avhttp::detail;
 
+		if (err)
+		{
+			handler(err);
+			return;
+		}
+
+		switch (m_proxy_status)
+		{
+		case socks4_response:	// socks4服务器返回请求.
+			{
+				// 分析服务器返回.
+				boost::asio::const_buffer cb = m_response.data();
+				const char *rp = boost::asio::buffer_cast<const char*>(cb);
+				int version = read_uint8(rp);
+				int response = read_uint8(rp);
+
+				// 90: request granted.
+				// 91: request rejected or failed.
+				// 92: request rejected becasue SOCKS server cannot connect to identd on the client.
+				// 93: request rejected because the client program and identd report different user-ids.
+				if (response == 90)	// access granted.
+				{
+					m_response.consume(m_response.size());
+					async_request(m_request_opts, handler);
+					return;
+				}
+				else
+				{
+					boost::system::error_code ec = errc::general_failure;
+					switch (response)
+					{
+					case 91: ec = errc::authentication_error; break;
+					case 92: ec = errc::no_identd; break;
+					case 93: ec = errc::identd_error; break;
+					}
+					handler(ec);
+					return;
+				}
+			}
+			break;
+		}
 	}
 
 
