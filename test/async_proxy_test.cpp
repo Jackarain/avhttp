@@ -18,6 +18,14 @@ public:
 		// http://w.qq.com/cgi-bin/get_group_pic?pic={64A234EE-8657-DA63-B7F4-C7718460F461}.gif
 
 		m_stream.check_certificate(false);
+
+		avhttp::proxy_settings s;
+		s.hostname = "127.0.0.1";
+		s.port = 4567;
+		s.type = proxy_settings::socks5;
+
+		m_stream.proxy(s);
+
 		m_stream.async_open(url,
 			boost::bind(&downloader::handle_open, this, boost::asio::placeholders::error));
 	}
