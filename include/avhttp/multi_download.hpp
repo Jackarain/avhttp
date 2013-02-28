@@ -215,6 +215,9 @@ public:
 		h.request_options(req_opt);
 		// 如果是ssl连接, 默认为不检查证书.
 		h.check_certificate(false);
+		// 添加代理设置.
+		h.proxy(m_settings.proxy);
+		// 打开http_stream.
 		h.open(u, ec);
 		// 打开失败则退出.
 		if (ec)
@@ -382,6 +385,8 @@ public:
 				ptr->request_options(req_opt);
 				// 如果是ssl连接, 默认为不检查证书.
 				ptr->check_certificate(false);
+				// 添加代理设置.
+				ptr->proxy(m_settings.proxy);
 
 				// 将连接添加到容器中.
 				p->m_stream = ptr;
@@ -438,6 +443,9 @@ public:
 			obj->m_last_request_time = boost::posix_time::microsec_clock::local_time();
 
 			m_number_of_connections++;
+
+			// 添加代理设置.
+			h.proxy(m_settings.proxy);
 
 			// 开始异步打开.
 			h.async_open(m_final_url,
@@ -555,6 +563,9 @@ public:
 
 		// 如果是ssl连接, 默认为不检查证书.
 		h.check_certificate(false);
+
+		// 添加代理设置.
+		h.proxy(m_settings.proxy);
 
 		typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
 		h.async_open(u, boost::bind(&multi_download::handle_start<HandlerWrapper>, this,
@@ -773,6 +784,9 @@ protected:
 
 			// 如果是ssl连接, 默认为不检查证书.
 			stream.check_certificate(false);
+
+			// 添加代理设置.
+			stream.proxy(m_settings.proxy);
 
 			// 保存最后请求时间, 方便检查超时重置.
 			object.m_last_request_time = boost::posix_time::microsec_clock::local_time();
@@ -1042,6 +1056,9 @@ protected:
 				// 如果是ssl连接, 默认为不检查证书.
 				ptr->check_certificate(false);
 
+				// 添加代理设置.
+				ptr->proxy(m_settings.proxy);
+
 				// 将连接添加到容器中.
 				p->m_stream = ptr;
 
@@ -1095,6 +1112,9 @@ protected:
 			object.m_last_request_time = boost::posix_time::microsec_clock::local_time();
 
 			m_number_of_connections++;
+
+			// 添加代理设置.
+			h.proxy(m_settings.proxy);
 
 			// 开始异步打开.
 			h.async_open(m_final_url,
@@ -1227,6 +1247,9 @@ protected:
 
 				// 如果是ssl连接, 默认为不检查证书.
 				stream.check_certificate(false);
+
+				// 添加代理设置.
+				stream.proxy(m_settings.proxy);
 
 				// 保存最后请求时间, 方便检查超时重置.
 				object.m_last_request_time = boost::posix_time::microsec_clock::local_time();
