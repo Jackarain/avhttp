@@ -454,14 +454,9 @@ public:
 			return;
 		}
 
-		// TODO: 暂时还没有支持异步代理功能.
+		// 异步代理功能.
 		if (m_proxy.type != proxy_settings::none)
 		{
-			m_io_service.post(boost::asio::detail::bind_handler(
-				handler, boost::asio::error::operation_not_supported));
-
-			return;
-
 			if (protocol == "http")
 			{
 				async_socks_proxy_connect(m_sock, handler);
@@ -472,8 +467,8 @@ public:
 				async_socks_proxy_connect(m_nossl_socket, handler);
 			}
 #endif
-			return;
 
+			return;
 		}
 
 		// 构造异步查询HOST.
