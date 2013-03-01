@@ -29,7 +29,7 @@ public:
 	{
 		if (!ec)
 		{
-			boost::asio::async_read(m_stream, boost::asio::buffer(m_buffer, 1024),
+			boost::asio::async_read(m_stream, boost::asio::buffer(m_buffer, 597),
 				boost::bind(&downloader::handle_read, this,
 				boost::asio::placeholders::bytes_transferred,
 				boost::asio::placeholders::error));
@@ -49,6 +49,10 @@ public:
 				boost::bind(&downloader::handle_read, this,
 				boost::asio::placeholders::bytes_transferred,
 				boost::asio::placeholders::error));
+		}
+		if (ec == boost::asio::error::eof)
+		{
+			std::cout.write(m_buffer.data(), bytes_transferred);
 		}
 	}
 
