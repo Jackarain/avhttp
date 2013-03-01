@@ -628,9 +628,10 @@ public:
 		>::type
 	>::type variant_type;
 
-	typedef typename S0::lowest_layer_type lowest_layer_type;
-	typedef typename S0::endpoint_type endpoint_type;
-	typedef typename S0::protocol_type protocol_type;
+	typedef typename boost::remove_reference<S0>::type P0;
+	typedef typename P0::lowest_layer_type lowest_layer_type;
+	typedef typename lowest_layer_type::endpoint_type endpoint_type;
+	typedef typename lowest_layer_type::protocol_type protocol_type;
 
 	explicit variant_stream(boost::asio::io_service& ios)
 		: m_io_service(ios), m_variant(boost::blank()) {}
@@ -759,7 +760,7 @@ public:
 	}
 
 	template <class Handler>
-	void async_connect(endpoint_type &endpoint, Handler &handler)
+	void async_connect(endpoint_type endpoint, Handler handler)
 	{
 		BOOST_ASSERT(instantiated());
 		boost::apply_visitor(
