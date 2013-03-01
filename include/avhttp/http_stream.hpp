@@ -937,7 +937,7 @@ public:
 
 		// 异步发送请求.
 		typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
-		boost::asio::async_write(m_sock, m_request,
+		boost::asio::async_write(m_sock, m_request, boost::asio::transfer_exactly(m_request.size()),
 			boost::bind(&http_stream::handle_request<HandlerWrapper>, this,
 			HandlerWrapper(handler), boost::asio::placeholders::error));
 	}
@@ -1073,7 +1073,10 @@ protected:
 		if (!err)
 		{
 			// 发起异步连接.
-			boost::asio::async_connect(m_sock.lowest_layer(), endpoint_iterator,
+			// !!!备注: 由于m_sock可能是ssl, 那么连接的握手相关实现被封装到ssl_stream
+			// 了, 所以, 如果需要使用boost::asio::async_connect的话, 需要在http_stream
+			// 中实现握手操作, 否则将会得到一个错误.
+			m_sock.async_connect(tcp::endpoint(*endpoint_iterator),
 				boost::bind(&http_stream::handle_connect<Handler>, this,
 				handler, endpoint_iterator, boost::asio::placeholders::error));
 		}
@@ -1131,7 +1134,10 @@ protected:
 			else
 			{
 				// 继续发起异步连接.
-				boost::asio::async_connect(m_sock.lowest_layer(), endpoint_iterator,
+				// !!!备注: 由于m_sock可能是ssl, 那么连接的握手相关实现被封装到ssl_stream
+				// 了, 所以, 如果需要使用boost::asio::async_connect的话, 需要在http_stream
+				// 中实现握手操作, 否则将会得到一个错误.
+				m_sock.async_connect(tcp::endpoint(*endpoint_iterator),
 					boost::bind(&http_stream::handle_connect<Handler>, this,
 					handler, endpoint_iterator, boost::asio::placeholders::error));
 			}

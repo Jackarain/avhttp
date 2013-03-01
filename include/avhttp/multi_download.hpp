@@ -435,14 +435,15 @@ public:
 
 				// 设置请求选项.
 				h.request_options(req_opt);
-				// 如果是ssl连接, 默认为不检查证书.
-				h.check_certificate(false);
 			}
 
 			// 保存最后请求时间, 方便检查超时重置.
 			obj->m_last_request_time = boost::posix_time::microsec_clock::local_time();
 
 			m_number_of_connections++;
+
+			// 如果是ssl连接, 默认为不检查证书.
+			h.check_certificate(false);
 
 			// 添加代理设置.
 			h.proxy(m_settings.proxy);
@@ -704,8 +705,9 @@ protected:
 		http_object_ptr object_ptr, int bytes_transferred, const boost::system::error_code &ec)
 	{
 		http_stream_object &object = *object_ptr;
-		// 保存数据.
-		if (m_storage && !ec && bytes_transferred != 0)
+
+		// 保存数据, 当远程服务器断开时, ec为eof, 保证数据全部写入.
+		if (m_storage && bytes_transferred != 0 && (!ec || ec == boost::asio::error::eof))
 		{
 			// 计算offset.
 			boost::int64_t offset = object.request_range.left + object.bytes_transferred;
@@ -1115,6 +1117,9 @@ protected:
 
 			// 添加代理设置.
 			h.proxy(m_settings.proxy);
+
+			// 如果是ssl连接, 默认为不检查证书.
+			h.check_certificate(false);
 
 			// 开始异步打开.
 			h.async_open(m_final_url,
