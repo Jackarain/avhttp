@@ -187,19 +187,19 @@ public:
 		m_settings = s;
 
 		// 解析meta文件.
-		if (!fs::exists(m_settings.m_meta_file))
+		if (!fs::exists(m_settings.meta_file))
 		{
 			// filename + ".meta".
-			m_settings.m_meta_file = (boost::filesystem::path(u.path()).leaf().string() + ".meta");
+			m_settings.meta_file = (boost::filesystem::path(u.path()).leaf().string() + ".meta");
 		}
 
 		// 打开meta文件, 如果打开成功, 则表示解析出相应的位图了.
-		if (!open_meta(m_settings.m_meta_file))
+		if (!open_meta(m_settings.meta_file))
 		{
 			// 位图打开失败, 无所谓, 下载过程中会创建新的位图, 删除meta文件.
 			m_file_meta.close();
 			boost::system::error_code ignore;
-			fs::remove(m_settings.m_meta_file, ignore);
+			fs::remove(m_settings.meta_file, ignore);
 		}
 
 		// 创建一个http_stream对象.
@@ -302,16 +302,16 @@ public:
 			file_name = boost::filesystem::path(m_final_url.query()).leaf().string();
 		if (file_name == "/" || file_name == "" || file_name == ".")
 			file_name = "index.html";
-		if (!m_settings.m_save_path.empty())
+		if (!m_settings.save_path.empty())
 		{
-			if (fs::is_directory(m_settings.m_save_path))
+			if (fs::is_directory(m_settings.save_path))
 			{
-				fs::path p = m_settings.m_save_path / file_name;
+				fs::path p = m_settings.save_path / file_name;
 				file_name = p.string();
 			}
 			else
 			{
-				file_name = m_settings.m_save_path.string();
+				file_name = m_settings.save_path.string();
 			}
 		}
 		m_storage->open(boost::filesystem::path(file_name), ec);
@@ -533,19 +533,19 @@ public:
 		m_settings = s;
 
 		// 解析meta文件.
-		if (!fs::exists(m_settings.m_meta_file))
+		if (!fs::exists(m_settings.meta_file))
 		{
 			// filename + ".meta".
-			m_settings.m_meta_file = (boost::filesystem::path(u.path()).leaf().string() + ".meta");
+			m_settings.meta_file = (boost::filesystem::path(u.path()).leaf().string() + ".meta");
 		}
 
 		// 打开meta文件, 如果打开成功, 则表示解析出相应的位图了.
-		if (!open_meta(m_settings.m_meta_file))
+		if (!open_meta(m_settings.meta_file))
 		{
 			// 位图打开失败, 无所谓, 下载过程中会创建新的位图, 删除meta文件.
 			m_file_meta.close();
 			boost::system::error_code ignore;
-			fs::remove(m_settings.m_meta_file, ignore);
+			fs::remove(m_settings.meta_file, ignore);
 		}
 
 		// 创建一个http_stream对象.
@@ -973,16 +973,16 @@ protected:
 			file_name = boost::filesystem::path(m_final_url.query()).leaf().string();
 		if (file_name == "/" || file_name == "" || file_name == ".")
 			file_name = "index.html";
-		if (!m_settings.m_save_path.empty())
+		if (!m_settings.save_path.empty())
 		{
-			if (fs::is_directory(m_settings.m_save_path))
+			if (fs::is_directory(m_settings.save_path))
 			{
-				fs::path p = m_settings.m_save_path / file_name;
+				fs::path p = m_settings.save_path / file_name;
 				file_name = p.string();
 			}
 			else
 			{
-				file_name = m_settings.m_save_path.string();
+				file_name = m_settings.save_path.string();
 			}
 		}
 		boost::system::error_code ignore;
@@ -1376,7 +1376,7 @@ protected:
 		if (!m_file_meta.is_open())
 		{
 			boost::system::error_code ec;
-			m_file_meta.open(m_settings.m_meta_file, ec);
+			m_file_meta.open(m_settings.meta_file, ec);
 			if (ec)
 				return ;
 		}
