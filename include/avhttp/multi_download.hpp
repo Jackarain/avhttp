@@ -213,8 +213,8 @@ public:
 		obj->m_stream.reset(new http_stream(m_io_service));
 		http_stream &h = *obj->m_stream;
 		h.request_options(req_opt);
-		// 如果是ssl连接, 默认为不检查证书.
-		h.check_certificate(false);
+		// 如果是ssl连接, 默认为检查证书.
+		h.check_certificate(m_settings.check_certificate);
 		// 添加代理设置.
 		h.proxy(m_settings.proxy);
 		// 打开http_stream.
@@ -383,8 +383,8 @@ public:
 
 				// 设置请求选项.
 				ptr->request_options(req_opt);
-				// 如果是ssl连接, 默认为不检查证书.
-				ptr->check_certificate(false);
+				// 如果是ssl连接, 默认为检查证书.
+				ptr->check_certificate(m_settings.check_certificate);
 				// 添加代理设置.
 				ptr->proxy(m_settings.proxy);
 
@@ -442,8 +442,8 @@ public:
 
 			m_number_of_connections++;
 
-			// 如果是ssl连接, 默认为不检查证书.
-			h.check_certificate(false);
+			// 如果是ssl连接, 默认为检查证书.
+			h.check_certificate(m_settings.check_certificate);
 
 			// 添加代理设置.
 			h.proxy(m_settings.proxy);
@@ -562,8 +562,8 @@ public:
 		// 设置请求选项.
 		h.request_options(req_opt);
 
-		// 如果是ssl连接, 默认为不检查证书.
-		h.check_certificate(false);
+		// 如果是ssl连接, 默认为检查证书.
+		h.check_certificate(m_settings.check_certificate);
 
 		// 添加代理设置.
 		h.proxy(m_settings.proxy);
@@ -598,6 +598,13 @@ public:
 	const settings& set() const
 	{
 		return m_settings;
+	}
+
+	///设置是否检查证书, 默认检查证书.
+	// @param check指定是否检查ssl证书.
+	void check_certificate(bool check)
+	{
+		m_settings.check_certificate = check;
 	}
 
 	///返回当前下载的文件大小.
@@ -784,8 +791,8 @@ protected:
 			// 设置到请求选项中.
 			stream.request_options(req_opt);
 
-			// 如果是ssl连接, 默认为不检查证书.
-			stream.check_certificate(false);
+			// 如果是ssl连接, 默认为检查证书.
+			stream.check_certificate(m_settings.check_certificate);
 
 			// 添加代理设置.
 			stream.proxy(m_settings.proxy);
@@ -1055,8 +1062,8 @@ protected:
 				// 设置请求选项.
 				ptr->request_options(req_opt);
 
-				// 如果是ssl连接, 默认为不检查证书.
-				ptr->check_certificate(false);
+				// 如果是ssl连接, 默认为检查证书.
+				ptr->check_certificate(m_settings.check_certificate);
 
 				// 添加代理设置.
 				ptr->proxy(m_settings.proxy);
@@ -1118,8 +1125,8 @@ protected:
 			// 添加代理设置.
 			h.proxy(m_settings.proxy);
 
-			// 如果是ssl连接, 默认为不检查证书.
-			h.check_certificate(false);
+			// 如果是ssl连接, 默认为检查证书.
+			h.check_certificate(m_settings.check_certificate);
 
 			// 开始异步打开.
 			h.async_open(m_final_url,
@@ -1250,8 +1257,8 @@ protected:
 				// 设置到请求选项中.
 				stream.request_options(req_opt);
 
-				// 如果是ssl连接, 默认为不检查证书.
-				stream.check_certificate(false);
+				// 如果是ssl连接, 默认为检查证书.
+				stream.check_certificate(m_settings.check_certificate);
 
 				// 添加代理设置.
 				stream.proxy(m_settings.proxy);

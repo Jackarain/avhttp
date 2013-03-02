@@ -234,6 +234,7 @@ struct settings
 		, time_out(default_time_out)
 		, request_piece_num(default_request_piece_num)
 		, current_downlad_mode(dispersion_mode)
+		, check_certificate(true)
 		, storage(NULL)
 	{}
 
@@ -260,6 +261,9 @@ struct settings
 
 	// 下载文件路径, 默认为当前目录.
 	fs::path save_path;
+
+	// 设置是否检查证书, 默认检查证书.
+	bool check_certificate;
 
 	// 存储接口创建函数指针, 默认为multi_download提供的file.hpp实现.
 	storage_constructor_type storage;
