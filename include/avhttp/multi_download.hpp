@@ -17,6 +17,7 @@
 
 #include <vector>
 #include <list>
+#include <algorithm>    // for std::min/std::max
 
 #include <boost/assert.hpp>
 #include <boost/noncopyable.hpp>
