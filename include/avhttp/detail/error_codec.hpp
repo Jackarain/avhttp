@@ -17,6 +17,7 @@
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 #include <string>
+#include <boost/system/system_error.hpp>
 #include <boost/system/error_code.hpp>
 
 #ifdef _MSC_VER

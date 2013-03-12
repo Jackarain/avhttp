@@ -17,6 +17,7 @@
 
 #include <vector>
 #include <list>
+#include <algorithm>    // for std::min/std::max
 
 #include <boost/assert.hpp>
 #include <boost/noncopyable.hpp>
@@ -56,10 +57,10 @@ class multi_download : public boost::noncopyable
 		{}
 
 		// http_stream对象.
-		http_stream_ptr m_stream;
+		http_stream_ptr stream;
 
 		// 数据缓冲, 下载时的缓冲.
-		boost::array<char, default_buffer_size> m_buffer;
+		boost::array<char, default_buffer_size> buffer;
 
 		// 请求的数据范围, 每次由multi_download分配一个下载范围, stream按这个范围去下载.
 		range request_range;
@@ -72,7 +73,7 @@ class multi_download : public boost::noncopyable
 		boost::int64_t bytes_downloaded;
 
 		// 最后请求的时间.
-		boost::posix_time::ptime m_last_request_time;
+		boost::posix_time::ptime last_request_time;
 
 		// 是否操作功能完成.
 		bool done;
@@ -210,8 +211,8 @@ public:
 		req_opt.insert("Connection", "keep-alive");
 
 		// 创建http_stream并同步打开, 检查返回状态码是否为206, 如果非206则表示该http服务器不支持多点下载.
-		obj->m_stream.reset(new http_stream(m_io_service));
-		http_stream &h = *obj->m_stream;
+		obj->stream.reset(new http_stream(m_io_service));
+		http_stream &h = *obj->stream;
 		h.request_options(req_opt);
 		// 如果是ssl连接, 默认为检查证书.
 		h.check_certificate(m_settings.check_certificate);
@@ -389,7 +390,7 @@ public:
 				ptr->proxy(m_settings.proxy);
 
 				// 将连接添加到容器中.
-				p->m_stream = ptr;
+				p->stream = ptr;
 
 				{
 #ifndef AVHTTP_DISABLE_THREAD
@@ -399,12 +400,12 @@ public:
 				}
 
 				// 保存最后请求时间, 方便检查超时重置.
-				p->m_last_request_time = boost::posix_time::microsec_clock::local_time();
+				p->last_request_time = boost::posix_time::microsec_clock::local_time();
 
 				m_number_of_connections++;
 
 				// 开始异步打开, 传入指针http_object_ptr, 以确保多线程安全.
-				p->m_stream->async_open(m_final_url,
+				p->stream->async_open(m_final_url,
 					boost::bind(&multi_download::handle_open, this,
 					i, p, boost::asio::placeholders::error));
 			}
@@ -438,7 +439,7 @@ public:
 			}
 
 			// 保存最后请求时间, 方便检查超时重置.
-			obj->m_last_request_time = boost::posix_time::microsec_clock::local_time();
+			obj->last_request_time = boost::posix_time::microsec_clock::local_time();
 
 			m_number_of_connections++;
 
@@ -556,8 +557,8 @@ public:
 		req_opt.insert("Connection", "keep-alive");
 
 		// 创建http_stream并同步打开, 检查返回状态码是否为206, 如果非206则表示该http服务器不支持多点下载.
-		obj->m_stream.reset(new http_stream(m_io_service));
-		http_stream &h = *obj->m_stream;
+		obj->stream.reset(new http_stream(m_io_service));
+		http_stream &h = *obj->stream;
 
 		// 设置请求选项.
 		h.request_options(req_opt);
@@ -589,8 +590,8 @@ public:
 		for (std::size_t i = 0; i < m_streams.size(); i++)
 		{
 			const http_object_ptr &ptr = m_streams[i];
-			if (ptr && ptr->m_stream)
-				ptr->m_stream->close(ignore);
+			if (ptr && ptr->stream)
+				ptr->stream->close(ignore);
 		}
 	}
 
@@ -682,7 +683,7 @@ protected:
 		}
 
 		// 保存最后请求时间, 方便检查超时重置.
-		object.m_last_request_time = boost::posix_time::microsec_clock::local_time();
+		object.last_request_time = boost::posix_time::microsec_clock::local_time();
 
 		// 计算可请求的字节数.
 		int available_bytes = default_buffer_size;
@@ -698,10 +699,10 @@ protected:
 		}
 
 		// 发起数据读取请求.
-		http_stream_ptr &stream_ptr = object.m_stream;
+		http_stream_ptr &stream_ptr = object.stream;
 
 		// 传入指针http_object_ptr, 以确保多线程安全.
-		stream_ptr->async_read_some(boost::asio::buffer(object.m_buffer, available_bytes),
+		stream_ptr->async_read_some(boost::asio::buffer(object.buffer, available_bytes),
 			boost::bind(&multi_download::handle_read, this,
 			index, object_ptr,
 			boost::asio::placeholders::bytes_transferred,
@@ -724,7 +725,7 @@ protected:
 				m_downlaoded_field.update(offset, offset + bytes_transferred);
 
 			// 使用m_storage写入.
-			m_storage->write(object.m_buffer.c_array(),	offset, bytes_transferred);
+			m_storage->write(object.buffer.c_array(),	offset, bytes_transferred);
 		}
 
 		// 如果发生错误或终止.
@@ -764,7 +765,7 @@ protected:
 				return;
 			}
 
-			http_stream &stream = *object.m_stream;
+			http_stream &stream = *object.stream;
 
 			// 配置请求选项.
 			request_opts req_opt;
@@ -798,7 +799,7 @@ protected:
 			stream.proxy(m_settings.proxy);
 
 			// 保存最后请求时间, 方便检查超时重置.
-			object.m_last_request_time = boost::posix_time::microsec_clock::local_time();
+			object.last_request_time = boost::posix_time::microsec_clock::local_time();
 
 			// 发起异步http数据请求, 传入指针http_object_ptr, 以确保多线程安全.
 			if (!m_keep_alive)
@@ -821,7 +822,7 @@ protected:
 			}
 
 			// 保存最后请求时间, 方便检查超时重置.
-			object.m_last_request_time = boost::posix_time::microsec_clock::local_time();
+			object.last_request_time = boost::posix_time::microsec_clock::local_time();
 
 			// 计算可请求的字节数.
 			int available_bytes = default_buffer_size;
@@ -837,7 +838,7 @@ protected:
 			}
 
 			// 继续读取数据, 传入指针http_object_ptr, 以确保多线程安全.
-			object.m_stream->async_read_some(boost::asio::buffer(object.m_buffer, available_bytes),
+			object.stream->async_read_some(boost::asio::buffer(object.buffer, available_bytes),
 				boost::bind(&multi_download::handle_read, this,
 				index, object_ptr,
 				boost::asio::placeholders::bytes_transferred,
@@ -866,7 +867,7 @@ protected:
 		}
 
 		// 保存最后请求时间, 方便检查超时重置.
-		object.m_last_request_time = boost::posix_time::microsec_clock::local_time();
+		object.last_request_time = boost::posix_time::microsec_clock::local_time();
 
 		// 计算可请求的字节数.
 		int available_bytes = default_buffer_size;
@@ -882,7 +883,7 @@ protected:
 		}
 
 		// 发起数据读取请求, 传入指针http_object_ptr, 以确保多线程安全.
-		object_ptr->m_stream->async_read_some(boost::asio::buffer(object.m_buffer, available_bytes),
+		object_ptr->stream->async_read_some(boost::asio::buffer(object.buffer, available_bytes),
 			boost::bind(&multi_download::handle_read, this,
 			index, object_ptr,
 			boost::asio::placeholders::bytes_transferred,
@@ -903,7 +904,7 @@ protected:
 		http_stream_object &object = *object_ptr;
 
 		// 同样引用http_stream对象.
-		http_stream &h = *object.m_stream;
+		http_stream &h = *object.stream;
 
 		// 保存最终url信息.
 		std::string location = h.location();
@@ -1069,7 +1070,7 @@ protected:
 				ptr->proxy(m_settings.proxy);
 
 				// 将连接添加到容器中.
-				p->m_stream = ptr;
+				p->stream = ptr;
 
 				{
 #ifndef AVHTTP_DISABLE_THREAD
@@ -1079,12 +1080,12 @@ protected:
 				}
 
 				// 保存最后请求时间, 方便检查超时重置.
-				p->m_last_request_time = boost::posix_time::microsec_clock::local_time();
+				p->last_request_time = boost::posix_time::microsec_clock::local_time();
 
 				m_number_of_connections++;
 
 				// 开始异步打开, 传入指针http_object_ptr, 以确保多线程安全.
-				p->m_stream->async_open(m_final_url,
+				p->stream->async_open(m_final_url,
 					boost::bind(&multi_download::handle_open, this,
 					i, p, boost::asio::placeholders::error));
 			}
@@ -1118,7 +1119,7 @@ protected:
 			}
 
 			// 保存最后请求时间, 方便检查超时重置.
-			object.m_last_request_time = boost::posix_time::microsec_clock::local_time();
+			object.last_request_time = boost::posix_time::microsec_clock::local_time();
 
 			m_number_of_connections++;
 
@@ -1190,14 +1191,14 @@ protected:
 		{
 			http_object_ptr &object_item_ptr = m_streams[i];
 			boost::posix_time::time_duration duration =
-				boost::posix_time::microsec_clock::local_time() - object_item_ptr->m_last_request_time;
+				boost::posix_time::microsec_clock::local_time() - object_item_ptr->last_request_time;
 
 			if (!object_item_ptr->done &&	(duration > boost::posix_time::seconds(m_settings.time_out)
 				|| object_item_ptr->direct_reconnect))
 			{
 				// 超时, 关闭并重新创建连接.
 				boost::system::error_code ec;
-				object_item_ptr->m_stream->close(ec);
+				object_item_ptr->stream->close(ec);
 
 				// std::cerr << "connection: " << i << " time out!!!" << std::endl;
 
@@ -1218,9 +1219,9 @@ protected:
 				http_stream_object &object = *object_item_ptr;
 
 				// 使用新的http_stream对象.
-				object.m_stream.reset(new http_stream(m_io_service));
+				object.stream.reset(new http_stream(m_io_service));
 
-				http_stream &stream = *object.m_stream;
+				http_stream &stream = *object.stream;
 
 				// 配置请求选项.
 				request_opts req_opt;
@@ -1264,7 +1265,7 @@ protected:
 				stream.proxy(m_settings.proxy);
 
 				// 保存最后请求时间, 方便检查超时重置.
-				object.m_last_request_time = boost::posix_time::microsec_clock::local_time();
+				object.last_request_time = boost::posix_time::microsec_clock::local_time();
 
 				// 重新发起异步请求, 传入object_item_ptr指针, 以确保线程安全.
 				stream.async_open(m_final_url, boost::bind(&multi_download::handle_open, this,

@@ -17,6 +17,7 @@
 
 #include <map>
 #include <vector>
+#include <algorithm>    // for std::min/std::max
 
 #include <boost/cstdint.hpp>
 #include <boost/assert.hpp>
