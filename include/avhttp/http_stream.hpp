@@ -395,8 +395,10 @@ public:
 	// @备注: handler也可以使用boost.bind来绑定一个符合规定的函数作
 	// 为async_open的参数handler.
 	template <typename Handler>
-	void async_open(const url &u, Handler handler)
+	void async_open(const url &u, BOOST_ASIO_MOVE_ARG(Handler) handler)
 	{
+	    BOOST_ASIO_CONNECT_HANDLER_CHECK(Handler, handler) type_check;
+
 		const std::string protocol = u.protocol();
 
 		// 保存url.
