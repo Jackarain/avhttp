@@ -397,7 +397,7 @@ public:
 	template <typename Handler>
 	void async_open(const url &u, BOOST_ASIO_MOVE_ARG(Handler) handler)
 	{
-	    BOOST_ASIO_CONNECT_HANDLER_CHECK(Handler, handler) type_check;
+		BOOST_ASIO_CONNECT_HANDLER_CHECK(Handler, handler) type_check;
 
 		const std::string protocol = u.protocol();
 
