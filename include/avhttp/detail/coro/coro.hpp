@@ -9,6 +9,9 @@
 //
 #pragma once
 
+#ifndef __BOOST_ASIO_CORO_H
+#define __BOOST_ASIO_CORO_H
+
 namespace boost {
 	namespace coro {
 
@@ -88,3 +91,4 @@ private:
 # define CORO_FORK CORO_FORK_IMPL(__LINE__)
 #endif // defined(_MSC_VER)
 
+#endif // __BOOST_ASIO_CORO_H
