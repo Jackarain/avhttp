@@ -16,6 +16,7 @@
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 #include <vector>
+#include <boost/lexical_cast.hpp>
 
 #include "url.hpp"
 #include "settings.hpp"
@@ -485,9 +486,7 @@ public:
 		}
 
 		// 构造异步查询HOST.
-		std::ostringstream port_string;
-		port_string << m_url.port();
-		tcp::resolver::query query(m_url.host(), port_string.str());
+		tcp::resolver::query query(m_url.host(), boost::lexical_cast<std::string>(m_url.port()));
 
 		// 开始异步查询HOST信息.
 		typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
