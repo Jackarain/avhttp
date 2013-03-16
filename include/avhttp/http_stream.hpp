@@ -301,6 +301,11 @@ public:
 					socks_proxy_connect(m_nossl_socket, ec);
 					if (ec)
 						return;
+					// 开始握手.
+					ssl_socket* ssl_sock = m_sock.get<ssl_socket>();
+					ssl_sock->handshake(ec);
+					if (ec)
+						return;
 				}
 #endif
 				// 和代理服务器连接握手完成.
@@ -1582,6 +1587,9 @@ protected:
 		socks5_auth_status,		// 认证状态.
 		socks5_result,			// 最终结局.
 		socks5_read_domainname,	// 读取域名信息.
+#ifdef AVHTTP_ENABLE_OPENSSL
+		ssl_handshake,			// ssl进行异步握手.
+#endif
 	};
 
 	// socks代理进行异步连接.
@@ -1876,6 +1884,21 @@ protected:
 				if (response == 90)	// access granted.
 				{
 					m_response.consume(m_response.size());	// 没有发生错误, 开始异步发送请求.
+
+#ifdef AVHTTP_ENABLE_OPENSSL
+					if (m_protocol == "https")
+					{
+						// 开始握手.
+						m_proxy_status = ssl_handshake;
+						ssl_socket* ssl_sock = m_sock.get<ssl_socket>();
+						ssl_sock->async_handshake(boost::bind(&http_stream::handle_socks_process<Stream, Handler>, this,
+							boost::ref(sock), handler,
+							0,
+							boost::asio::placeholders::error));
+						return;
+					}
+					else
+#endif
 					async_request(m_request_opts, handler);
 					return;
 				}
@@ -1893,6 +1916,13 @@ protected:
 				}
 			}
 			break;
+#ifdef AVHTTP_ENABLE_OPENSSL
+		case ssl_handshake:
+			{
+				async_request(m_request_opts, handler);
+			}
+			break;
+#endif
 		case socks5_response_version:
 			{
 				boost::asio::const_buffer cb = m_response.data();
@@ -2016,6 +2046,20 @@ protected:
 				{
 					m_response.consume(m_response.size());
 
+#ifdef AVHTTP_ENABLE_OPENSSL
+					if (m_protocol == "https")
+					{
+						// 开始握手.
+						m_proxy_status = ssl_handshake;
+						ssl_socket* ssl_sock = m_sock.get<ssl_socket>();
+						ssl_sock->async_handshake(boost::bind(&http_stream::handle_socks_process<Stream, Handler>, this,
+							boost::ref(sock), handler,
+							0,
+							boost::asio::placeholders::error));
+						return;
+					}
+					else
+#endif
 					// 没有发生错误, 开始异步发送请求.
 					async_request(m_request_opts, handler);
 
@@ -2054,9 +2098,22 @@ protected:
 			{
 				m_response.consume(m_response.size());
 
+#ifdef AVHTTP_ENABLE_OPENSSL
+				if (m_protocol == "https")
+				{
+					// 开始握手.
+					m_proxy_status = ssl_handshake;
+					ssl_socket* ssl_sock = m_sock.get<ssl_socket>();
+					ssl_sock->async_handshake(boost::bind(&http_stream::handle_socks_process<Stream, Handler>, this,
+						boost::ref(sock), handler,
+						0,
+						boost::asio::placeholders::error));
+					return;
+				}
+				else
+#endif
 				// 没有发生错误, 开始异步发送请求.
 				async_request(m_request_opts, handler);
-
 				return;
 			}
 			break;
@@ -2064,6 +2121,7 @@ protected:
 	}
 
 #ifdef AVHTTP_ENABLE_OPENSSL
+
 	inline bool certificate_matches_host(X509* cert, const std::string& host)
 	{
 		// Try converting host name to an address. If it is an address then we need

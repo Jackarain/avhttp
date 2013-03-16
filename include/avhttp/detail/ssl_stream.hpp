@@ -58,7 +58,7 @@ public:
 
 	typedef boost::function<void(boost::system::error_code const&)> handler_type;
 
-
+#ifndef BOOST_NO_EXCEPTIONS
 	void connect(endpoint_type const &endpoint)
 	{
 		// 1. connect to peer
@@ -67,6 +67,7 @@ public:
 		m_sock.next_layer().connect(endpoint);
 		m_sock.handshake(boost::asio::ssl::stream_base::client);
 	}
+#endif
 
 	void connect(endpoint_type const &endpoint, boost::system::error_code &ec)
 	{
@@ -92,6 +93,26 @@ public:
 
 		m_sock.next_layer().async_connect(endpoint
 			, boost::bind(&ssl_stream::connected, this, _1, h));
+	}
+
+#ifndef BOOST_NO_EXCEPTIONS
+	void handshake()
+	{
+		m_sock.handshake(boost::asio::ssl::stream_base::client);
+	}
+#endif
+
+	void handshake(boost::system::error_code &ec)
+	{
+		m_sock.handshake(boost::asio::ssl::stream_base::client, ec);
+	}
+
+	template <class Handler>
+	void async_handshake(Handler &handler)
+	{
+		boost::shared_ptr<handler_type> h(new handler_type(handler));
+		m_sock.async_handshake(boost::asio::ssl::stream_base::client
+			, boost::bind(&ssl_stream::handle_handshake, this, _1, h));
 	}
 
 	template <class Mutable_Buffers, class Handler>
@@ -255,10 +276,10 @@ private:
 		}
 
 		m_sock.async_handshake(boost::asio::ssl::stream_base::client
-			, boost::bind(&ssl_stream::handshake, this, _1, h));
+			, boost::bind(&ssl_stream::handle_handshake, this, _1, h));
 	}
 
-	void handshake(boost::system::error_code const& e, boost::shared_ptr<handler_type> h)
+	void handle_handshake(boost::system::error_code const& e, boost::shared_ptr<handler_type> h)
 	{
 		(*h)(e);
 	}
