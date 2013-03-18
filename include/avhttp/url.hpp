@@ -394,8 +394,8 @@ public:
 			std::string tmp_path;
 			if (!detail::unescape_path(new_url.path_, tmp_path))
 			{
-				ec = make_error_code(boost::system::errc::invalid_argument);
-				return url();
+				// ec = make_error_code(boost::system::errc::invalid_argument);
+				// return url();
 			}
 			s += length;
 		}
