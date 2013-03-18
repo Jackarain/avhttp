@@ -270,6 +270,10 @@
 						RelativePath="..\include\avhttp\detail\ssl_stream.hpp"
 						>
 					</File>
+					<File
+						RelativePath="..\include\avhttp\detail\utf8.hpp"
+						>
+					</File>
 				</Filter>
 			</Filter>
 		</Filter>
