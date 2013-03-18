@@ -16,6 +16,7 @@
 # pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
+#include <stdlib.h>
 #include <cstdlib>
 #include <boost/static_assert.hpp>
 #include "entry.hpp"
@@ -194,7 +195,7 @@ namespace detail {
 			++in; // 'e' 
 			ret = entry(entry::int_t);
 			char* end_pointer;
-#if defined WIN32 && !defined _MINGW
+#if defined WIN32 && !defined __MINGW_H
 			ret.integer() = _strtoi64(val.c_str(), &end_pointer, 10);
 #else
 			ret.integer() = strtoll(val.c_str(), &end_pointer, 10);
