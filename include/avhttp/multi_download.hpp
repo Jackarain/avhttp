@@ -132,7 +132,7 @@ public:
 	// @param ec当发生错误时, 包含详细的错误信息.
 	// @备注: 直接使用内部的file.hpp下载数据到文件, 若想自己指定数据下载到指定的地方
 	// 可以通过调用另一个open来完成, 具体见另一个open的详细说明.
-	void start(const url &u, boost::system::error_code &ec)
+	void start(const std::string &u, boost::system::error_code &ec)
 	{
 		settings s;
 		start(u, s, ec);
@@ -142,7 +142,7 @@ public:
 	// @param u指定的url.
 	// @备注: 直接使用内部的file.hpp下载数据到文件, 若想自己指定数据下载到指定的地方
 	// 可以通过调用另一个open来完成, 具体见另一个open的详细说明.
-	void start(const url &u)
+	void start(const std::string &u)
 	{
 		settings s;
 		boost::system::error_code ec;
@@ -157,7 +157,7 @@ public:
 	// @param u指定的url.
 	// @param s指定的设置信息.
 	// @失败抛出一个boost::system::system_error异常, 包含详细的错误信息.
-	void start(const url &u, const settings &s)
+	void start(const std::string &u, const settings &s)
 	{
 		boost::system::error_code ec;
 		start(u, s, ec);
@@ -171,7 +171,7 @@ public:
 	// @param u指定的url.
 	// @param s指定的设置信息.
 	// @返回error_code, 包含详细的错误信息.
-	void start(const url &u, const settings &s, boost::system::error_code &ec)
+	void start(const std::string &u, const settings &s, boost::system::error_code &ec)
 	{
 		// 清空所有连接.
 		{
@@ -187,11 +187,16 @@ public:
 		// 保存设置.
 		m_settings = s;
 
+		// 将url转换成utf8编码.
+		std::string utf8 = detail::ansi_utf8(u);
+		utf8 = detail::escape_path(utf8);
+		m_final_url = utf8;
+
 		// 解析meta文件.
-		if (!fs::exists(m_settings.meta_file))
+		if (m_settings.meta_file.empty())
 		{
 			// filename + ".meta".
-			m_settings.meta_file = (boost::filesystem::path(u.path()).leaf().string() + ".meta");
+			m_settings.meta_file = fs::path(detail::utf8_ansi(m_final_url.path())).leaf().string() + ".meta";
 		}
 
 		// 打开meta文件, 如果打开成功, 则表示解析出相应的位图了.
@@ -219,7 +224,7 @@ public:
 		// 添加代理设置.
 		h.proxy(m_settings.proxy);
 		// 打开http_stream.
-		h.open(u, ec);
+		h.open(m_final_url, ec);
 		// 打开失败则退出.
 		if (ec)
 		{
@@ -230,8 +235,6 @@ public:
 		std::string location = h.location();
 		if (!location.empty())
 			m_final_url = location;
-		else
-			m_final_url = u;
 
 		// 判断是否支持多点下载.
 		std::string status_code;
@@ -298,7 +301,7 @@ public:
 		BOOST_ASSERT(m_storage);
 
 		// 打开文件, 构造文件名.
-		std::string file_name = boost::filesystem::path(m_final_url.path()).leaf().string();
+		std::string file_name = fs::path(detail::utf8_ansi(m_final_url.path())).leaf().string();
 		if (file_name == "/" || file_name == "")
 			file_name = boost::filesystem::path(m_final_url.query()).leaf().string();
 		if (file_name == "/" || file_name == "" || file_name == ".")
@@ -485,7 +488,7 @@ public:
 	// @备注: handler也可以使用boost.bind来绑定一个符合规定的函数作
 	// 为async_start的参数handler.
 	template <typename Handler>
-	void async_start(const url &u, Handler handler)
+	void async_start(const std::string &u, Handler handler)
 	{
 		settings s;
 		async_start(u, s, handler);
@@ -516,7 +519,7 @@ public:
 	// @备注: handler也可以使用boost.bind来绑定一个符合规定的函数作
 	// 为async_start的参数handler.
 	template <typename Handler>
-	void async_start(const url &u, const settings &s, Handler handler)
+	void async_start(const std::string &u, const settings &s, Handler handler)
 	{
 		// 清空所有连接.
 		{
@@ -530,14 +533,16 @@ public:
 		m_file_size = -1;
 
 		// 保存参数.
-		m_final_url = u;
+		std::string utf8 = detail::ansi_utf8(u);
+		utf8 = detail::escape_path(utf8);
+		m_final_url = utf8;
 		m_settings = s;
 
 		// 解析meta文件.
-		if (!fs::exists(m_settings.meta_file))
+		if (!m_settings.meta_file.empty())
 		{
 			// filename + ".meta".
-			m_settings.meta_file = (boost::filesystem::path(u.path()).leaf().string() + ".meta");
+			m_settings.meta_file = fs::path(detail::utf8_ansi(m_final_url.path())).leaf().string() + ".meta";
 		}
 
 		// 打开meta文件, 如果打开成功, 则表示解析出相应的位图了.
@@ -570,7 +575,7 @@ public:
 		h.proxy(m_settings.proxy);
 
 		typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
-		h.async_open(u, boost::bind(&multi_download::handle_start<HandlerWrapper>, this,
+		h.async_open(m_final_url, boost::bind(&multi_download::handle_start<HandlerWrapper>, this,
 			HandlerWrapper(handler), obj, boost::asio::placeholders::error));
 
 		return;
@@ -619,7 +624,7 @@ public:
 	// @如果请求的url不太规则, 则可能返回错误的文件名.
 	std::string file_name() const
 	{
-		return boost::filesystem::path(m_final_url.path()).leaf().string();
+		return boost::filesystem::path(detail::utf8_ansi(m_final_url.path())).leaf().string();
 	}
 
 	///当前已经下载的字节总数.
@@ -976,9 +981,9 @@ protected:
 		BOOST_ASSERT(m_storage);
 
 		// 打开文件, 构造文件名.
-		std::string file_name = boost::filesystem::path(m_final_url.path()).leaf().string();
+		std::string file_name = fs::path(detail::utf8_ansi(m_final_url.path())).leaf().string();
 		if (file_name == "/" || file_name == "")
-			file_name = boost::filesystem::path(m_final_url.query()).leaf().string();
+			file_name = fs::path(m_final_url.query()).leaf().string();
 		if (file_name == "/" || file_name == "" || file_name == ".")
 			file_name = "index.html";
 		if (!m_settings.save_path.empty())

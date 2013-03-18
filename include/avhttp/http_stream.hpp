@@ -28,6 +28,7 @@
 #endif
 #include "detail/socket_type.hpp"
 #include "detail/connector.hpp"
+#include "detail/utf8.hpp"
 
 
 namespace avhttp {

@@ -20,6 +20,8 @@
 #include <cstdlib>
 #include <string>
 
+#include "utf8.hpp"
+
 namespace avhttp {
 namespace detail {
 
@@ -54,7 +56,7 @@ inline bool is_tspecial(int c)
 	}
 }
 
-inline std::string to_hex(std::string const& s)
+inline std::string to_hex(std::string const &s)
 {
 	std::string ret;
 	for (std::string::const_iterator i = s.begin(); i != s.end(); ++i)
@@ -85,73 +87,74 @@ inline bool tolower_compare(char a, char b)
 	return std::tolower(a) == std::tolower(b);
 }
 
-#if 0
-inline long long int strtoll(const char *nptr, char **endptr, int base)
+inline std::string escape_path(const std::string &s)
 {
-	long long i_value = 0;
-	int sign = 1, newbase = base ? base : 10;
+	std::string ret;
+	std::string h;
 
-	nptr += strspn(nptr, "\t ");
-	if (*nptr == '-')
+	for (std::string::const_iterator i = s.begin(); i != s.end(); i++)
 	{
-		sign = -1;
-		nptr++;
+		h = *i;
+		if (!is_char(*i))
+			h = "%" + to_hex(h);
+		ret += h;
 	}
 
-	/* Try to detect base */
-	if (*nptr == '0')
-	{
-		newbase = 8;
-		nptr++;
-
-		if (*nptr == 'x')
-		{
-			newbase = 16;
-			nptr++;
-		}
-	}
-
-	if (base && newbase != base)
-	{
-		if (endptr) *endptr = (char *)nptr;
-		return i_value;
-	}
-
-	switch (newbase)
-	{
-	case 10:
-		while (*nptr >= '0' && *nptr <= '9')
-		{
-			i_value *= 10;
-			i_value += ( *nptr++ - '0' );
-		}
-		if (endptr) *endptr = (char *)nptr;
-		break;
-
-	case 16:
-		while ((*nptr >= '0' && *nptr <= '9') ||
-			(*nptr >= 'a' && *nptr <= 'f') ||
-			(*nptr >= 'A' && *nptr <= 'F'))
-		{
-			int i_valc = 0;
-			if (*nptr >= '0' && *nptr <= '9') i_valc = *nptr - '0';
-			else if (*nptr >= 'a' && *nptr <= 'f') i_valc = *nptr - 'a' +10;
-			else if (*nptr >= 'A' && *nptr <= 'F') i_valc = *nptr - 'A' +10;
-			i_value *= 16;
-			i_value += i_valc;
-			nptr++;
-		}
-		if (endptr) *endptr = (char *)nptr;
-		break;
-
-	default:
-		i_value = strtol(nptr, endptr, newbase);
-		break;
-	}
-
-	return i_value * sign;
+	return ret;
 }
-#endif
+
+inline bool unescape_path(const std::string& in, std::string& out)
+{
+	out.clear();
+	out.reserve(in.size());
+	for (std::size_t i = 0; i < in.size(); ++i)
+	{
+		switch (in[i])
+		{
+		case '%':
+			if (i + 3 <= in.size())
+			{
+				unsigned int value = 0;
+				for (std::size_t j = i + 1; j < i + 3; ++j)
+				{
+					switch (in[j])
+					{
+					case '0': case '1': case '2': case '3': case '4':
+					case '5': case '6': case '7': case '8': case '9':
+						value += in[j] - '0';
+						break;
+					case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
+						value += in[j] - 'a' + 10;
+						break;
+					case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
+						value += in[j] - 'A' + 10;
+						break;
+					default:
+						return false;
+					}
+					if (j == i + 1)
+						value <<= 4;
+				}
+				out += static_cast<char>(value);
+				i += 2;
+			}
+			else
+				return false;
+			break;
+		case '-': case '_': case '.': case '!': case '~': case '*':
+		case '\'': case '(': case ')': case ':': case '@': case '&':
+		case '=': case '+': case '$': case ',': case '/': case ';':
+			out += in[i];
+			break;
+		default:
+			if (!std::isalnum((unsigned char)in[i]))
+				return false;
+			out += in[i];
+			break;
+		}
+	}
+	return true;
+}
 
 }
 }
