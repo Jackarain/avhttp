@@ -541,7 +541,7 @@ private:
 				out += in[i];
 				break;
 			default:
-				if (!std::isalnum(in[i]))
+				if (!std::isalnum((unsigned char)in[i]))
 					return false;
 				out += in[i];
 				break;
