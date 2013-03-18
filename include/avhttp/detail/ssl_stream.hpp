@@ -108,7 +108,7 @@ public:
 	}
 
 	template <class Handler>
-	void async_handshake(Handler &handler)
+	void async_handshake(Handler handler)
 	{
 		boost::shared_ptr<handler_type> h(new handler_type(handler));
 		m_sock.async_handshake(boost::asio::ssl::stream_base::client
