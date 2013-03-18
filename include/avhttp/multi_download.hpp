@@ -470,11 +470,11 @@ public:
 	// @param handler 将被调用在启动完成时. 它必须满足以下条件:
 	// @begin code
 	//  void handler(
-	//    const boost::system::error_code& ec // 用于返回操作状态.
+	//    const boost::system::error_code &ec // 用于返回操作状态.
 	//  );
 	// @end code
 	// @begin example
-	//  void start_handler(const boost::system::error_code& ec)
+	//  void start_handler(const boost::system::error_code &ec)
 	//  {
 	//    if (!ec)
 	//    {
@@ -500,11 +500,11 @@ public:
 	// @param handler 将被调用在启动完成时. 它必须满足以下条件:
 	// @begin code
 	//  void handler(
-	//    const boost::system::error_code& ec // 用于返回操作状态.
+	//    const boost::system::error_code &ec // 用于返回操作状态.
 	//  );
 	// @end code
 	// @begin example
-	//  void start_handler(const boost::system::error_code& ec)
+	//  void start_handler(const boost::system::error_code &ec)
 	//  {
 	//    if (!ec)
 	//    {

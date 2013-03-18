@@ -67,9 +67,9 @@ inline std::string to_hex(std::string const &s)
 	return ret;
 }
 
-inline void to_hex(char const *in, int len, char* out)
+inline void to_hex(char const *in, int len, char *out)
 {
-	for (char const* end = in + len; in < end; ++in)
+	for (char const *end = in + len; in < end; ++in)
 	{
 		*out++ = hex_chars[((unsigned char)*in) >> 4];
 		*out++ = hex_chars[((unsigned char)*in) & 0xf];
@@ -103,7 +103,7 @@ inline std::string escape_path(const std::string &s)
 	return ret;
 }
 
-inline bool unescape_path(const std::string& in, std::string& out)
+inline bool unescape_path(const std::string &in, std::string &out)
 {
 	out.clear();
 	out.reserve(in.size());

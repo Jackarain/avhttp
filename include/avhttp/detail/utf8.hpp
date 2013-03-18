@@ -89,4 +89,4 @@ inline std::string wide_ansi(std::wstring const &source, const std::string &char
 } // namespace detail
 } // namespace avhttp
 
-#endif // __UTF8_H__
+#endif // __UTF8_HPP__

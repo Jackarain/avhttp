@@ -58,7 +58,7 @@ namespace avhttp {
 //  		std::cout.write(data, bytes_transferred);
 //  	}
 //  }
-//  catch (std::exception& e)
+//  catch (std::exception &e)
 //  {
 //  	std::cerr << "Exception: " << e.what() << std::endl;
 //  }
@@ -181,7 +181,7 @@ public:
 	//   {
 	//     h_stream.open("http://www.boost.org");
 	//   }
-	//   catch (boost::system::system_error& e)
+	//   catch (boost::system::system_error &e)
 	//   {
 	//     std::cerr << e.waht() << std::endl;
 	//   }
@@ -385,11 +385,11 @@ public:
 	// @param handler 将被调用在打开完成时. 它必须满足以下条件:
 	// @begin code
 	//  void handler(
-	//    const boost::system::error_code& ec // 用于返回操作状态.
+	//    const boost::system::error_code &ec // 用于返回操作状态.
 	//  );
 	// @end code
 	// @begin example
-	//  void open_handler(const boost::system::error_code& ec)
+	//  void open_handler(const boost::system::error_code &ec)
 	//  {
 	//    if (!ec)
 	//    {
@@ -583,11 +583,11 @@ public:
 	// @begin code
 	//  void handler(
 	//    int bytes_transferred,				// 返回读取的数据字节数.
-	//    const boost::system::error_code& ec	// 用于返回操作状态.
+	//    const boost::system::error_code &ec	// 用于返回操作状态.
 	//  );
 	// @end code
 	// @begin example
-	//   void handler(int bytes_transferred, const boost::system::error_code& ec)
+	//   void handler(int bytes_transferred, const boost::system::error_code &ec)
 	//   {
 	//		// 处理异步回调.
 	//   }
@@ -600,7 +600,7 @@ public:
 	// 关于示例中的boost::asio::buffer用法可以参考boost中的文档. 它可以接受一个
 	// boost.array或std.vector作为数据容器.
 	template <typename MutableBufferSequence, typename Handler>
-	void async_read_some(const MutableBufferSequence& buffers, Handler handler)
+	void async_read_some(const MutableBufferSequence &buffers, Handler handler)
 	{
 		boost::system::error_code ec;
 		if (m_response.size() > 0)
@@ -634,7 +634,7 @@ public:
 	// 关于示例中的boost::asio::buffer用法可以参考boost中的文档. 它可以接受一个
 	// boost.array或std.vector作为数据容器.
 	template <typename ConstBufferSequence>
-	std::size_t write_some(const ConstBufferSequence& buffers)
+	std::size_t write_some(const ConstBufferSequence &buffers)
 	{
 		boost::system::error_code ec;
 		std::size_t bytes_transferred = write_some(buffers, ec);
@@ -659,7 +659,7 @@ public:
 	// 关于示例中的boost::asio::buffer用法可以参考boost中的文档. 它可以接受一个
 	// boost.array或std.vector作为数据容器.
 	template <typename ConstBufferSequence>
-	std::size_t write_some(const ConstBufferSequence& buffers,
+	std::size_t write_some(const ConstBufferSequence &buffers,
 		boost::system::error_code &ec)
 	{
 		std::size_t bytes_transferred = m_sock.write_some(buffers, ec);
@@ -676,11 +676,11 @@ public:
 	// @begin code
 	//  void handler(
 	//    int bytes_transferred,				// 返回发送的数据字节数.
-	//    const boost::system::error_code& ec	// 用于返回操作状态.
+	//    const boost::system::error_code &ec	// 用于返回操作状态.
 	//  );
 	// @end code
 	// @begin example
-	//   void handler(int bytes_transferred, const boost::system::error_code& ec)
+	//   void handler(int bytes_transferred, const boost::system::error_code &ec)
 	//   {
 	//		// 处理异步回调.
 	//   }
@@ -866,11 +866,11 @@ public:
 	// @param handler 将被调用在打开完成时. 它必须满足以下条件:
 	// @begin code
 	//  void handler(
-	//    const boost::system::error_code& ec	// 用于返回操作状态.
+	//    const boost::system::error_code &ec	// 用于返回操作状态.
 	//  );
 	// @end code
 	// @begin example
-	//  void request_handler(const boost::system::error_code& ec)
+	//  void request_handler(const boost::system::error_code &ec)
 	//  {
 	//    if (!ec)
 	//    {
@@ -976,7 +976,7 @@ public:
 	// @param ec保存失败信息.
 	// @备注: 停止所有正在进行的读写操作, 正在进行的异步调用将回调
 	// boost::asio::error::operation_aborted错误.
-	void close(boost::system::error_code& ec)
+	void close(boost::system::error_code &ec)
 	{
 		ec = boost::system::error_code();
 
@@ -1029,7 +1029,7 @@ public:
 	//  h.request_options(options);
 	//  ...
 	// @end example
-	void request_options(const request_opts& options)
+	void request_options(const request_opts &options)
 	{
 		m_request_opts = options;
 	}
@@ -1398,7 +1398,7 @@ protected:
 	}
 
 	template <typename Stream>
-	void socks_proxy_handshake(Stream &sock, boost::system::error_code & ec)
+	void socks_proxy_handshake(Stream &sock, boost::system::error_code &ec)
 	{
 		using namespace avhttp::detail;
 
@@ -2122,7 +2122,7 @@ protected:
 
 #ifdef AVHTTP_ENABLE_OPENSSL
 
-	inline bool certificate_matches_host(X509* cert, const std::string& host)
+	inline bool certificate_matches_host(X509 *cert, const std::string &host)
 	{
 		// Try converting host name to an address. If it is an address then we need
 		// to look for an IP address in the certificate rather than a host name.
