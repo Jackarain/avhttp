@@ -4,7 +4,7 @@ project(avhttp)
 
 OPTION(ENABLE_OPENSSL "Enable use of OpenSSL" ON)
 
-find_package(Boost 1.49  REQUIRED COMPONENTS date_time thread filesystem system program_options regex)
+find_package(Boost 1.49  REQUIRED COMPONENTS locale date_time thread filesystem system program_options regex)
 find_package(Threads)
 
 if (ENABLE_OPENSSL)
