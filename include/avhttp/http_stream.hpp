@@ -885,7 +885,7 @@ public:
 	//  h.async_request(opt, boost::bind(&request_handler, boost::asio::placeholders::error));
 	// @end example
 	template <typename Handler>
-	void async_request(request_opts &opt, Handler handler)
+	void async_request(const request_opts &opt, Handler handler)
 	{
 		boost::system::error_code ec;
 
