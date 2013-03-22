@@ -2499,12 +2499,12 @@ protected:
 #ifdef AVHTTP_ENABLE_ZLIB
 	z_stream m_stream;								// zlib支持.
 	char m_zlib_buffer[1024];						// 解压缓冲.
-	std::size_t m_zlib_buffer_size;				//	输入的字节数.
+	std::size_t m_zlib_buffer_size;					//	输入的字节数.
 	bool m_is_gzip;									// 是否使用gz.
 #endif
 	bool m_is_chunked;								// 是否使用chunked编码.
-	bool m_skip_crlf;									// 跳过crlf.
-	std::size_t m_chunked_size;					// chunked大小.
+	bool m_skip_crlf;								// 跳过crlf.
+	std::size_t m_chunked_size;						// chunked大小.
 };
 
 }
