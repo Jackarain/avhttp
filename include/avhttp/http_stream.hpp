@@ -1506,6 +1506,7 @@ protected:
 			return;
 		}
 		boost::system::error_code ec;
+
 		// 判断是否需要跳转.
 		if (m_status_code == avhttp::errc::moved_permanently || m_status_code == avhttp::errc::found)
 		{
@@ -1518,6 +1519,17 @@ protected:
 		}
 		if (m_status_code != avhttp::errc::ok && m_status_code != avhttp::errc::partial_content)
 			ec = make_error_code(static_cast<avhttp::errc::errc_t>(m_status_code));
+
+		// 解析是否启用了gz压缩.
+		std::string encoding = m_response_opts.find(http_options::content_encoding);
+#ifdef AVHTTP_ENABLE_ZLIB
+		if (encoding == "gzip" || encoding == "x-gzip")
+			m_is_gzip = true;
+#endif
+		encoding = m_response_opts.find(http_options::transfer_encoding);
+		if (encoding == "chunked")
+			m_is_chunked = true;
+
 		// 回调通知.
 		handler(ec);
 	}
@@ -2490,7 +2502,7 @@ protected:
 	bool m_keep_alive;								// 获得connection选项, 同时受m_response_opts影响.
 	int m_status_code;								// http返回状态码.
 	std::size_t m_redirects;						// 重定向次数计数.
-	std::size_t m_max_redirects;						// 重定向次数计数.
+	std::size_t m_max_redirects;					// 重定向次数计数.
 	std::string m_content_type;						// 数据类型.
 	std::size_t m_content_length;					// 数据内容长度.
 	std::string m_location;							// 重定向的地址.
