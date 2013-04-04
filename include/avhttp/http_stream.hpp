@@ -601,8 +601,10 @@ public:
 	// 关于示例中的boost::asio::buffer用法可以参考boost中的文档. 它可以接受一个
 	// boost.array或std.vector作为数据容器.
 	template <typename MutableBufferSequence, typename Handler>
-	void async_read_some(const MutableBufferSequence &buffers, Handler handler)
+	void async_read_some(const MutableBufferSequence &buffers, BOOST_ASIO_MOVE_ARG(Handler) handler)
 	{
+		BOOST_ASIO_CONNECT_HANDLER_CHECK(Handler, handler) type_check;
+
 		boost::system::error_code ec;
 		if (m_response.size() > 0)
 		{
@@ -693,8 +695,10 @@ public:
 	// 关于示例中的boost::asio::buffer用法可以参考boost中的文档. 它可以接受一个
 	// boost.array或std.vector作为数据容器.
 	template <typename ConstBufferSequence, typename Handler>
-	void async_write_some(const ConstBufferSequence &buffers, Handler handler)
+	void async_write_some(const ConstBufferSequence &buffers, BOOST_ASIO_MOVE_ARG(Handler) handler)
 	{
+		BOOST_ASIO_CONNECT_HANDLER_CHECK(Handler, handler) type_check;
+
 		m_sock.async_write_some(buffers, handler);
 	}
 
@@ -779,7 +783,7 @@ public:
 		std::ostream request_stream(&m_request);
 		request_stream << request_method << " ";
 		request_stream << m_url.to_string(url::path_component | url::query_component);
-		request_stream << " HTTP/1.0\r\n";
+		request_stream << " HTTP/1.1\r\n";
 		request_stream << "Host: " << host << "\r\n";
 		request_stream << "Accept: " << accept << "\r\n";
 		request_stream << other_option_string << "\r\n";
@@ -886,8 +890,10 @@ public:
 	//  h.async_request(opt, boost::bind(&request_handler, boost::asio::placeholders::error));
 	// @end example
 	template <typename Handler>
-	void async_request(const request_opts &opt, Handler handler)
+	void async_request(const request_opts &opt, BOOST_ASIO_MOVE_ARG(Handler) handler)
 	{
+		BOOST_ASIO_CONNECT_HANDLER_CHECK(Handler, handler) type_check;
+
 		boost::system::error_code ec;
 
 		// 判断socket是否打开.
@@ -935,7 +941,7 @@ public:
 		std::ostream request_stream(&m_request);
 		request_stream << request_method << " ";
 		request_stream << m_url.to_string(url::path_component | url::query_component);
-		request_stream << " HTTP/1.0\r\n";
+		request_stream << " HTTP/1.1\r\n";
 		request_stream << "Host: " << host << "\r\n";
 		request_stream << "Accept: " << accept << "\r\n";
 		request_stream << other_option_string << "\r\n";
@@ -1602,8 +1608,10 @@ protected:
 
 	// socks代理进行异步连接.
 	template <typename Stream, typename Handler>
-	void async_socks_proxy_connect(Stream &sock, Handler handler)
+	void async_socks_proxy_connect(Stream &sock, BOOST_ASIO_MOVE_ARG(Handler) handler)
 	{
+		BOOST_ASIO_CONNECT_HANDLER_CHECK(Handler, handler) type_check;
+
 		// 构造异步查询proxy主机信息.
 		std::ostringstream port_string;
 		port_string << m_proxy.port;
@@ -1622,8 +1630,10 @@ protected:
 	// 异步代理查询回调.
 	template <typename Stream, typename Handler>
 	void async_socks_proxy_resolve(const boost::system::error_code &err,
-		tcp::resolver::iterator endpoint_iterator, Stream &sock, Handler handler)
+		tcp::resolver::iterator endpoint_iterator, Stream &sock, BOOST_ASIO_MOVE_ARG(Handler) handler)
 	{
+		BOOST_ASIO_CONNECT_HANDLER_CHECK(Handler, handler) type_check;
+
 		if (err)
 		{
 			handler(err);
