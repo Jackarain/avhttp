@@ -156,6 +156,7 @@ public:
 		, m_keep_alive(false)
 		, m_status_code(-1)
 		, m_redirects(0)
+		, m_max_redirects(AVHTTP_MAX_REDIRECTS)
 		, m_content_length(0)
 		, m_resolver(io)
 	{
@@ -364,7 +365,7 @@ public:
 		if (http_code == avhttp::errc::moved_permanently || http_code == avhttp::errc::found)
 		{
 			m_sock.close(ec);
-			if (++m_redirects <= AVHTTP_MAX_REDIRECTS)
+			if (++m_redirects <= m_max_redirects)
 			{
 				open(m_location, ec);
 				return;
@@ -1001,6 +1002,13 @@ public:
 		return m_sock.is_open();
 	}
 
+	///设置最大重定向次数.
+	// @param n 指定最大重定向次数, 为0表示禁用重定向.
+	void max_redirects(int n)
+	{
+		m_max_redirects = n;
+	}
+
 	///设置代理, 通过设置代理访问http服务器.
 	// @param s 指定了代理参数.
 	// @begin example
@@ -1235,7 +1243,7 @@ protected:
 		if (m_status_code == avhttp::errc::moved_permanently || m_status_code == avhttp::errc::found)
 		{
 			m_sock.close(ec);
-			if (++m_redirects <= AVHTTP_MAX_REDIRECTS)
+			if (++m_redirects <= m_max_redirects)
 			{
 				async_open(m_location, handler);
 				return;
@@ -2215,6 +2223,7 @@ protected:
 	bool m_keep_alive;								// 获得connection选项, 同时受m_response_opts影响.
 	int m_status_code;								// http返回状态码.
 	std::size_t m_redirects;						// 重定向次数计数.
+	std::size_t m_max_redirects;						// 重定向次数计数.
 	std::string m_content_type;						// 数据类型.
 	std::size_t m_content_length;					// 数据内容长度.
 	std::string m_location;							// 重定向的地址.

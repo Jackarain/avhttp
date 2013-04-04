@@ -62,6 +62,7 @@ class multi_download : public boost::noncopyable
 			: request_range(0, 0)
 			, bytes_transferred(0)
 			, bytes_downloaded(0)
+			, request_count(0)
 			, done(false)
 			, direct_reconnect(false)
 		{}
@@ -81,6 +82,9 @@ class multi_download : public boost::noncopyable
 
 		// 当前对象下载的数据统计.
 		boost::int64_t bytes_downloaded;
+
+		// 当前对象发起请求的次数.
+		int request_count;
 
 		// 最后请求的时间.
 		boost::posix_time::ptime last_request_time;
@@ -129,6 +133,7 @@ public:
 		, m_file_size(-1)
 		, m_drop_size(-1)
 		, m_number_of_connections(0)
+		, m_time_total(0)
 		, m_timer(io, boost::posix_time::seconds(0))
 		, m_abort(false)
 	{}
@@ -399,6 +404,8 @@ public:
 				ptr->request_options(req_opt);
 				// 如果是ssl连接, 默认为检查证书.
 				ptr->check_certificate(m_settings.check_certificate);
+				// 禁用重定向.
+				ptr->max_redirects(0);
 				// 添加代理设置.
 				ptr->proxy(m_settings.proxy);
 
@@ -458,6 +465,9 @@ public:
 
 			// 如果是ssl连接, 默认为检查证书.
 			h.check_certificate(m_settings.check_certificate);
+
+			// 禁用重定向.
+			h.max_redirects(0);
 
 			// 添加代理设置.
 			h.proxy(m_settings.proxy);
@@ -810,6 +820,9 @@ protected:
 			// 如果是ssl连接, 默认为检查证书.
 			stream.check_certificate(m_settings.check_certificate);
 
+			// 禁用重定向.
+			stream.max_redirects(0);
+
 			// 添加代理设置.
 			stream.proxy(m_settings.proxy);
 
@@ -865,6 +878,7 @@ protected:
 		http_object_ptr object_ptr, const boost::system::error_code &ec)
 	{
 		http_stream_object &object = *object_ptr;
+		object.request_count++;
 		if (ec || m_abort)
 		{
 			// 输出错误信息, 然后退出, 让on_tick检查到超时后重新连接.
@@ -1081,6 +1095,9 @@ protected:
 				// 如果是ssl连接, 默认为检查证书.
 				ptr->check_certificate(m_settings.check_certificate);
 
+				// 禁用重定向.
+				ptr->max_redirects(0);
+
 				// 添加代理设置.
 				ptr->proxy(m_settings.proxy);
 
@@ -1144,6 +1161,9 @@ protected:
 			// 如果是ssl连接, 默认为检查证书.
 			h.check_certificate(m_settings.check_certificate);
 
+			// 禁用重定向.
+			h.max_redirects(0);
+
 			// 开始异步打开.
 			h.async_open(m_final_url,
 				boost::bind(&multi_download::handle_open, this,
@@ -1162,6 +1182,8 @@ protected:
 
 	void on_tick()
 	{
+		m_time_total++;
+
 		// 在这里更新位图.
 		if (m_accept_multi)
 		{
@@ -1275,6 +1297,9 @@ protected:
 
 				// 如果是ssl连接, 默认为检查证书.
 				stream.check_certificate(m_settings.check_certificate);
+
+				// 禁用重定向.
+				stream.max_redirects(0);
 
 				// 添加代理设置.
 				stream.proxy(m_settings.proxy);
@@ -1461,6 +1486,9 @@ private:
 
 	// 实际连接数.
 	int m_number_of_connections;
+
+	// 下载计时.
+	int m_time_total;
 
 	// 下载数据存储接口指针, 可由用户定义, 并在open时指定.
 	boost::scoped_ptr<storage_interface> m_storage;
