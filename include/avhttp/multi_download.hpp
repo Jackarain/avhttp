@@ -693,9 +693,6 @@ protected:
 		http_stream_object &object = *object_ptr;
 		if (ec || m_abort)
 		{
-			// 输出错误信息, 然后退出, 让on_tick检查到超时后重新连接.
-			// std::cerr << index << " handle_open: " << ec.message().c_str() << std::endl;
-
 			// 单连接模式, 表示下载停止, 终止下载.
 			if (!m_accept_multi)
 			{
@@ -756,9 +753,6 @@ protected:
 		// 如果发生错误或终止.
 		if (ec || m_abort)
 		{
-			// 输出错误信息, 然后退出, 让on_tick检查到超时后重新连接.
-			// std::cerr << index << " handle_read: " << ec.message().c_str() << std::endl;
-
 			// 单连接模式, 表示下载停止, 终止下载.
 			if (!m_accept_multi)
 			{
@@ -881,9 +875,6 @@ protected:
 		object.request_count++;
 		if (ec || m_abort)
 		{
-			// 输出错误信息, 然后退出, 让on_tick检查到超时后重新连接.
-			// std::cerr << index << " handle_request: " << ec.message().c_str() << std::endl;
-
 			// 单连接模式, 表示下载停止, 终止下载.
 			if (!m_accept_multi)
 			{
@@ -1236,8 +1227,6 @@ protected:
 				// 超时, 关闭并重新创建连接.
 				boost::system::error_code ec;
 				object_item_ptr->stream->close(ec);
-
-				// std::cerr << "connection: " << i << " time out!!!" << std::endl;
 
 				// 单连接模式, 表示下载停止, 终止下载.
 				if (!m_accept_multi)
