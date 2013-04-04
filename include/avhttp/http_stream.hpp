@@ -406,8 +406,6 @@ public:
 	template <typename Handler>
 	void async_open(const url &u, BOOST_ASIO_MOVE_ARG(Handler) handler)
 	{
-		BOOST_ASIO_CONNECT_HANDLER_CHECK(Handler, handler) type_check;
-
 		const std::string protocol = u.protocol();
 
 		// 保存url.
@@ -479,12 +477,12 @@ public:
 
 			if (protocol == "http")
 			{
-				async_socks_proxy_connect(m_sock, handler);
+				async_socks_proxy_connect(m_sock, BOOST_ASIO_MOVE_CAST(Handler)(handler));
 			}
 #ifdef AVHTTP_ENABLE_OPENSSL
 			else if (protocol == "https")
 			{
-				async_socks_proxy_connect(m_nossl_socket, handler);
+				async_socks_proxy_connect(m_nossl_socket, BOOST_ASIO_MOVE_CAST(Handler)(handler));
 			}
 #endif
 
@@ -603,7 +601,7 @@ public:
 	template <typename MutableBufferSequence, typename Handler>
 	void async_read_some(const MutableBufferSequence &buffers, BOOST_ASIO_MOVE_ARG(Handler) handler)
 	{
-		BOOST_ASIO_CONNECT_HANDLER_CHECK(Handler, handler) type_check;
+		BOOST_ASIO_READ_HANDLER_CHECK(Handler, handler) type_check;
 
 		boost::system::error_code ec;
 		if (m_response.size() > 0)
@@ -613,8 +611,9 @@ public:
 				boost::asio::detail::bind_handler(handler, ec, bytes_transferred));
 			return;
 		}
+
 		// 当缓冲区数据不够, 直接从socket中异步读取.
-		m_sock.async_read_some(buffers, handler);
+		m_sock.async_read_some(buffers, BOOST_ASIO_MOVE_CAST(Handler)(handler));
 	}
 
 	///向这个http_stream中发送一些数据.
@@ -697,9 +696,9 @@ public:
 	template <typename ConstBufferSequence, typename Handler>
 	void async_write_some(const ConstBufferSequence &buffers, BOOST_ASIO_MOVE_ARG(Handler) handler)
 	{
-		BOOST_ASIO_CONNECT_HANDLER_CHECK(Handler, handler) type_check;
+		BOOST_ASIO_WAIT_HANDLER_CHECK(Handler, handler) type_check;
 
-		m_sock.async_write_some(buffers, handler);
+		m_sock.async_write_some(buffers, BOOST_ASIO_MOVE_CAST(Handler)(handler));
 	}
 
 	///向http服务器发起一个请求.
@@ -892,8 +891,6 @@ public:
 	template <typename Handler>
 	void async_request(const request_opts &opt, BOOST_ASIO_MOVE_ARG(Handler) handler)
 	{
-		BOOST_ASIO_CONNECT_HANDLER_CHECK(Handler, handler) type_check;
-
 		boost::system::error_code ec;
 
 		// 判断socket是否打开.
@@ -1610,8 +1607,6 @@ protected:
 	template <typename Stream, typename Handler>
 	void async_socks_proxy_connect(Stream &sock, BOOST_ASIO_MOVE_ARG(Handler) handler)
 	{
-		BOOST_ASIO_CONNECT_HANDLER_CHECK(Handler, handler) type_check;
-
 		// 构造异步查询proxy主机信息.
 		std::ostringstream port_string;
 		port_string << m_proxy.port;
@@ -1632,8 +1627,6 @@ protected:
 	void async_socks_proxy_resolve(const boost::system::error_code &err,
 		tcp::resolver::iterator endpoint_iterator, Stream &sock, BOOST_ASIO_MOVE_ARG(Handler) handler)
 	{
-		BOOST_ASIO_CONNECT_HANDLER_CHECK(Handler, handler) type_check;
-
 		if (err)
 		{
 			handler(err);
