@@ -749,24 +749,28 @@ public:
 
 		// 得到request_method.
 		std::string request_method = "GET";
-		if (opts.find("_request_method", request_method))
-			opts.remove("_request_method");	// 删除处理过的选项.
+		if (opts.find(http_options::request_method, request_method))
+			opts.remove(http_options::request_method);	// 删除处理过的选项.
+
+		// 得到http版本信息.
+		std::string http_version = "HTTP/1.1";
+		if (opts.find(http_options::http_version, http_version))
+			opts.remove(http_options::http_version);	// 删除处理过的选项.
 
 		// 得到Host信息.
 		std::string host = m_url.to_string(url::host_component | url::port_component);
-		if (opts.find("Host", host))
-			opts.remove("Host");	// 删除处理过的选项.
+		if (opts.find(http_options::host, host))
+			opts.remove(http_options::host);	// 删除处理过的选项.
 
 		// 得到Accept信息.
 		std::string accept = "*/*";
-		if (opts.find("Accept", accept))
-			opts.remove("Accept");	// 删除处理过的选项.
-
+		if (opts.find(http_options::accept, accept))
+			opts.remove(http_options::accept);	// 删除处理过的选项.
 
 		// 是否带有body选项.
 		std::string body;
-		if (opts.find("_request_body", body))
-			opts.remove("_request_body");	// 删除处理过的选项.
+		if (opts.find(http_options::request_body, body))
+			opts.remove(http_options::request_body);	// 删除处理过的选项.
 
 		// 循环构造其它选项.
 		std::string other_option_string;
@@ -782,7 +786,7 @@ public:
 		std::ostream request_stream(&m_request);
 		request_stream << request_method << " ";
 		request_stream << m_url.to_string(url::path_component | url::query_component);
-		request_stream << " HTTP/1.1\r\n";
+		request_stream << " " << http_version << "\r\n";
 		request_stream << "Host: " << host << "\r\n";
 		request_stream << "Accept: " << accept << "\r\n";
 		request_stream << other_option_string << "\r\n";
@@ -905,24 +909,28 @@ public:
 
 		// 得到request_method.
 		std::string request_method = "GET";
-		if (opts.find("_request_method", request_method))
-			opts.remove("_request_method");	// 删除处理过的选项.
+		if (opts.find(http_options::request_method, request_method))
+			opts.remove(http_options::request_method);	// 删除处理过的选项.
+
+		// 得到http的版本信息.
+		std::string http_version = "HTTP/1.1";
+		if (opts.find(http_options::http_version, http_version))
+			opts.remove(http_options::http_version);	// 删除处理过的选项.
 
 		// 得到Host信息.
 		std::string host = m_url.to_string(url::host_component | url::port_component);
-		if (opts.find("Host", host))
-			opts.remove("Host");	// 删除处理过的选项.
+		if (opts.find(http_options::host, host))
+			opts.remove(http_options::host);	// 删除处理过的选项.
 
 		// 得到Accept信息.
 		std::string accept = "*/*";
-		if (opts.find("Accept", accept))
-			opts.remove("Accept");	// 删除处理过的选项.
-
+		if (opts.find(http_options::accept, accept))
+			opts.remove(http_options::accept);	// 删除处理过的选项.
 
 		// 是否带有body选项.
 		std::string body;
-		if (opts.find("_request_body", body))
-			opts.remove("_request_body");	// 删除处理过的选项.
+		if (opts.find(http_options::request_body, body))
+			opts.remove(http_options::request_body);	// 删除处理过的选项.
 
 		// 循环构造其它选项.
 		std::string other_option_string;
@@ -938,7 +946,7 @@ public:
 		std::ostream request_stream(&m_request);
 		request_stream << request_method << " ";
 		request_stream << m_url.to_string(url::path_component | url::query_component);
-		request_stream << " HTTP/1.1\r\n";
+		request_stream << " " << http_version << "\r\n";
 		request_stream << "Host: " << host << "\r\n";
 		request_stream << "Accept: " << accept << "\r\n";
 		request_stream << other_option_string << "\r\n";
