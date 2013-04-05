@@ -747,6 +747,17 @@ public:
 		// 保存到一个新的opts中操作.
 		request_opts opts = opt;
 
+		// 得到url选项.
+		std::string new_url;
+		if (opts.find(http_options::url, new_url))
+			opts.remove(http_options::url);		// 删除处理过的选项.
+
+		if (!new_url.empty())
+		{
+			BOOST_ASSERT(url::from_string(new_url).host() == m_url.host());	// 必须是同一主机.
+			m_url = new_url;
+		}
+
 		// 得到request_method.
 		std::string request_method = "GET";
 		if (opts.find(http_options::request_method, request_method))
@@ -912,6 +923,17 @@ public:
 
 		// 保存到一个新的opts中操作.
 		request_opts opts = opt;
+
+		// 得到url选项.
+		std::string new_url;
+		if (opts.find(http_options::url, new_url))
+			opts.remove(http_options::url);		// 删除处理过的选项.
+
+		if (!new_url.empty())
+		{
+			BOOST_ASSERT(url::from_string(new_url).host() == m_url.host());	// 必须是同一主机.
+			m_url = new_url;
+		}
 
 		// 得到request_method.
 		std::string request_method = "GET";

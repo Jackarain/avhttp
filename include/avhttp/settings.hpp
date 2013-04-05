@@ -39,6 +39,7 @@ namespace http_options {
 	static const std::string http_version("_http_version");
 	static const std::string request_body("_request_body");
 	static const std::string status_code("_status_code");
+	static const std::string url("_url");
 	static const std::string host("Host");
 	static const std::string accept("Accept");
 	static const std::string cookie("cookie");
