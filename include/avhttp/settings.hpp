@@ -157,7 +157,7 @@ protected:
 };
 
 // 请求时的http选项.
-// _http_version, 取值 "HTTP/1.0" / "HTTP/1.1", 默认为"HTTP/1.0".
+// _http_version, 取值 "HTTP/1.0" / "HTTP/1.1", 默认为"HTTP/1.1".
 // _request_method, 取值 "GET/POST/HEAD", 默认为"GET".
 // _request_body, 请求中的body内容, 取值任意, 默认为空.
 // Host, 取值为http服务器, 默认为http服务器.
