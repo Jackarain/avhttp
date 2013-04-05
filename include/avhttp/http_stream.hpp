@@ -767,6 +767,11 @@ public:
 		if (opts.find(http_options::accept, accept))
 			opts.remove(http_options::accept);	// 删除处理过的选项.
 
+		// 默认添加close.
+		std::string connection = "close";
+		if (opts.find(http_options::connection, connection))
+			opts.remove(http_options::connection);		// 删除处理过的选项.
+
 		// 是否带有body选项.
 		std::string body;
 		if (opts.find(http_options::request_body, body))
@@ -789,6 +794,7 @@ public:
 		request_stream << " " << http_version << "\r\n";
 		request_stream << "Host: " << host << "\r\n";
 		request_stream << "Accept: " << accept << "\r\n";
+		request_stream << "Connection: " << connection << "\r\n";
 		request_stream << other_option_string << "\r\n";
 		if (!body.empty())
 		{
@@ -927,6 +933,11 @@ public:
 		if (opts.find(http_options::accept, accept))
 			opts.remove(http_options::accept);	// 删除处理过的选项.
 
+		// 默认添加close.
+		std::string connection = "close";
+		if (opts.find(http_options::connection, connection))
+			opts.remove(http_options::connection);		// 删除处理过的选项.
+
 		// 是否带有body选项.
 		std::string body;
 		if (opts.find(http_options::request_body, body))
@@ -949,6 +960,7 @@ public:
 		request_stream << " " << http_version << "\r\n";
 		request_stream << "Host: " << host << "\r\n";
 		request_stream << "Accept: " << accept << "\r\n";
+		request_stream << "Connection: " << connection << "\r\n";
 		request_stream << other_option_string << "\r\n";
 		if (!body.empty())
 		{
