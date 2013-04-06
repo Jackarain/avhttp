@@ -508,7 +508,7 @@ public:
 	// @备注: handler也可以使用boost.bind来绑定一个符合规定的函数作
 	// 为async_start的参数handler.
 	template <typename Handler>
-	void async_start(const std::string &u, Handler handler)
+	void async_start(const std::string &u, BOOST_ASIO_MOVE_ARG(Handler) handler)
 	{
 		settings s;
 		async_start(u, s, handler);
@@ -539,7 +539,7 @@ public:
 	// @备注: handler也可以使用boost.bind来绑定一个符合规定的函数作
 	// 为async_start的参数handler.
 	template <typename Handler>
-	void async_start(const std::string &u, const settings &s, Handler handler)
+	void async_start(const std::string &u, const settings &s, BOOST_ASIO_MOVE_ARG(Handler) handler)
 	{
 		// 清空所有连接.
 		{
@@ -911,7 +911,7 @@ protected:
 	}
 
 	template <typename Handler>
-	void handle_start(Handler handler, http_object_ptr object_ptr, const boost::system::error_code &ec)
+	void handle_start(BOOST_ASIO_MOVE_ARG(Handler) handler, http_object_ptr object_ptr, const boost::system::error_code &ec)
 	{
 		// 打开失败则退出.
 		if (ec)

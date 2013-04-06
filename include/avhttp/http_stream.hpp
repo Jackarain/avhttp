@@ -477,12 +477,12 @@ public:
 
 			if (protocol == "http")
 			{
-				async_socks_proxy_connect(m_sock, BOOST_ASIO_MOVE_CAST(Handler)(handler));
+				async_socks_proxy_connect(m_sock, handler);
 			}
 #ifdef AVHTTP_ENABLE_OPENSSL
 			else if (protocol == "https")
 			{
-				async_socks_proxy_connect(m_nossl_socket, BOOST_ASIO_MOVE_CAST(Handler)(handler));
+				async_socks_proxy_connect(m_nossl_socket, handler);
 			}
 #endif
 
@@ -494,9 +494,10 @@ public:
 
 		// 开始异步查询HOST信息.
 		typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
+		HandlerWrapper h = handler;
 		m_resolver.async_resolve(query,
 			boost::bind(&http_stream::handle_resolve<HandlerWrapper>, this,
-			boost::asio::placeholders::error, boost::asio::placeholders::iterator, HandlerWrapper(handler)));
+			boost::asio::placeholders::error, boost::asio::placeholders::iterator, h));
 	}
 
 	///从这个http_stream中读取一些数据.
@@ -613,7 +614,7 @@ public:
 		}
 
 		// 当缓冲区数据不够, 直接从socket中异步读取.
-		m_sock.async_read_some(buffers, BOOST_ASIO_MOVE_CAST(Handler)(handler));
+		m_sock.async_read_some(buffers, handler);
 	}
 
 	///向这个http_stream中发送一些数据.
@@ -1667,7 +1668,7 @@ protected:
 	// 异步代理查询回调.
 	template <typename Stream, typename Handler>
 	void async_socks_proxy_resolve(const boost::system::error_code &err,
-		tcp::resolver::iterator endpoint_iterator, Stream &sock, BOOST_ASIO_MOVE_ARG(Handler) handler)
+		tcp::resolver::iterator endpoint_iterator, Stream &sock, Handler handler)
 	{
 		if (err)
 		{
