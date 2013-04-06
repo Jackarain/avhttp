@@ -404,7 +404,7 @@ public:
 	// @备注: handler也可以使用boost.bind来绑定一个符合规定的函数作
 	// 为async_open的参数handler.
 	template <typename Handler>
-	void async_open(const url &u, BOOST_ASIO_MOVE_ARG(Handler) handler)
+	void async_open(const url &u, Handler handler)
 	{
 		const std::string protocol = u.protocol();
 
@@ -600,7 +600,7 @@ public:
 	// 关于示例中的boost::asio::buffer用法可以参考boost中的文档. 它可以接受一个
 	// boost.array或std.vector作为数据容器.
 	template <typename MutableBufferSequence, typename Handler>
-	void async_read_some(const MutableBufferSequence &buffers, BOOST_ASIO_MOVE_ARG(Handler) handler)
+	void async_read_some(const MutableBufferSequence &buffers, Handler handler)
 	{
 		BOOST_ASIO_READ_HANDLER_CHECK(Handler, handler) type_check;
 
@@ -695,11 +695,11 @@ public:
 	// 关于示例中的boost::asio::buffer用法可以参考boost中的文档. 它可以接受一个
 	// boost.array或std.vector作为数据容器.
 	template <typename ConstBufferSequence, typename Handler>
-	void async_write_some(const ConstBufferSequence &buffers, BOOST_ASIO_MOVE_ARG(Handler) handler)
+	void async_write_some(const ConstBufferSequence &buffers, Handler handler)
 	{
 		BOOST_ASIO_WAIT_HANDLER_CHECK(Handler, handler) type_check;
 
-		m_sock.async_write_some(buffers, BOOST_ASIO_MOVE_CAST(Handler)(handler));
+		m_sock.async_write_some(buffers, handler);
 	}
 
 	///向http服务器发起一个请求.
@@ -911,7 +911,7 @@ public:
 	//  h.async_request(opt, boost::bind(&request_handler, boost::asio::placeholders::error));
 	// @end example
 	template <typename Handler>
-	void async_request(const request_opts &opt, BOOST_ASIO_MOVE_ARG(Handler) handler)
+	void async_request(const request_opts &opt, Handler handler)
 	{
 		boost::system::error_code ec;
 
@@ -1648,7 +1648,7 @@ protected:
 
 	// socks代理进行异步连接.
 	template <typename Stream, typename Handler>
-	void async_socks_proxy_connect(Stream &sock, BOOST_ASIO_MOVE_ARG(Handler) handler)
+	void async_socks_proxy_connect(Stream &sock, Handler handler)
 	{
 		// 构造异步查询proxy主机信息.
 		std::ostringstream port_string;

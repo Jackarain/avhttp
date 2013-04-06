@@ -740,7 +740,7 @@ public:
 #endif
 
 	template <class Mutable_Buffers, class Handler>
-	void async_read_some(Mutable_Buffers const &buffers, BOOST_ASIO_MOVE_ARG(Handler) handler)
+	void async_read_some(Mutable_Buffers const &buffers, Handler handler)
 	{
 		BOOST_ASSERT(instantiated());
 		boost::apply_visitor(
@@ -750,7 +750,7 @@ public:
 	}
 
 	template <class Const_Buffers, class Handler>
-	void async_write_some(Const_Buffers const &buffers, BOOST_ASIO_MOVE_ARG(Handler) handler)
+	void async_write_some(Const_Buffers const &buffers, Handler handler)
 	{
 		BOOST_ASSERT(instantiated());
 		boost::apply_visitor(
@@ -760,7 +760,7 @@ public:
 	}
 
 	template <class Handler>
-	void async_connect(endpoint_type endpoint, BOOST_ASIO_MOVE_ARG(Handler) handler)
+	void async_connect(endpoint_type endpoint, Handler handler)
 	{
 		BOOST_ASSERT(instantiated());
 		boost::apply_visitor(
