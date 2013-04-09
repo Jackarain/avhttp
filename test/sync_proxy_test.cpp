@@ -19,6 +19,8 @@ int main(int argc, char* argv[])
 		// opt.insert("Connection", "Keep-Alive");
 		// h.request_options(opt);
 
+		h.check_certificate(false);
+
 		avhttp::proxy_settings proxy;
 		proxy.type = avhttp::proxy_settings::socks4;
 		proxy.hostname = "127.0.0.1";
