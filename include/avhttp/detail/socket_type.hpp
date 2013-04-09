@@ -145,7 +145,7 @@ namespace aux
 	struct async_connect_visitor
 		: boost::static_visitor<>
 	{
-		async_connect_visitor(EndpointType &ep, Handler &h)
+		async_connect_visitor(EndpointType &ep, Handler h)
 			: endpoint(ep)
 			, handler(h)
 		{}
@@ -159,7 +159,7 @@ namespace aux
 		void operator()(boost::blank) const	{}
 
 		EndpointType &endpoint;
-		Handler &handler;
+		Handler handler;
 	};
 
 	// -------------- bind -----------
@@ -405,7 +405,7 @@ namespace aux
 	struct async_read_some_visitor
 		: boost::static_visitor<>
 	{
-		async_read_some_visitor(Mutable_Buffers const &bufs, Handler const &h)
+		async_read_some_visitor(Mutable_Buffers const &bufs, Handler &h)
 			: buffers(bufs)
 			, handler(h)
 		{}
@@ -419,7 +419,7 @@ namespace aux
 		{}
 
 		Mutable_Buffers const &buffers;
-		Handler const &handler;
+		Handler handler;
 	};
 
 	// -------------- read_some -----------
@@ -470,7 +470,7 @@ namespace aux
 	struct async_write_some_visitor
 		: boost::static_visitor<>
 	{
-		async_write_some_visitor(Const_Buffers const &bufs, Handler const &h)
+		async_write_some_visitor(Const_Buffers const &bufs, Handler &h)
 			: buffers(bufs)
 			, handler(h)
 		{}
@@ -485,7 +485,7 @@ namespace aux
 		{}
 
 		Const_Buffers const &buffers;
-		Handler const &handler;
+		Handler handler;
 	};
 
 	// -------------- write_some -----------
@@ -740,7 +740,7 @@ public:
 #endif
 
 	template <class Mutable_Buffers, class Handler>
-	void async_read_some(Mutable_Buffers const &buffers, Handler const &handler)
+	void async_read_some(Mutable_Buffers const &buffers, Handler handler)
 	{
 		BOOST_ASSERT(instantiated());
 		boost::apply_visitor(
@@ -750,7 +750,7 @@ public:
 	}
 
 	template <class Const_Buffers, class Handler>
-	void async_write_some(Const_Buffers const &buffers, Handler const &handler)
+	void async_write_some(Const_Buffers const &buffers, Handler handler)
 	{
 		BOOST_ASSERT(instantiated());
 		boost::apply_visitor(

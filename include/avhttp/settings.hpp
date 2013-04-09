@@ -31,18 +31,25 @@ namespace avhttp {
 #define AVHTTP_MAX_REDIRECTS 5
 #endif
 
+// 常用有以下http选项.
 namespace http_options {
 
 	// 定义一些常用的　http 选项为 const string , 这样就不用记忆那些单词了，呵呵.
 	static const std::string request_method("_request_method");
+	static const std::string http_version("_http_version");
 	static const std::string request_body("_request_body");
 	static const std::string status_code("_status_code");
+	static const std::string url("_url");
+	static const std::string host("Host");
+	static const std::string accept("Accept");
 	static const std::string cookie("cookie");
 	static const std::string referer("Referer");
 	static const std::string content_type("Content-Type");
 	static const std::string content_length("Content-Length");
 	static const std::string connection("Connection");
+
 } // namespace http_options
+
 
 // 具体的http的option选项实现.
 
@@ -150,11 +157,12 @@ protected:
 };
 
 // 请求时的http选项.
-// 以下选项为必http选项:
+// _http_version, 取值 "HTTP/1.0" / "HTTP/1.1", 默认为"HTTP/1.1".
 // _request_method, 取值 "GET/POST/HEAD", 默认为"GET".
 // _request_body, 请求中的body内容, 取值任意, 默认为空.
 // Host, 取值为http服务器, 默认为http服务器.
 // Accept, 取值任意, 默认为"*/*".
+// 这些比较常用的选项被定义在http_options中.
 typedef option request_opts;
 
 // http服务器返回的http选项.

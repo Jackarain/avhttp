@@ -3,4 +3,6 @@ avhttp [![Build Status](https://travis-ci.org/avplayer/avhttp.png?branch=master)
 
 avhttp is cocurrent http downloader
 
+support https, you need to download http://sourceforge.net/projects/avplayer/files/develop/OpenSSL-dev/
+
 see [homepage](http://avplayer.org/avhttp.html)

@@ -156,6 +156,7 @@ public:
 		, m_keep_alive(false)
 		, m_status_code(-1)
 		, m_redirects(0)
+		, m_max_redirects(AVHTTP_MAX_REDIRECTS)
 		, m_content_length(0)
 		, m_resolver(io)
 	{
@@ -364,7 +365,7 @@ public:
 		if (http_code == avhttp::errc::moved_permanently || http_code == avhttp::errc::found)
 		{
 			m_sock.close(ec);
-			if (++m_redirects <= AVHTTP_MAX_REDIRECTS)
+			if (++m_redirects <= m_max_redirects)
 			{
 				open(m_location, ec);
 				return;
@@ -403,10 +404,8 @@ public:
 	// @备注: handler也可以使用boost.bind来绑定一个符合规定的函数作
 	// 为async_open的参数handler.
 	template <typename Handler>
-	void async_open(const url &u, BOOST_ASIO_MOVE_ARG(Handler) handler)
+	void async_open(const url &u, Handler handler)
 	{
-		BOOST_ASIO_CONNECT_HANDLER_CHECK(Handler, handler) type_check;
-
 		const std::string protocol = u.protocol();
 
 		// 保存url.
@@ -495,9 +494,10 @@ public:
 
 		// 开始异步查询HOST信息.
 		typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
+		HandlerWrapper h = handler;
 		m_resolver.async_resolve(query,
 			boost::bind(&http_stream::handle_resolve<HandlerWrapper>, this,
-			boost::asio::placeholders::error, boost::asio::placeholders::iterator, HandlerWrapper(handler)));
+			boost::asio::placeholders::error, boost::asio::placeholders::iterator, h));
 	}
 
 	///从这个http_stream中读取一些数据.
@@ -602,6 +602,8 @@ public:
 	template <typename MutableBufferSequence, typename Handler>
 	void async_read_some(const MutableBufferSequence &buffers, Handler handler)
 	{
+		BOOST_ASIO_READ_HANDLER_CHECK(Handler, handler) type_check;
+
 		boost::system::error_code ec;
 		if (m_response.size() > 0)
 		{
@@ -610,6 +612,7 @@ public:
 				boost::asio::detail::bind_handler(handler, ec, bytes_transferred));
 			return;
 		}
+
 		// 当缓冲区数据不够, 直接从socket中异步读取.
 		m_sock.async_read_some(buffers, handler);
 	}
@@ -694,6 +697,8 @@ public:
 	template <typename ConstBufferSequence, typename Handler>
 	void async_write_some(const ConstBufferSequence &buffers, Handler handler)
 	{
+		BOOST_ASIO_WAIT_HANDLER_CHECK(Handler, handler) type_check;
+
 		m_sock.async_write_some(buffers, handler);
 	}
 
@@ -743,26 +748,46 @@ public:
 		// 保存到一个新的opts中操作.
 		request_opts opts = opt;
 
+		// 得到url选项.
+		std::string new_url;
+		if (opts.find(http_options::url, new_url))
+			opts.remove(http_options::url);		// 删除处理过的选项.
+
+		if (!new_url.empty())
+		{
+			BOOST_ASSERT(url::from_string(new_url).host() == m_url.host());	// 必须是同一主机.
+			m_url = new_url;
+		}
+
 		// 得到request_method.
 		std::string request_method = "GET";
-		if (opts.find("_request_method", request_method))
-			opts.remove("_request_method");	// 删除处理过的选项.
+		if (opts.find(http_options::request_method, request_method))
+			opts.remove(http_options::request_method);	// 删除处理过的选项.
+
+		// 得到http版本信息.
+		std::string http_version = "HTTP/1.1";
+		if (opts.find(http_options::http_version, http_version))
+			opts.remove(http_options::http_version);	// 删除处理过的选项.
 
 		// 得到Host信息.
 		std::string host = m_url.to_string(url::host_component | url::port_component);
-		if (opts.find("Host", host))
-			opts.remove("Host");	// 删除处理过的选项.
+		if (opts.find(http_options::host, host))
+			opts.remove(http_options::host);	// 删除处理过的选项.
 
 		// 得到Accept信息.
 		std::string accept = "*/*";
-		if (opts.find("Accept", accept))
-			opts.remove("Accept");	// 删除处理过的选项.
+		if (opts.find(http_options::accept, accept))
+			opts.remove(http_options::accept);	// 删除处理过的选项.
 
+		// 默认添加close.
+		std::string connection = "close";
+		if (opts.find(http_options::connection, connection))
+			opts.remove(http_options::connection);		// 删除处理过的选项.
 
 		// 是否带有body选项.
 		std::string body;
-		if (opts.find("_request_body", body))
-			opts.remove("_request_body");	// 删除处理过的选项.
+		if (opts.find(http_options::request_body, body))
+			opts.remove(http_options::request_body);	// 删除处理过的选项.
 
 		// 循环构造其它选项.
 		std::string other_option_string;
@@ -778,9 +803,10 @@ public:
 		std::ostream request_stream(&m_request);
 		request_stream << request_method << " ";
 		request_stream << m_url.to_string(url::path_component | url::query_component);
-		request_stream << " HTTP/1.0\r\n";
+		request_stream << " " << http_version << "\r\n";
 		request_stream << "Host: " << host << "\r\n";
 		request_stream << "Accept: " << accept << "\r\n";
+		request_stream << "Connection: " << connection << "\r\n";
 		request_stream << other_option_string << "\r\n";
 		if (!body.empty())
 		{
@@ -899,26 +925,46 @@ public:
 		// 保存到一个新的opts中操作.
 		request_opts opts = opt;
 
+		// 得到url选项.
+		std::string new_url;
+		if (opts.find(http_options::url, new_url))
+			opts.remove(http_options::url);		// 删除处理过的选项.
+
+		if (!new_url.empty())
+		{
+			BOOST_ASSERT(url::from_string(new_url).host() == m_url.host());	// 必须是同一主机.
+			m_url = new_url;
+		}
+
 		// 得到request_method.
 		std::string request_method = "GET";
-		if (opts.find("_request_method", request_method))
-			opts.remove("_request_method");	// 删除处理过的选项.
+		if (opts.find(http_options::request_method, request_method))
+			opts.remove(http_options::request_method);	// 删除处理过的选项.
+
+		// 得到http的版本信息.
+		std::string http_version = "HTTP/1.1";
+		if (opts.find(http_options::http_version, http_version))
+			opts.remove(http_options::http_version);	// 删除处理过的选项.
 
 		// 得到Host信息.
 		std::string host = m_url.to_string(url::host_component | url::port_component);
-		if (opts.find("Host", host))
-			opts.remove("Host");	// 删除处理过的选项.
+		if (opts.find(http_options::host, host))
+			opts.remove(http_options::host);	// 删除处理过的选项.
 
 		// 得到Accept信息.
 		std::string accept = "*/*";
-		if (opts.find("Accept", accept))
-			opts.remove("Accept");	// 删除处理过的选项.
+		if (opts.find(http_options::accept, accept))
+			opts.remove(http_options::accept);	// 删除处理过的选项.
 
+		// 默认添加close.
+		std::string connection = "close";
+		if (opts.find(http_options::connection, connection))
+			opts.remove(http_options::connection);		// 删除处理过的选项.
 
 		// 是否带有body选项.
 		std::string body;
-		if (opts.find("_request_body", body))
-			opts.remove("_request_body");	// 删除处理过的选项.
+		if (opts.find(http_options::request_body, body))
+			opts.remove(http_options::request_body);	// 删除处理过的选项.
 
 		// 循环构造其它选项.
 		std::string other_option_string;
@@ -934,9 +980,10 @@ public:
 		std::ostream request_stream(&m_request);
 		request_stream << request_method << " ";
 		request_stream << m_url.to_string(url::path_component | url::query_component);
-		request_stream << " HTTP/1.0\r\n";
+		request_stream << " " << http_version << "\r\n";
 		request_stream << "Host: " << host << "\r\n";
 		request_stream << "Accept: " << accept << "\r\n";
+		request_stream << "Connection: " << connection << "\r\n";
 		request_stream << other_option_string << "\r\n";
 		if (!body.empty())
 		{
@@ -999,6 +1046,13 @@ public:
 	bool is_open() const
 	{
 		return m_sock.is_open();
+	}
+
+	///设置最大重定向次数.
+	// @param n 指定最大重定向次数, 为0表示禁用重定向.
+	void max_redirects(int n)
+	{
+		m_max_redirects = n;
 	}
 
 	///设置代理, 通过设置代理访问http服务器.
@@ -1235,7 +1289,7 @@ protected:
 		if (m_status_code == avhttp::errc::moved_permanently || m_status_code == avhttp::errc::found)
 		{
 			m_sock.close(ec);
-			if (++m_redirects <= AVHTTP_MAX_REDIRECTS)
+			if (++m_redirects <= m_max_redirects)
 			{
 				async_open(m_location, handler);
 				return;
@@ -2215,6 +2269,7 @@ protected:
 	bool m_keep_alive;								// 获得connection选项, 同时受m_response_opts影响.
 	int m_status_code;								// http返回状态码.
 	std::size_t m_redirects;						// 重定向次数计数.
+	std::size_t m_max_redirects;						// 重定向次数计数.
 	std::string m_content_type;						// 数据类型.
 	std::size_t m_content_length;					// 数据内容长度.
 	std::string m_location;							// 重定向的地址.
