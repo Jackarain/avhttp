@@ -479,7 +479,7 @@ public:
 		} while (0);
 
 		// 开启定时器, 执行任务.
-		m_timer.async_wait(boost::bind(&multi_download::on_tick, this));
+		m_timer.async_wait(boost::bind(&multi_download::on_tick, this, boost::asio::placeholders::error));
 
 		return;
 	}
@@ -1163,7 +1163,7 @@ protected:
 
 		// 开启定时器, 执行任务.
 		m_timer.expires_from_now(boost::posix_time::seconds(1));
-		m_timer.async_wait(boost::bind(&multi_download::on_tick, this));
+		m_timer.async_wait(boost::bind(&multi_download::on_tick, this, boost::asio::placeholders::error));
 
 		// 回调通知用户, 已经成功启动下载.
 		handler(ec);
@@ -1171,7 +1171,7 @@ protected:
 		return;
 	}
 
-	void on_tick()
+	void on_tick(const boost::system::error_code &e)
 	{
 		m_time_total++;
 
@@ -1182,10 +1182,10 @@ protected:
 		}
 
 		// 每隔1秒进行一次on_tick.
-		if (!m_abort)
+		if (!m_abort && !e)
 		{
 			m_timer.expires_from_now(boost::posix_time::seconds(1));
-			m_timer.async_wait(boost::bind(&multi_download::on_tick, this));
+			m_timer.async_wait(boost::bind(&multi_download::on_tick, this, boost::asio::placeholders::error));
 		}
 		else
 		{
