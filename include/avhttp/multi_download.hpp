@@ -129,7 +129,7 @@ public:
 		, m_file_size(-1)
 		, m_drop_size(-1)
 		, m_number_of_connections(0)
-		, m_timer(io, boost::posix_time::seconds(0))
+		, m_timer(io)
 		, m_abort(false)
 	{}
 	~multi_download()
@@ -1152,6 +1152,7 @@ protected:
 		} while (0);
 
 		// 开启定时器, 执行任务.
+		m_timer.expires_from_now(boost::posix_time::seconds(1));
 		m_timer.async_wait(boost::bind(&multi_download::on_tick, this));
 
 		// 回调通知用户, 已经成功启动下载.
@@ -1171,7 +1172,7 @@ protected:
 		// 每隔1秒进行一次on_tick.
 		if (!m_abort)
 		{
-			m_timer.expires_at(m_timer.expires_at() + boost::posix_time::seconds(1));
+			m_timer.expires_from_now(boost::posix_time::seconds(1));
 			m_timer.async_wait(boost::bind(&multi_download::on_tick, this));
 		}
 		else
