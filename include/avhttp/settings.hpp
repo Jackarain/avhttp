@@ -47,6 +47,9 @@ namespace http_options {
 	static const std::string content_type("Content-Type");
 	static const std::string content_length("Content-Length");
 	static const std::string connection("Connection");
+	static const std::string accept_encoding("Accept-Encoding");
+	static const std::string transfer_encoding("Transfer-Encoding");
+	static const std::string content_encoding("Content-Encoding");
 
 } // namespace http_options
 
