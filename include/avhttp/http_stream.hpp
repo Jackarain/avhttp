@@ -173,7 +173,9 @@ public:
 		, m_skip_crlf(true)
 		, m_chunked_size(0)
 	{
+#ifdef AVHTTP_ENABLE_ZLIB
 		memset(&m_stream, 0, sizeof(z_stream));
+#endif
 		m_proxy.type = proxy_settings::none;
 	}
 
