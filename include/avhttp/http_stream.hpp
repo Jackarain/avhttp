@@ -26,6 +26,13 @@
 #ifdef AVHTTP_ENABLE_OPENSSL
 #include "detail/ssl_stream.hpp"
 #endif
+#ifdef AVHTTP_ENABLE_ZLIB
+extern "C"
+{
+#include "zlib.h"
+}
+#endif
+
 #include "detail/socket_type.hpp"
 #include "detail/utf8.hpp"
 
@@ -159,12 +166,22 @@ public:
 		, m_max_redirects(AVHTTP_MAX_REDIRECTS)
 		, m_content_length(0)
 		, m_resolver(io)
+		, m_is_gzip(false)
+		, m_is_chunked(false)
+		, m_skip_crlf(true)
+		, m_chunked_size(0)
 	{
+		memset(&m_stream, 0, sizeof(z_stream));
 		m_proxy.type = proxy_settings::none;
 	}
 
 	virtual ~http_stream()
-	{}
+	{
+#ifdef AVHTTP_ENABLE_ZLIB
+		if (m_stream.zalloc)
+			inflateEnd(&m_stream);
+#endif
+	}
 
 public:
 	// 返回 http_stream 使用的 io_service　引用.
@@ -547,30 +564,189 @@ public:
 	std::size_t read_some(const MutableBufferSequence &buffers,
 		boost::system::error_code &ec)
 	{
-		// 如果还有数据在m_response中, 先读取m_response中的数据.
-		if (m_response.size() > 0)
+		std::size_t bytes_transferred = 0;
+		if (m_is_chunked)	// 如果启用了分块传输模式, 则解析块大小, 并读取小于块大小的数据.
 		{
-			std::size_t bytes_transferred = 0;
-			typename MutableBufferSequence::const_iterator iter = buffers.begin();
-			typename MutableBufferSequence::const_iterator end = buffers.end();
-			for (; iter != end && m_response.size() > 0; ++iter)
+			char crlf[2] = { '\r', '\n' };
+			// chunked_size大小为0, 读取下一个块头大小.
+			if (m_chunked_size == 0
+#ifdef AVHTTP_ENABLE_ZLIB
+				&& m_stream.avail_in == 0
+#endif
+				)
 			{
-				boost::asio::mutable_buffer buffer(*iter);
-				size_t length = boost::asio::buffer_size(buffer);
-				if (length > 0)
+				// 是否跳过CRLF, 除第一次读取第一段数据外, 后面的每个chunked都需要将
+				// 末尾的CRLF跳过.
+				if (!m_skip_crlf)
 				{
-					bytes_transferred += m_response.sgetn(
-						boost::asio::buffer_cast<char*>(buffer), length);
+					ec = boost::system::error_code();
+					while (!ec && bytes_transferred != 2)
+						bytes_transferred += read_some_impl(
+							boost::asio::buffer(&crlf[bytes_transferred], 2 - bytes_transferred), ec);
+					if (ec)
+						return 0;
 				}
+				std::string hex_chunked_size;
+				// 读取.
+				while (!ec)
+				{
+					char c;
+					bytes_transferred = read_some_impl(boost::asio::buffer(&c, 1), ec);
+					if (bytes_transferred == 1)
+					{
+						hex_chunked_size.push_back(c);
+						std::size_t s = hex_chunked_size.size();
+						if (s >= 2)
+						{
+							if (hex_chunked_size[s - 2] == crlf[0] && hex_chunked_size[s - 1] == crlf[1])
+								break;
+						}
+					}
+				}
+				if (ec)
+					return 0;
+
+				// 得到chunked size.
+				std::stringstream ss;
+				ss << std::hex << hex_chunked_size;
+				ss >> m_chunked_size;
+
+#ifdef AVHTTP_ENABLE_ZLIB
+				if (m_stream.zalloc)
+				{
+					inflateEnd(&m_stream);
+					memset(&m_stream, 0, sizeof(z_stream));
+				}
+
+				if (inflateInit2(&m_stream, 32+15 ) != Z_OK)
+				{
+					ec = boost::asio::error::operation_not_supported;
+					return 0;
+				}
+#endif
+				// chunked_size不包括数据尾的crlf, 所以置数据尾的crlf为false状态.
+				m_skip_crlf = false;
 			}
-			ec = boost::system::error_code();
-			return bytes_transferred;
+
+			if (m_chunked_size != 0)	// 开始读取chunked中的数据, 如果是压缩, 则解压到用户接受缓冲.
+			{
+				std::size_t max_length = 0;
+				{
+					typename MutableBufferSequence::const_iterator iter = buffers.begin();
+					typename MutableBufferSequence::const_iterator end = buffers.end();
+					// 计算得到用户buffer_size总大小.
+					for (; iter != end; ++iter)
+					{
+						boost::asio::mutable_buffer buffer(*iter);
+						max_length += boost::asio::buffer_size(buffer);
+					}
+					// 得到合适的缓冲大小.
+					max_length = std::min(max_length, m_chunked_size);
+				}
+
+#ifdef AVHTTP_ENABLE_ZLIB
+				if (!m_is_gzip)	// 如果没有启用gzip, 则直接读取数据后返回.
+#endif
+				{
+					bytes_transferred = read_some_impl(boost::asio::buffer(buffers, max_length), ec);
+					m_chunked_size -= bytes_transferred;
+					return bytes_transferred;
+				}
+#ifdef AVHTTP_ENABLE_ZLIB
+				else					// 否则读取数据到解压缓冲中.
+				{
+					if (m_stream.avail_in == 0)
+					{
+						std::size_t buf_size = std::min(m_chunked_size, std::size_t(1024));
+						bytes_transferred = read_some_impl(boost::asio::buffer(m_zlib_buffer, buf_size), ec);
+						m_chunked_size -= bytes_transferred;
+						m_zlib_buffer_size = bytes_transferred;
+						m_stream.avail_in = (uInt)m_zlib_buffer_size;
+						m_stream.next_in = (z_const Bytef *)&m_zlib_buffer[0];
+					}
+
+					bytes_transferred = 0;
+
+					{
+						typename MutableBufferSequence::const_iterator iter = buffers.begin();
+						typename MutableBufferSequence::const_iterator end = buffers.end();
+						// 计算得到用户buffer_size总大小.
+						for (; iter != end; ++iter)
+						{
+							boost::asio::mutable_buffer buffer(*iter);
+							m_stream.next_in = (z_const Bytef *)(&m_zlib_buffer[0] + m_zlib_buffer_size - m_stream.avail_in);
+							m_stream.avail_out = boost::asio::buffer_size(buffer);
+							m_stream.next_out = boost::asio::buffer_cast<Bytef*>(buffer);
+							int ret = inflate(&m_stream, Z_SYNC_FLUSH);
+							if (ret < 0)
+							{
+								ec = boost::asio::error::operation_not_supported;
+								return 0;
+							}
+
+							bytes_transferred += (boost::asio::buffer_size(buffer) - m_stream.avail_out);
+							if (bytes_transferred != boost::asio::buffer_size(buffer))
+								break;
+						}
+					}
+
+					return bytes_transferred;
+				}
+#endif
+			}
 		}
 
-		// 再从socket中读取数据.
-		std::size_t bytes_transferred = m_sock.read_some(buffers, ec);
-		if (ec == boost::asio::error::shut_down)
-			ec = boost::asio::error::eof;
+		// 如果没有启用chunked.
+#ifdef AVHTTP_ENABLE_ZLIB
+		if (m_is_gzip)
+		{
+			if (!m_stream.zalloc)
+			{
+				if (inflateInit2(&m_stream, 32+15 ) != Z_OK)
+				{
+					ec = boost::asio::error::operation_not_supported;
+					return 0;
+				}
+			}
+
+			if (m_stream.avail_in == 0)
+			{
+				bytes_transferred = read_some_impl(boost::asio::buffer(m_zlib_buffer, 1024), ec);
+				m_zlib_buffer_size = bytes_transferred;
+				m_stream.avail_in = (uInt)m_zlib_buffer_size;
+				m_stream.next_in = (z_const Bytef *)&m_zlib_buffer[0];
+			}
+
+			bytes_transferred = 0;
+
+			{
+				typename MutableBufferSequence::const_iterator iter = buffers.begin();
+				typename MutableBufferSequence::const_iterator end = buffers.end();
+				// 计算得到用户buffer_size总大小.
+				for (; iter != end; ++iter)
+				{
+					boost::asio::mutable_buffer buffer(*iter);
+					m_stream.next_in = (z_const Bytef *)(&m_zlib_buffer[0] + m_zlib_buffer_size - m_stream.avail_in);
+					m_stream.avail_out = boost::asio::buffer_size(buffer);
+					m_stream.next_out = boost::asio::buffer_cast<Bytef*>(buffer);
+					int ret = inflate(&m_stream, Z_SYNC_FLUSH);
+					if (ret < 0)
+					{
+						ec = boost::asio::error::operation_not_supported;
+						return 0;
+					}
+
+					bytes_transferred += (boost::asio::buffer_size(buffer) - m_stream.avail_out);
+					if (bytes_transferred != boost::asio::buffer_size(buffer))
+						break;
+				}
+			}
+
+			return bytes_transferred;
+		}
+#endif
+
+		bytes_transferred = read_some_impl(buffers, ec);
 		return bytes_transferred;
 	}
 
@@ -884,6 +1060,14 @@ public:
 			ec = avhttp::errc::malformed_response_headers;
 			return;
 		}
+
+		// 解析是否启用了gz压缩.
+		std::string encoding = m_response_opts.find("Content-Encoding");
+		if (encoding == "gzip" || encoding == "x-gzip")
+			m_is_gzip = true;
+		encoding = m_response_opts.find("Transfer-Encoding");
+		if (encoding == "chunked")
+			m_is_chunked = true;
 	}
 
 	///向http服务器发起一个异步请求.
@@ -1124,6 +1308,37 @@ public:
 	}
 
 protected:
+
+	template <typename MutableBufferSequence>
+	std::size_t read_some_impl(const MutableBufferSequence &buffers,
+		boost::system::error_code &ec)
+	{
+		// 如果还有数据在m_response中, 先读取m_response中的数据.
+		if (m_response.size() > 0)
+		{
+			std::size_t bytes_transferred = 0;
+			typename MutableBufferSequence::const_iterator iter = buffers.begin();
+			typename MutableBufferSequence::const_iterator end = buffers.end();
+			for (; iter != end && m_response.size() > 0; ++iter)
+			{
+				boost::asio::mutable_buffer buffer(*iter);
+				size_t length = boost::asio::buffer_size(buffer);
+				if (length > 0)
+				{
+					bytes_transferred += m_response.sgetn(
+						boost::asio::buffer_cast<char*>(buffer), length);
+				}
+			}
+			ec = boost::system::error_code();
+			return bytes_transferred;
+		}
+
+		// 再从socket中读取数据.
+		std::size_t bytes_transferred = m_sock.read_some(buffers, ec);
+		if (ec == boost::asio::error::shut_down)
+			ec = boost::asio::error::eof;
+		return bytes_transferred;
+	}
 
 	// 异步处理模板成员的相关实现.
 
@@ -2274,6 +2489,15 @@ protected:
 	std::string m_location;							// 重定向的地址.
 	boost::asio::streambuf m_request;				// 请求缓冲.
 	boost::asio::streambuf m_response;				// 回复缓冲.
+#ifdef AVHTTP_ENABLE_ZLIB
+	z_stream m_stream;								// zlib支持.
+	char m_zlib_buffer[1024];						// 解压缓冲.
+	std::size_t m_zlib_buffer_size;				//	输入的字节数.
+	bool m_is_gzip;									// 是否使用gz.
+#endif
+	bool m_is_chunked;								// 是否使用chunked编码.
+	bool m_skip_crlf;									// 跳过crlf.
+	std::size_t m_chunked_size;					// chunked大小.
 };
 
 }
