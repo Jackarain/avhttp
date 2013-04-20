@@ -166,7 +166,9 @@ public:
 		, m_max_redirects(AVHTTP_MAX_REDIRECTS)
 		, m_content_length(0)
 		, m_resolver(io)
+#ifdef AVHTTP_ENABLE_ZLIB
 		, m_is_gzip(false)
+#endif
 		, m_is_chunked(false)
 		, m_skip_crlf(true)
 		, m_chunked_size(0)
@@ -1064,8 +1066,10 @@ public:
 
 		// 解析是否启用了gz压缩.
 		std::string encoding = m_response_opts.find(http_options::content_encoding);
+#ifdef AVHTTP_ENABLE_ZLIB
 		if (encoding == "gzip" || encoding == "x-gzip")
 			m_is_gzip = true;
+#endif
 		encoding = m_response_opts.find(http_options::transfer_encoding);
 		if (encoding == "chunked")
 			m_is_chunked = true;
