@@ -1062,10 +1062,10 @@ public:
 		}
 
 		// 解析是否启用了gz压缩.
-		std::string encoding = m_response_opts.find("Content-Encoding");
+		std::string encoding = m_response_opts.find(http_options::content_encoding);
 		if (encoding == "gzip" || encoding == "x-gzip")
 			m_is_gzip = true;
-		encoding = m_response_opts.find("Transfer-Encoding");
+		encoding = m_response_opts.find(http_options::transfer_encoding);
 		if (encoding == "chunked")
 			m_is_chunked = true;
 	}
