@@ -762,12 +762,12 @@ public:
 	// @param handler在读取操作完成或出现错误时, 将被回调, 它满足以下条件:
 	// @begin code
 	//  void handler(
-	//    int bytes_transferred,				// 返回读取的数据字节数.
-	//    const boost::system::error_code &ec	// 用于返回操作状态.
+	//    const boost::system::error_code &ec,	// 用于返回操作状态.
+	//    std::size_t bytes_transferred			// 返回读取的数据字节数.
 	//  );
 	// @end code
 	// @begin example
-	//   void handler(int bytes_transferred, const boost::system::error_code &ec)
+	//   void handler(const boost::system::error_code &ec, std::size_t bytes_transferred)
 	//   {
 	//		// 处理异步回调.
 	//   }
@@ -858,12 +858,12 @@ public:
 	// @param handler在发送操作完成或出现错误时, 将被回调, 它满足以下条件:
 	// @begin code
 	//  void handler(
-	//    int bytes_transferred,				// 返回发送的数据字节数.
-	//    const boost::system::error_code &ec	// 用于返回操作状态.
+	//    const boost::system::error_code &ec,	// 用于返回操作状态.
+	//    std::size_t bytes_transferred			// 返回发送的数据字节数.
 	//  );
 	// @end code
 	// @begin example
-	//   void handler(int bytes_transferred, const boost::system::error_code &ec)
+	//   void handler(const boost::system::error_code &ec, std::size_t bytes_transferred)
 	//   {
 	//		// 处理异步回调.
 	//   }
