@@ -16,7 +16,9 @@
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 #include <vector>
+
 #include <boost/lexical_cast.hpp>
+#include <boost/shared_array.hpp>
 
 #include "url.hpp"
 #include "settings.hpp"
@@ -427,7 +429,7 @@ public:
 	template <typename Handler>
 	void async_open(const url &u, Handler handler)
 	{
-		const std::string protocol = u.protocol();
+		std::string protocol = u.protocol();
 
 		// 保存url.
 		m_url = u;
@@ -456,7 +458,7 @@ public:
 		}
 
 		// 构造socket.
-		if (!m_sock.instantiated())
+		// if (!m_sock.instantiated())
 		{
 			if (protocol == "http")
 			{
@@ -755,6 +757,14 @@ public:
 		return bytes_transferred;
 	}
 
+	template <typename MutableBufferSequence, typename Handler>
+	void handle_skip_crlf(const MutableBufferSequence &buffers,
+		Handler handler, boost::shared_array<char> crlf,
+		const boost::system::error_code &ec, std::size_t bytes_transferred)
+	{
+		// boost::asio::async_write();
+	}
+
 	///从这个http_stream异步读取一些数据.
 	// @param buffers一个或多个用于读取数据的缓冲区, 这个类型必须满足MutableBufferSequence,
 	//  MutableBufferSequence的定义在boost.asio文档中.
@@ -762,12 +772,12 @@ public:
 	// @param handler在读取操作完成或出现错误时, 将被回调, 它满足以下条件:
 	// @begin code
 	//  void handler(
-	//    int bytes_transferred,				// 返回读取的数据字节数.
-	//    const boost::system::error_code &ec	// 用于返回操作状态.
+	//    const boost::system::error_code &ec,	// 用于返回操作状态.
+	//    std::size_t bytes_transferred			// 返回读取的数据字节数.
 	//  );
 	// @end code
 	// @begin example
-	//   void handler(int bytes_transferred, const boost::system::error_code &ec)
+	//   void handler(const boost::system::error_code &ec, std::size_t bytes_transferred)
 	//   {
 	//		// 处理异步回调.
 	//   }
@@ -783,6 +793,82 @@ public:
 	void async_read_some(const MutableBufferSequence &buffers, Handler handler)
 	{
 		BOOST_ASIO_READ_HANDLER_CHECK(Handler, handler) type_check;
+
+		if (m_is_chunked)	// 如果启用了分块传输模式, 则解析块大小, 并读取小于块大小的数据.
+		{
+			// chunked_size大小为0, 读取下一个块头大小, 如果启用了gzip, 则必须解压了所有数据才
+			// 读取下一个chunk头.
+			if (m_chunked_size == 0
+#ifdef AVHTTP_ENABLE_ZLIB
+				&& m_stream.avail_in == 0
+#endif
+				)
+			{
+				int bytes_transferred = 0;
+				int response_size = m_response.size();
+
+				// 是否跳过CRLF, 除第一次读取第一段数据外, 后面的每个chunked都需要将
+				// 末尾的CRLF跳过.
+				if (!m_skip_crlf)
+				{
+					boost::shared_array<char> crlf(new char[2]);
+					memset((void*)crlf.get(), 0, 2);
+
+					if (response_size > 0)	// 从m_response缓冲中跳过.
+					{
+						bytes_transferred = m_response.sgetn(
+							crlf.get(), std::min(response_size, 2));
+						if (bytes_transferred == 1)
+						{
+// 							// 继续异步读取下一个LF字节.
+// 							typedef boost::function<void (boost::system::error_code, std::size_t)> HandlerWrapper;
+// 							HandlerWrapper h(Handler);
+// 							m_sock.async_read_some(boost::asio::buffer(&crlf.get()[1], 1),
+// 								boost::bind(&http_stream::handle_skip_crlf<MutableBufferSequence, HandlerWrapper>,
+// 									this, boost::cref(buffers), h, crlf,
+// 									boost::asio::placeholders::error,
+// 									boost::asio::placeholders::bytes_transferred
+// 								)
+// 							);
+							return;
+						}
+						else
+						{
+							BOOST_ASSERT(bytes_transferred == 2);
+						}
+					}
+					else
+					{
+// 						// 异步读取CRLF.
+// 						typedef boost::function<void (boost::system::error_code, std::size_t)> HandlerWrapper;
+// 						HandlerWrapper h(Handler);
+// 						m_sock.async_read_some(boost::asio::buffer(&crlf.get()[0], 2),
+// 							boost::bind(&http_stream::handle_skip_crlf<MutableBufferSequence, HandlerWrapper>,
+// 								this, boost::cref(buffers), h, crlf,
+// 								boost::asio::placeholders::error,
+// 								boost::asio::placeholders::bytes_transferred
+// 							)
+// 						);
+// 						return;
+					}
+				}
+				else
+				{
+// 					// 异步读取chunk_size.
+// 					typedef boost::function<void (boost::system::error_code, std::size_t)> HandlerWrapper;
+// 					HandlerWrapper h(Handler);
+// 					boost::asio::read_until();
+// 					m_sock.async_read_some(m_response,
+// 						boost::bind(&http_stream::handle_skip_crlf<MutableBufferSequence, HandlerWrapper>,
+// 							this, boost::cref(buffers), h, crlf,
+// 							boost::asio::placeholders::error,
+// 							boost::asio::placeholders::bytes_transferred
+// 						)
+// 					);
+// 					return;
+				}
+			}
+		}
 
 		boost::system::error_code ec;
 		if (m_response.size() > 0)
@@ -1167,6 +1253,7 @@ public:
 		// 整合各选项到Http请求字符串中.
 		std::string request_string;
 		m_request.consume(m_request.size());
+		int s = m_request.size();
 		std::ostream request_stream(&m_request);
 		request_stream << request_method << " ";
 		request_stream << m_url.to_string(url::path_component | url::query_component);
