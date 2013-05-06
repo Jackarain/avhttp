@@ -266,23 +266,20 @@ public:
 		}
 
 		// 构造socket.
-		if (!m_sock.instantiated())
+		if (protocol == "http")
 		{
-			if (protocol == "http")
-			{
-				m_sock.instantiate<nossl_socket>(m_io_service);
-			}
+			m_sock.instantiate<nossl_socket>(m_io_service);
+		}
 #ifdef AVHTTP_ENABLE_OPENSSL
-			else if (protocol == "https")
-			{
-				m_sock.instantiate<ssl_socket>(m_nossl_socket);
-			}
+		else if (protocol == "https")
+		{
+			m_sock.instantiate<ssl_socket>(m_nossl_socket);
+		}
 #endif
-			else
-			{
-				ec = boost::asio::error::operation_not_supported;
-				return;
-			}
+		else
+		{
+			ec = boost::asio::error::operation_not_supported;
+			return;
 		}
 
 		// 开始进行连接.
@@ -429,7 +426,7 @@ public:
 	template <typename Handler>
 	void async_open(const url &u, Handler handler)
 	{
-		std::string protocol = u.protocol();
+		const std::string protocol = u.protocol();
 
 		// 保存url.
 		m_url = u;
@@ -458,24 +455,21 @@ public:
 		}
 
 		// 构造socket.
-		// if (!m_sock.instantiated())
+		if (protocol == "http")
 		{
-			if (protocol == "http")
-			{
-				m_sock.instantiate<nossl_socket>(m_io_service);
-			}
+			m_sock.instantiate<nossl_socket>(m_io_service);
+		}
 #ifdef AVHTTP_ENABLE_OPENSSL
-			else if (protocol == "https")
-			{
-				m_sock.instantiate<ssl_socket>(m_nossl_socket);
-			}
+		else if (protocol == "https")
+		{
+			m_sock.instantiate<ssl_socket>(m_nossl_socket);
+		}
 #endif
-			else
-			{
-				m_io_service.post(boost::asio::detail::bind_handler(
-					handler, boost::asio::error::operation_not_supported));
-				return;
-			}
+		else
+		{
+			m_io_service.post(boost::asio::detail::bind_handler(
+				handler, boost::asio::error::operation_not_supported));
+			return;
 		}
 
 		// 判断socket是否打开.
@@ -642,7 +636,6 @@ public:
 				}
 			}
 #endif
-
 			if (m_chunked_size != 0
 #ifdef AVHTTP_ENABLE_ZLIB
 				|| m_stream.avail_in != 0
@@ -1284,7 +1277,6 @@ public:
 		// 整合各选项到Http请求字符串中.
 		std::string request_string;
 		m_request.consume(m_request.size());
-		int s = m_request.size();
 		std::ostream request_stream(&m_request);
 		request_stream << request_method << " ";
 		request_stream << m_url.to_string(url::path_component | url::query_component);
