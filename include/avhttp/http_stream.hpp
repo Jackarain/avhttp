@@ -619,16 +619,13 @@ public:
 				ss >> m_chunked_size;
 
 #ifdef AVHTTP_ENABLE_ZLIB
-				if (m_stream.zalloc)
+				if (!m_stream.zalloc)
 				{
-					inflateEnd(&m_stream);
-					memset(&m_stream, 0, sizeof(z_stream));
-				}
-
-				if (inflateInit2(&m_stream, 32+15 ) != Z_OK)
-				{
-					ec = boost::asio::error::operation_not_supported;
-					return 0;
+					if (inflateInit2(&m_stream, 32+15 ) != Z_OK)
+					{
+						ec = boost::asio::error::operation_not_supported;
+						return 0;
+					}
 				}
 #endif
 				// chunked_size不包括数据尾的crlf, 所以置数据尾的crlf为false状态.
@@ -1773,12 +1770,6 @@ protected:
 			ss >> m_chunked_size;
 
 #ifdef AVHTTP_ENABLE_ZLIB // 初始化ZLIB库, 每次解压每个chunked的时候, 都要重新初始化.
-			if (m_stream.zalloc)
-			{
-			//	inflateEnd(&m_stream);
-			//	memset(&m_stream, 0, sizeof(z_stream));
-			}
-
 			if (!m_stream.zalloc)
 			{
 				if (inflateInit2(&m_stream, 32+15 ) != Z_OK)
