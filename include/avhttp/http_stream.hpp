@@ -632,7 +632,22 @@ public:
 				m_skip_crlf = false;
 			}
 
-			if (m_chunked_size != 0)	// 开始读取chunked中的数据, 如果是压缩, 则解压到用户接受缓冲.
+#ifdef AVHTTP_ENABLE_ZLIB
+			if (m_chunked_size == 0 && m_is_gzip)
+			{
+				if (m_stream.avail_in == 0)
+				{
+					ec = boost::asio::error::eof;
+					return 0;
+				}
+			}
+#endif
+
+			if (m_chunked_size != 0
+#ifdef AVHTTP_ENABLE_ZLIB
+				|| m_stream.avail_in != 0
+#endif
+				)	// 开始读取chunked中的数据, 如果是压缩, 则解压到用户接受缓冲.
 			{
 				std::size_t max_length = 0;
 				{
@@ -702,7 +717,7 @@ public:
 
 		// 如果没有启用chunked.
 #ifdef AVHTTP_ENABLE_ZLIB
-		if (m_is_gzip)
+		if (m_is_gzip && !m_is_chunked)
 		{
 			if (!m_stream.zalloc)
 			{
