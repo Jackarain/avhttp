@@ -23,6 +23,8 @@
 #include <boost/system/error_code.hpp>
 #include <boost/system/system_error.hpp>
 
+#include "detail/escape_string.hpp"
+
 namespace avhttp {
 
 /// The class @c url enables parsing and accessing the components of URLs.
@@ -154,7 +156,7 @@ public:
 	std::string path() const
 	{
 		std::string tmp_path;
-		unescape_path(path_, tmp_path);
+		detail::unescape_path(path_, tmp_path);
 		return tmp_path;
 	}
 
@@ -390,10 +392,10 @@ public:
 			length = std::strcspn(s, "?#");
 			new_url.path_.assign(s, s + length);
 			std::string tmp_path;
-			if (!unescape_path(new_url.path_, tmp_path))
+			if (!detail::unescape_path(new_url.path_, tmp_path))
 			{
-				ec = make_error_code(boost::system::errc::invalid_argument);
-				return url();
+				// ec = make_error_code(boost::system::errc::invalid_argument);
+				// return url();
 			}
 			s += length;
 		}
@@ -497,58 +499,6 @@ public:
 	}
 
 private:
-	static bool unescape_path(const std::string& in, std::string& out)
-	{
-		out.clear();
-		out.reserve(in.size());
-		for (std::size_t i = 0; i < in.size(); ++i)
-		{
-			switch (in[i])
-			{
-			case '%':
-				if (i + 3 <= in.size())
-				{
-					unsigned int value = 0;
-					for (std::size_t j = i + 1; j < i + 3; ++j)
-					{
-						switch (in[j])
-						{
-						case '0': case '1': case '2': case '3': case '4':
-						case '5': case '6': case '7': case '8': case '9':
-							value += in[j] - '0';
-							break;
-						case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
-							value += in[j] - 'a' + 10;
-							break;
-						case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
-							value += in[j] - 'A' + 10;
-							break;
-						default:
-							return false;
-						}
-						if (j == i + 1)
-							value <<= 4;
-					}
-					out += static_cast<char>(value);
-					i += 2;
-				}
-				else
-					return false;
-				break;
-			case '-': case '_': case '.': case '!': case '~': case '*':
-			case '\'': case '(': case ')': case ':': case '@': case '&':
-			case '=': case '+': case '$': case ',': case '/': case ';':
-				out += in[i];
-				break;
-			default:
-				if (!std::isalnum(in[i]))
-					return false;
-				out += in[i];
-				break;
-			}
-		}
-		return true;
-	}
 
 	std::string protocol_;
 	std::string user_info_;

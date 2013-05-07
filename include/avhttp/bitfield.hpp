@@ -30,7 +30,7 @@ public:
     { resize(bits, val); }
     bitfield(char const* b, int bits): m_bytes(0), m_size(0)
     { assign(b, bits); }
-    bitfield(bitfield const& rhs): m_bytes(0), m_size(0), m_own(false)
+    bitfield(bitfield const &rhs): m_bytes(0), m_size(0), m_own(false)
     { assign(rhs.bytes(), rhs.size()); }
 
     void borrow_bytes(char* b, int bits)
@@ -75,7 +75,7 @@ public:
 
     char const* bytes() const { return (char*)m_bytes; }
 
-    bitfield& operator=(bitfield const& rhs)
+    bitfield& operator=(bitfield const &rhs)
     {
         assign(rhs.bytes(), rhs.size());
         return *this;
@@ -115,7 +115,7 @@ public:
         typedef bool value_type;
         typedef ptrdiff_t difference_type;
         typedef bool const* pointer;
-        typedef bool& reference;
+        typedef bool &reference;
         typedef std::forward_iterator_tag iterator_category;
 
         bool operator*() { return (*byte & bit) != 0; }
@@ -127,10 +127,10 @@ public:
         { const_iterator ret(*this); dec(); return ret; }
 
         const_iterator(): byte(0), bit(0x80) {}
-        bool operator==(const_iterator const& rhs) const
+        bool operator==(const_iterator const &rhs) const
         { return byte == rhs.byte && bit == rhs.bit; }
 
-        bool operator!=(const_iterator const& rhs) const
+        bool operator!=(const_iterator const &rhs) const
         { return byte != rhs.byte || bit != rhs.bit; }
 
         const_iterator& operator+(boost::uint64_t rhs)

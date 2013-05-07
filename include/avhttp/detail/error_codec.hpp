@@ -20,23 +20,22 @@
 #include <boost/system/system_error.hpp>
 #include <boost/system/error_code.hpp>
 
-#ifdef _MSC_VER
-#define _attribute_weak_ __declspec(selectany)
-#else
-#define _attribute_weak_ __attribute__((weak))
-#endif
-
 namespace avhttp {
 
 namespace detail {
 	class error_category_impl;
 }
 
-extern detail::error_category_impl error_category_instance;
+template<class error_category>
+const boost::system::error_category& error_category_single()
+{
+	static error_category error_category_instance;
+	return reinterpret_cast<const boost::system::error_category&>(error_category_instance);
+}
 
 inline const boost::system::error_category& error_category()
 {
-	return reinterpret_cast<const boost::system::error_category&>(error_category_instance);
+	return error_category_single<detail::error_category_impl>();
 }
 
 namespace errc {
@@ -375,8 +374,6 @@ class error_category_impl
 };
 
 } // namespace detail
-
-_attribute_weak_ detail::error_category_impl error_category_instance;
 
 } // namespace avhttp
 

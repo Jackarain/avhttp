@@ -36,6 +36,16 @@
 #include "entry.hpp"
 #include "settings.hpp"
 
+#if defined(_MSC_VER)
+#ifdef min
+#undef min
+#endif
+
+#ifdef max
+#undef max
+#endif
+#endif
+
 namespace avhttp
 {
 
@@ -52,6 +62,7 @@ class multi_download : public boost::noncopyable
 			: request_range(0, 0)
 			, bytes_transferred(0)
 			, bytes_downloaded(0)
+			, request_count(0)
 			, done(false)
 			, direct_reconnect(false)
 		{}
@@ -71,6 +82,9 @@ class multi_download : public boost::noncopyable
 
 		// 当前对象下载的数据统计.
 		boost::int64_t bytes_downloaded;
+
+		// 当前对象发起请求的次数.
+		int request_count;
 
 		// 最后请求的时间.
 		boost::posix_time::ptime last_request_time;
@@ -119,7 +133,8 @@ public:
 		, m_file_size(-1)
 		, m_drop_size(-1)
 		, m_number_of_connections(0)
-		, m_timer(io, boost::posix_time::seconds(0))
+		, m_timer(io)
+		, m_time_total(0)
 		, m_abort(false)
 	{}
 	~multi_download()
@@ -132,7 +147,7 @@ public:
 	// @param ec当发生错误时, 包含详细的错误信息.
 	// @备注: 直接使用内部的file.hpp下载数据到文件, 若想自己指定数据下载到指定的地方
 	// 可以通过调用另一个open来完成, 具体见另一个open的详细说明.
-	void start(const url &u, boost::system::error_code &ec)
+	void start(const std::string &u, boost::system::error_code &ec)
 	{
 		settings s;
 		start(u, s, ec);
@@ -142,7 +157,7 @@ public:
 	// @param u指定的url.
 	// @备注: 直接使用内部的file.hpp下载数据到文件, 若想自己指定数据下载到指定的地方
 	// 可以通过调用另一个open来完成, 具体见另一个open的详细说明.
-	void start(const url &u)
+	void start(const std::string &u)
 	{
 		settings s;
 		boost::system::error_code ec;
@@ -157,7 +172,7 @@ public:
 	// @param u指定的url.
 	// @param s指定的设置信息.
 	// @失败抛出一个boost::system::system_error异常, 包含详细的错误信息.
-	void start(const url &u, const settings &s)
+	void start(const std::string &u, const settings &s)
 	{
 		boost::system::error_code ec;
 		start(u, s, ec);
@@ -171,7 +186,7 @@ public:
 	// @param u指定的url.
 	// @param s指定的设置信息.
 	// @返回error_code, 包含详细的错误信息.
-	void start(const url &u, const settings &s, boost::system::error_code &ec)
+	void start(const std::string &u, const settings &s, boost::system::error_code &ec)
 	{
 		// 清空所有连接.
 		{
@@ -187,11 +202,16 @@ public:
 		// 保存设置.
 		m_settings = s;
 
+		// 将url转换成utf8编码.
+		std::string utf8 = detail::ansi_utf8(u);
+		utf8 = detail::escape_path(utf8);
+		m_final_url = utf8;
+
 		// 解析meta文件.
-		if (!fs::exists(m_settings.meta_file))
+		if (m_settings.meta_file.empty())
 		{
-			// filename + ".meta".
-			m_settings.meta_file = (boost::filesystem::path(u.path()).leaf().string() + ".meta");
+			// 修正文件路径.
+			m_settings.meta_file = file_name() + ".meta";
 		}
 
 		// 打开meta文件, 如果打开成功, 则表示解析出相应的位图了.
@@ -219,7 +239,7 @@ public:
 		// 添加代理设置.
 		h.proxy(m_settings.proxy);
 		// 打开http_stream.
-		h.open(u, ec);
+		h.open(m_final_url, ec);
 		// 打开失败则退出.
 		if (ec)
 		{
@@ -230,8 +250,6 @@ public:
 		std::string location = h.location();
 		if (!location.empty())
 			m_final_url = location;
-		else
-			m_final_url = u;
 
 		// 判断是否支持多点下载.
 		std::string status_code;
@@ -281,14 +299,17 @@ public:
 			m_downlaoded_field.reset(m_file_size);
 		}
 
-		// 是否支持长连接模式.
-		std::string keep_alive;
-		h.response_options().find("Connection", keep_alive);
-		boost::to_lower(keep_alive);
-		if (keep_alive == "keep-alive")
-			m_keep_alive = true;
-		else
-			m_keep_alive = false;
+		// 是否支持长连接模式, 不支持多点下载, 长连接也没有意义.
+		if (m_accept_multi)
+		{
+			std::string keep_alive;
+			h.response_options().find("Connection", keep_alive);
+			boost::to_lower(keep_alive);
+			if (keep_alive == "keep-alive")
+				m_keep_alive = true;
+			else
+				m_keep_alive = false;
+		}
 
 		// 创建存储对象.
 		if (!s.storage)
@@ -298,24 +319,7 @@ public:
 		BOOST_ASSERT(m_storage);
 
 		// 打开文件, 构造文件名.
-		std::string file_name = boost::filesystem::path(m_final_url.path()).leaf().string();
-		if (file_name == "/" || file_name == "")
-			file_name = boost::filesystem::path(m_final_url.query()).leaf().string();
-		if (file_name == "/" || file_name == "" || file_name == ".")
-			file_name = "index.html";
-		if (!m_settings.save_path.empty())
-		{
-			if (fs::is_directory(m_settings.save_path))
-			{
-				fs::path p = m_settings.save_path / file_name;
-				file_name = p.string();
-			}
-			else
-			{
-				file_name = m_settings.save_path.string();
-			}
-		}
-		m_storage->open(boost::filesystem::path(file_name), ec);
+		m_storage->open(boost::filesystem::path(file_name()), ec);
 		if (ec)
 		{
 			return;
@@ -386,6 +390,8 @@ public:
 				ptr->request_options(req_opt);
 				// 如果是ssl连接, 默认为检查证书.
 				ptr->check_certificate(m_settings.check_certificate);
+				// 禁用重定向.
+				ptr->max_redirects(0);
 				// 添加代理设置.
 				ptr->proxy(m_settings.proxy);
 
@@ -446,6 +452,9 @@ public:
 			// 如果是ssl连接, 默认为检查证书.
 			h.check_certificate(m_settings.check_certificate);
 
+			// 禁用重定向.
+			h.max_redirects(0);
+
 			// 添加代理设置.
 			h.proxy(m_settings.proxy);
 
@@ -457,7 +466,8 @@ public:
 		} while (0);
 
 		// 开启定时器, 执行任务.
-		m_timer.async_wait(boost::bind(&multi_download::on_tick, this));
+		m_timer.expires_from_now(boost::posix_time::seconds(1));
+		m_timer.async_wait(boost::bind(&multi_download::on_tick, this, boost::asio::placeholders::error));
 
 		return;
 	}
@@ -467,11 +477,11 @@ public:
 	// @param handler 将被调用在启动完成时. 它必须满足以下条件:
 	// @begin code
 	//  void handler(
-	//    const boost::system::error_code& ec // 用于返回操作状态.
+	//    const boost::system::error_code &ec // 用于返回操作状态.
 	//  );
 	// @end code
 	// @begin example
-	//  void start_handler(const boost::system::error_code& ec)
+	//  void start_handler(const boost::system::error_code &ec)
 	//  {
 	//    if (!ec)
 	//    {
@@ -485,7 +495,7 @@ public:
 	// @备注: handler也可以使用boost.bind来绑定一个符合规定的函数作
 	// 为async_start的参数handler.
 	template <typename Handler>
-	void async_start(const url &u, Handler handler)
+	void async_start(const std::string &u, Handler handler)
 	{
 		settings s;
 		async_start(u, s, handler);
@@ -497,11 +507,11 @@ public:
 	// @param handler 将被调用在启动完成时. 它必须满足以下条件:
 	// @begin code
 	//  void handler(
-	//    const boost::system::error_code& ec // 用于返回操作状态.
+	//    const boost::system::error_code &ec // 用于返回操作状态.
 	//  );
 	// @end code
 	// @begin example
-	//  void start_handler(const boost::system::error_code& ec)
+	//  void start_handler(const boost::system::error_code &ec)
 	//  {
 	//    if (!ec)
 	//    {
@@ -516,7 +526,7 @@ public:
 	// @备注: handler也可以使用boost.bind来绑定一个符合规定的函数作
 	// 为async_start的参数handler.
 	template <typename Handler>
-	void async_start(const url &u, const settings &s, Handler handler)
+	void async_start(const std::string &u, const settings &s, Handler handler)
 	{
 		// 清空所有连接.
 		{
@@ -530,14 +540,16 @@ public:
 		m_file_size = -1;
 
 		// 保存参数.
-		m_final_url = u;
+		std::string utf8 = detail::ansi_utf8(u);
+		utf8 = detail::escape_path(utf8);
+		m_final_url = utf8;
 		m_settings = s;
 
 		// 解析meta文件.
-		if (!fs::exists(m_settings.meta_file))
+		if (!m_settings.meta_file.empty())
 		{
 			// filename + ".meta".
-			m_settings.meta_file = (boost::filesystem::path(u.path()).leaf().string() + ".meta");
+			m_settings.meta_file = file_name() + ".meta";
 		}
 
 		// 打开meta文件, 如果打开成功, 则表示解析出相应的位图了.
@@ -570,7 +582,7 @@ public:
 		h.proxy(m_settings.proxy);
 
 		typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
-		h.async_open(u, boost::bind(&multi_download::handle_start<HandlerWrapper>, this,
+		h.async_open(m_final_url, boost::bind(&multi_download::handle_start<HandlerWrapper>, this,
 			HandlerWrapper(handler), obj, boost::asio::placeholders::error));
 
 		return;
@@ -619,7 +631,28 @@ public:
 	// @如果请求的url不太规则, 则可能返回错误的文件名.
 	std::string file_name() const
 	{
-		return boost::filesystem::path(m_final_url.path()).leaf().string();
+		if (m_file_name.empty())
+		{
+			m_file_name = fs::path(detail::utf8_ansi(m_final_url.path())).leaf().string();
+			if (m_file_name == "/" || m_file_name == "")
+				m_file_name = fs::path(m_final_url.query()).leaf().string();
+			if (m_file_name == "/" || m_file_name == "" || m_file_name == ".")
+				m_file_name = "index.html";
+			if (!m_settings.save_path.empty())
+			{
+				if (fs::is_directory(m_settings.save_path))
+				{
+					fs::path p = m_settings.save_path / m_file_name;
+					m_file_name = p.string();
+				}
+				else
+				{
+					m_file_name = m_settings.save_path.string();
+				}
+			}
+			return m_file_name;
+		}
+		return m_file_name;
 	}
 
 	///当前已经下载的字节总数.
@@ -668,9 +701,6 @@ protected:
 		http_stream_object &object = *object_ptr;
 		if (ec || m_abort)
 		{
-			// 输出错误信息, 然后退出, 让on_tick检查到超时后重新连接.
-			// std::cerr << index << " handle_open: " << ec.message().c_str() << std::endl;
-
 			// 单连接模式, 表示下载停止, 终止下载.
 			if (!m_accept_multi)
 			{
@@ -680,6 +710,18 @@ protected:
 			}
 
 			return;
+		}
+
+		if (!m_accept_multi)
+		{
+			// 当不支持断点续传时, 有时请求到的文件大小和start请求到的文件大小不一至, 则需要新file_size.
+			if (object.stream->content_length() != 0 &&
+				object.stream->content_length() != m_file_size)
+			{
+				m_file_size = object.stream->content_length();
+				m_rangefield.reset(m_file_size);
+				m_downlaoded_field.reset(m_file_size);
+			}
 		}
 
 		// 保存最后请求时间, 方便检查超时重置.
@@ -725,15 +767,12 @@ protected:
 				m_downlaoded_field.update(offset, offset + bytes_transferred);
 
 			// 使用m_storage写入.
-			m_storage->write(object.buffer.c_array(),	offset, bytes_transferred);
+			m_storage->write(object.buffer.c_array(), offset, bytes_transferred);
 		}
 
 		// 如果发生错误或终止.
 		if (ec || m_abort)
 		{
-			// 输出错误信息, 然后退出, 让on_tick检查到超时后重新连接.
-			// std::cerr << index << " handle_read: " << ec.message().c_str() << std::endl;
-
 			// 单连接模式, 表示下载停止, 终止下载.
 			if (!m_accept_multi)
 			{
@@ -795,6 +834,9 @@ protected:
 			// 如果是ssl连接, 默认为检查证书.
 			stream.check_certificate(m_settings.check_certificate);
 
+			// 禁用重定向.
+			stream.max_redirects(0);
+
 			// 添加代理设置.
 			stream.proxy(m_settings.proxy);
 
@@ -850,11 +892,9 @@ protected:
 		http_object_ptr object_ptr, const boost::system::error_code &ec)
 	{
 		http_stream_object &object = *object_ptr;
+		object.request_count++;
 		if (ec || m_abort)
 		{
-			// 输出错误信息, 然后退出, 让on_tick检查到超时后重新连接.
-			// std::cerr << index << " handle_request: " << ec.message().c_str() << std::endl;
-
 			// 单连接模式, 表示下载停止, 终止下载.
 			if (!m_accept_multi)
 			{
@@ -959,14 +999,17 @@ protected:
 			m_downlaoded_field.reset(m_file_size);
 		}
 
-		// 是否支持长连接模式.
-		std::string keep_alive;
-		h.response_options().find("Connection", keep_alive);
-		boost::to_lower(keep_alive);
-		if (keep_alive == "keep-alive")
-			m_keep_alive = true;
-		else
-			m_keep_alive = false;
+		// 是否支持长连接模式, 不支持多点下载, 长连接也没有意义.
+		if (m_accept_multi)
+		{
+			std::string keep_alive;
+			h.response_options().find("Connection", keep_alive);
+			boost::to_lower(keep_alive);
+			if (keep_alive == "keep-alive")
+				m_keep_alive = true;
+			else
+				m_keep_alive = false;
+		}
 
 		// 创建存储对象.
 		if (!m_settings.storage)
@@ -976,25 +1019,8 @@ protected:
 		BOOST_ASSERT(m_storage);
 
 		// 打开文件, 构造文件名.
-		std::string file_name = boost::filesystem::path(m_final_url.path()).leaf().string();
-		if (file_name == "/" || file_name == "")
-			file_name = boost::filesystem::path(m_final_url.query()).leaf().string();
-		if (file_name == "/" || file_name == "" || file_name == ".")
-			file_name = "index.html";
-		if (!m_settings.save_path.empty())
-		{
-			if (fs::is_directory(m_settings.save_path))
-			{
-				fs::path p = m_settings.save_path / file_name;
-				file_name = p.string();
-			}
-			else
-			{
-				file_name = m_settings.save_path.string();
-			}
-		}
 		boost::system::error_code ignore;
-		m_storage->open(boost::filesystem::path(file_name), ignore);
+		m_storage->open(boost::filesystem::path(file_name()), ignore);
 		if (ignore)
 		{
 			handler(ignore);
@@ -1066,6 +1092,9 @@ protected:
 				// 如果是ssl连接, 默认为检查证书.
 				ptr->check_certificate(m_settings.check_certificate);
 
+				// 禁用重定向.
+				ptr->max_redirects(0);
+
 				// 添加代理设置.
 				ptr->proxy(m_settings.proxy);
 
@@ -1129,6 +1158,9 @@ protected:
 			// 如果是ssl连接, 默认为检查证书.
 			h.check_certificate(m_settings.check_certificate);
 
+			// 禁用重定向.
+			h.max_redirects(0);
+
 			// 开始异步打开.
 			h.async_open(m_final_url,
 				boost::bind(&multi_download::handle_open, this,
@@ -1137,7 +1169,8 @@ protected:
 		} while (0);
 
 		// 开启定时器, 执行任务.
-		m_timer.async_wait(boost::bind(&multi_download::on_tick, this));
+		m_timer.expires_from_now(boost::posix_time::seconds(1));
+		m_timer.async_wait(boost::bind(&multi_download::on_tick, this, boost::asio::placeholders::error));
 
 		// 回调通知用户, 已经成功启动下载.
 		handler(ec);
@@ -1145,8 +1178,10 @@ protected:
 		return;
 	}
 
-	void on_tick()
+	void on_tick(const boost::system::error_code &e)
 	{
+		m_time_total++;
+
 		// 在这里更新位图.
 		if (m_accept_multi)
 		{
@@ -1154,10 +1189,10 @@ protected:
 		}
 
 		// 每隔1秒进行一次on_tick.
-		if (!m_abort)
+		if (!m_abort && !e)
 		{
-			m_timer.expires_at(m_timer.expires_at() + boost::posix_time::seconds(1));
-			m_timer.async_wait(boost::bind(&multi_download::on_tick, this));
+			m_timer.expires_from_now(boost::posix_time::seconds(1));
+			m_timer.async_wait(boost::bind(&multi_download::on_tick, this, boost::asio::placeholders::error));
 		}
 		else
 		{
@@ -1199,8 +1234,6 @@ protected:
 				// 超时, 关闭并重新创建连接.
 				boost::system::error_code ec;
 				object_item_ptr->stream->close(ec);
-
-				// std::cerr << "connection: " << i << " time out!!!" << std::endl;
 
 				// 单连接模式, 表示下载停止, 终止下载.
 				if (!m_accept_multi)
@@ -1260,6 +1293,9 @@ protected:
 
 				// 如果是ssl连接, 默认为检查证书.
 				stream.check_certificate(m_settings.check_certificate);
+
+				// 禁用重定向.
+				stream.max_redirects(0);
 
 				// 添加代理设置.
 				stream.proxy(m_settings.proxy);
@@ -1435,6 +1471,9 @@ private:
 	// 文件大小, 如果没有文件大小值为-1.
 	boost::int64_t m_file_size;
 
+	// 保存的文件名.
+	mutable std::string m_file_name;
+
 	// 当前用户设置.
 	settings m_settings;
 
@@ -1446,6 +1485,9 @@ private:
 
 	// 实际连接数.
 	int m_number_of_connections;
+
+	// 下载计时.
+	int m_time_total;
 
 	// 下载数据存储接口指针, 可由用户定义, 并在open时指定.
 	boost::scoped_ptr<storage_interface> m_storage;
