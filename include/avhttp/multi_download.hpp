@@ -210,8 +210,8 @@ public:
 		// 解析meta文件.
 		if (m_settings.meta_file.empty())
 		{
-			// filename + ".meta".
-			m_settings.meta_file = fs::path(detail::utf8_ansi(m_final_url.path())).leaf().string() + ".meta";
+			// 修正文件路径.
+			m_settings.meta_file = file_name() + ".meta";
 		}
 
 		// 打开meta文件, 如果打开成功, 则表示解析出相应的位图了.
@@ -319,24 +319,7 @@ public:
 		BOOST_ASSERT(m_storage);
 
 		// 打开文件, 构造文件名.
-		std::string file_name = fs::path(detail::utf8_ansi(m_final_url.path())).leaf().string();
-		if (file_name == "/" || file_name == "")
-			file_name = boost::filesystem::path(m_final_url.query()).leaf().string();
-		if (file_name == "/" || file_name == "" || file_name == ".")
-			file_name = "index.html";
-		if (!m_settings.save_path.empty())
-		{
-			if (fs::is_directory(m_settings.save_path))
-			{
-				fs::path p = m_settings.save_path / file_name;
-				file_name = p.string();
-			}
-			else
-			{
-				file_name = m_settings.save_path.string();
-			}
-		}
-		m_storage->open(boost::filesystem::path(file_name), ec);
+		m_storage->open(boost::filesystem::path(file_name()), ec);
 		if (ec)
 		{
 			return;
@@ -566,7 +549,7 @@ public:
 		if (!m_settings.meta_file.empty())
 		{
 			// filename + ".meta".
-			m_settings.meta_file = fs::path(detail::utf8_ansi(m_final_url.path())).leaf().string() + ".meta";
+			m_settings.meta_file = file_name() + ".meta";
 		}
 
 		// 打开meta文件, 如果打开成功, 则表示解析出相应的位图了.
@@ -648,7 +631,24 @@ public:
 	// @如果请求的url不太规则, 则可能返回错误的文件名.
 	std::string file_name() const
 	{
-		return boost::filesystem::path(detail::utf8_ansi(m_final_url.path())).leaf().string();
+		std::string name = fs::path(detail::utf8_ansi(m_final_url.path())).leaf().string();
+		if (name == "/" || name == "")
+			name = fs::path(m_final_url.query()).leaf().string();
+		if (name == "/" || name == "" || name == ".")
+			name = "index.html";
+		if (!m_settings.save_path.empty())
+		{
+			if (fs::is_directory(m_settings.save_path))
+			{
+				fs::path p = m_settings.save_path / name;
+				name = p.string();
+			}
+			else
+			{
+				name = m_settings.save_path.string();
+			}
+		}
+		return name;
 	}
 
 	///当前已经下载的字节总数.
@@ -1015,25 +1015,8 @@ protected:
 		BOOST_ASSERT(m_storage);
 
 		// 打开文件, 构造文件名.
-		std::string file_name = fs::path(detail::utf8_ansi(m_final_url.path())).leaf().string();
-		if (file_name == "/" || file_name == "")
-			file_name = fs::path(m_final_url.query()).leaf().string();
-		if (file_name == "/" || file_name == "" || file_name == ".")
-			file_name = "index.html";
-		if (!m_settings.save_path.empty())
-		{
-			if (fs::is_directory(m_settings.save_path))
-			{
-				fs::path p = m_settings.save_path / file_name;
-				file_name = p.string();
-			}
-			else
-			{
-				file_name = m_settings.save_path.string();
-			}
-		}
 		boost::system::error_code ignore;
-		m_storage->open(boost::filesystem::path(file_name), ignore);
+		m_storage->open(boost::filesystem::path(file_name()), ignore);
 		if (ignore)
 		{
 			handler(ignore);
