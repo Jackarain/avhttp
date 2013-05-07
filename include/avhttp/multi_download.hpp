@@ -706,6 +706,18 @@ protected:
 			return;
 		}
 
+		if (!m_accept_multi)
+		{
+			// 当不支持断点续传时, 有时请求到的文件大小和start请求到的文件大小不一至, 则需要新file_size.
+			if (object.stream->content_length() != 0 &&
+				object.stream->content_length() != m_file_size)
+			{
+				m_file_size = object.stream->content_length();
+				m_rangefield.reset(m_file_size);
+				m_downlaoded_field.reset(m_file_size);
+			}
+		}
+
 		// 保存最后请求时间, 方便检查超时重置.
 		object.last_request_time = boost::posix_time::microsec_clock::local_time();
 
