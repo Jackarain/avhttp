@@ -631,24 +631,28 @@ public:
 	// @如果请求的url不太规则, 则可能返回错误的文件名.
 	std::string file_name() const
 	{
-		std::string name = fs::path(detail::utf8_ansi(m_final_url.path())).leaf().string();
-		if (name == "/" || name == "")
-			name = fs::path(m_final_url.query()).leaf().string();
-		if (name == "/" || name == "" || name == ".")
-			name = "index.html";
-		if (!m_settings.save_path.empty())
+		if (m_file_name.empty())
 		{
-			if (fs::is_directory(m_settings.save_path))
+			m_file_name = fs::path(detail::utf8_ansi(m_final_url.path())).leaf().string();
+			if (m_file_name == "/" || m_file_name == "")
+				m_file_name = fs::path(m_final_url.query()).leaf().string();
+			if (m_file_name == "/" || m_file_name == "" || m_file_name == ".")
+				m_file_name = "index.html";
+			if (!m_settings.save_path.empty())
 			{
-				fs::path p = m_settings.save_path / name;
-				name = p.string();
+				if (fs::is_directory(m_settings.save_path))
+				{
+					fs::path p = m_settings.save_path / m_file_name;
+					m_file_name = p.string();
+				}
+				else
+				{
+					m_file_name = m_settings.save_path.string();
+				}
 			}
-			else
-			{
-				name = m_settings.save_path.string();
-			}
+			return m_file_name;
 		}
-		return name;
+		return m_file_name;
 	}
 
 	///当前已经下载的字节总数.
@@ -1466,6 +1470,9 @@ private:
 
 	// 文件大小, 如果没有文件大小值为-1.
 	boost::int64_t m_file_size;
+
+	// 保存的文件名.
+	mutable std::string m_file_name;
 
 	// 当前用户设置.
 	settings m_settings;
