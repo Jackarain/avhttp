@@ -71,6 +71,7 @@ int main(int argc, char* argv[])
 		avhttp::multi_download d(io);
 
 		avhttp::settings s;
+		s.check_certificate = false;
 		// s.m_download_rate_limit = 102400;
 
 		d.start(argv[1], s);
