@@ -17,6 +17,9 @@
 
 #include <vector>
 
+#include <boost/lexical_cast.hpp>
+#include <boost/shared_array.hpp>
+
 #include "url.hpp"
 #include "settings.hpp"
 #include "detail/io.hpp"
@@ -25,7 +28,19 @@
 #ifdef AVHTTP_ENABLE_OPENSSL
 #include "detail/ssl_stream.hpp"
 #endif
+#ifdef AVHTTP_ENABLE_ZLIB
+extern "C"
+{
+#include "zlib.h"
+#ifndef z_const
+# define z_const
+#endif
+}
+#endif
+
 #include "detail/socket_type.hpp"
+#include "detail/utf8.hpp"
+
 
 namespace avhttp {
 
@@ -55,7 +70,7 @@ namespace avhttp {
 //  		std::cout.write(data, bytes_transferred);
 //  	}
 //  }
-//  catch (std::exception& e)
+//  catch (std::exception &e)
 //  {
 //  	std::cerr << "Exception: " << e.what() << std::endl;
 //  }
@@ -153,14 +168,29 @@ public:
 		, m_keep_alive(false)
 		, m_status_code(-1)
 		, m_redirects(0)
+		, m_max_redirects(AVHTTP_MAX_REDIRECTS)
 		, m_content_length(0)
 		, m_resolver(io)
+#ifdef AVHTTP_ENABLE_ZLIB
+		, m_is_gzip(false)
+#endif
+		, m_is_chunked(false)
+		, m_skip_crlf(true)
+		, m_chunked_size(0)
 	{
+#ifdef AVHTTP_ENABLE_ZLIB
+		memset(&m_stream, 0, sizeof(z_stream));
+#endif
 		m_proxy.type = proxy_settings::none;
 	}
 
 	virtual ~http_stream()
-	{}
+	{
+#ifdef AVHTTP_ENABLE_ZLIB
+		if (m_stream.zalloc)
+			inflateEnd(&m_stream);
+#endif
+	}
 
 public:
 	// 返回 http_stream 使用的 io_service　引用.
@@ -178,7 +208,7 @@ public:
 	//   {
 	//     h_stream.open("http://www.boost.org");
 	//   }
-	//   catch (boost::system::system_error& e)
+	//   catch (boost::system::system_error &e)
 	//   {
 	//     std::cerr << e.waht() << std::endl;
 	//   }
@@ -239,23 +269,20 @@ public:
 		}
 
 		// 构造socket.
-		if (!m_sock.instantiated())
+		if (protocol == "http")
 		{
-			if (protocol == "http")
-			{
-				m_sock.instantiate<nossl_socket>(m_io_service);
-			}
+			m_sock.instantiate<nossl_socket>(m_io_service);
+		}
 #ifdef AVHTTP_ENABLE_OPENSSL
-			else if (protocol == "https")
-			{
-				m_sock.instantiate<ssl_socket>(m_nossl_socket);
-			}
+		else if (protocol == "https")
+		{
+			m_sock.instantiate<ssl_socket>(m_nossl_socket);
+		}
 #endif
-			else
-			{
-				ec = boost::asio::error::operation_not_supported;
-				return;
-			}
+		else
+		{
+			ec = boost::asio::error::operation_not_supported;
+			return;
 		}
 
 		// 开始进行连接.
@@ -296,6 +323,11 @@ public:
 				else if (protocol == "https")
 				{
 					socks_proxy_connect(m_nossl_socket, ec);
+					if (ec)
+						return;
+					// 开始握手.
+					ssl_socket* ssl_sock = m_sock.get<ssl_socket>();
+					ssl_sock->handshake(ec);
 					if (ec)
 						return;
 				}
@@ -356,7 +388,7 @@ public:
 		if (http_code == avhttp::errc::moved_permanently || http_code == avhttp::errc::found)
 		{
 			m_sock.close(ec);
-			if (++m_redirects <= AVHTTP_MAX_REDIRECTS)
+			if (++m_redirects <= m_max_redirects)
 			{
 				open(m_location, ec);
 				return;
@@ -377,11 +409,11 @@ public:
 	// @param handler 将被调用在打开完成时. 它必须满足以下条件:
 	// @begin code
 	//  void handler(
-	//    const boost::system::error_code& ec // 用于返回操作状态.
+	//    const boost::system::error_code &ec // 用于返回操作状态.
 	//  );
 	// @end code
 	// @begin example
-	//  void open_handler(const boost::system::error_code& ec)
+	//  void open_handler(const boost::system::error_code &ec)
 	//  {
 	//    if (!ec)
 	//    {
@@ -426,24 +458,21 @@ public:
 		}
 
 		// 构造socket.
-		if (!m_sock.instantiated())
+		if (protocol == "http")
 		{
-			if (protocol == "http")
-			{
-				m_sock.instantiate<nossl_socket>(m_io_service);
-			}
+			m_sock.instantiate<nossl_socket>(m_io_service);
+		}
 #ifdef AVHTTP_ENABLE_OPENSSL
-			else if (protocol == "https")
-			{
-				m_sock.instantiate<ssl_socket>(m_nossl_socket);
-			}
+		else if (protocol == "https")
+		{
+			m_sock.instantiate<ssl_socket>(m_nossl_socket);
+		}
 #endif
-			else
-			{
-				m_io_service.post(boost::asio::detail::bind_handler(
-					handler, boost::asio::error::operation_not_supported));
-				return;
-			}
+		else
+		{
+			m_io_service.post(boost::asio::detail::bind_handler(
+				handler, boost::asio::error::operation_not_supported));
+			return;
 		}
 
 		// 判断socket是否打开.
@@ -481,15 +510,14 @@ public:
 		}
 
 		// 构造异步查询HOST.
-		std::ostringstream port_string;
-		port_string << m_url.port();
-		tcp::resolver::query query(m_url.host(), port_string.str());
+		tcp::resolver::query query(m_url.host(), boost::lexical_cast<std::string>(m_url.port()));
 
 		// 开始异步查询HOST信息.
 		typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
+		HandlerWrapper h = handler;
 		m_resolver.async_resolve(query,
 			boost::bind(&http_stream::handle_resolve<HandlerWrapper>, this,
-			boost::asio::placeholders::error, boost::asio::placeholders::iterator, HandlerWrapper(handler)));
+			boost::asio::placeholders::error, boost::asio::placeholders::iterator, h));
 	}
 
 	///从这个http_stream中读取一些数据.
@@ -540,30 +568,200 @@ public:
 	std::size_t read_some(const MutableBufferSequence &buffers,
 		boost::system::error_code &ec)
 	{
-		// 如果还有数据在m_response中, 先读取m_response中的数据.
-		if (m_response.size() > 0)
+		std::size_t bytes_transferred = 0;
+		if (m_is_chunked)	// 如果启用了分块传输模式, 则解析块大小, 并读取小于块大小的数据.
 		{
-			std::size_t bytes_transferred = 0;
-			typename MutableBufferSequence::const_iterator iter = buffers.begin();
-			typename MutableBufferSequence::const_iterator end = buffers.end();
-			for (; iter != end && m_response.size() > 0; ++iter)
+			char crlf[2] = { '\r', '\n' };
+			// chunked_size大小为0, 读取下一个块头大小.
+			if (m_chunked_size == 0
+#ifdef AVHTTP_ENABLE_ZLIB
+				&& m_stream.avail_in == 0
+#endif
+				)
 			{
-				boost::asio::mutable_buffer buffer(*iter);
-				size_t length = boost::asio::buffer_size(buffer);
-				if (length > 0)
+				// 是否跳过CRLF, 除第一次读取第一段数据外, 后面的每个chunked都需要将
+				// 末尾的CRLF跳过.
+				if (!m_skip_crlf)
 				{
-					bytes_transferred += m_response.sgetn(
-						boost::asio::buffer_cast<char*>(buffer), length);
+					ec = boost::system::error_code();
+					while (!ec && bytes_transferred != 2)
+						bytes_transferred += read_some_impl(
+							boost::asio::buffer(&crlf[bytes_transferred], 2 - bytes_transferred), ec);
+					if (ec)
+						return 0;
+				}
+				std::string hex_chunked_size;
+				// 读取.
+				while (!ec)
+				{
+					char c;
+					bytes_transferred = read_some_impl(boost::asio::buffer(&c, 1), ec);
+					if (bytes_transferred == 1)
+					{
+						hex_chunked_size.push_back(c);
+						std::size_t s = hex_chunked_size.size();
+						if (s >= 2)
+						{
+							if (hex_chunked_size[s - 2] == crlf[0] && hex_chunked_size[s - 1] == crlf[1])
+								break;
+						}
+					}
+				}
+				if (ec)
+					return 0;
+
+				// 得到chunked size.
+				std::stringstream ss;
+				ss << std::hex << hex_chunked_size;
+				ss >> m_chunked_size;
+
+#ifdef AVHTTP_ENABLE_ZLIB
+				if (!m_stream.zalloc)
+				{
+					if (inflateInit2(&m_stream, 32+15 ) != Z_OK)
+					{
+						ec = boost::asio::error::operation_not_supported;
+						return 0;
+					}
+				}
+#endif
+				// chunked_size不包括数据尾的crlf, 所以置数据尾的crlf为false状态.
+				m_skip_crlf = false;
+			}
+
+#ifdef AVHTTP_ENABLE_ZLIB
+			if (m_chunked_size == 0 && m_is_gzip)
+			{
+				if (m_stream.avail_in == 0)
+				{
+					ec = boost::asio::error::eof;
+					return 0;
 				}
 			}
-			ec = boost::system::error_code();
-			return bytes_transferred;
+#endif
+			if (m_chunked_size != 0
+#ifdef AVHTTP_ENABLE_ZLIB
+				|| m_stream.avail_in != 0
+#endif
+				)	// 开始读取chunked中的数据, 如果是压缩, 则解压到用户接受缓冲.
+			{
+				std::size_t max_length = 0;
+				{
+					typename MutableBufferSequence::const_iterator iter = buffers.begin();
+					typename MutableBufferSequence::const_iterator end = buffers.end();
+					// 计算得到用户buffer_size总大小.
+					for (; iter != end; ++iter)
+					{
+						boost::asio::mutable_buffer buffer(*iter);
+						max_length += boost::asio::buffer_size(buffer);
+					}
+					// 得到合适的缓冲大小.
+					max_length = std::min(max_length, m_chunked_size);
+				}
+
+#ifdef AVHTTP_ENABLE_ZLIB
+				if (!m_is_gzip)	// 如果没有启用gzip, 则直接读取数据后返回.
+#endif
+				{
+					bytes_transferred = read_some_impl(boost::asio::buffer(buffers, max_length), ec);
+					m_chunked_size -= bytes_transferred;
+					return bytes_transferred;
+				}
+#ifdef AVHTTP_ENABLE_ZLIB
+				else					// 否则读取数据到解压缓冲中.
+				{
+					if (m_stream.avail_in == 0)
+					{
+						std::size_t buf_size = std::min(m_chunked_size, std::size_t(1024));
+						bytes_transferred = read_some_impl(boost::asio::buffer(m_zlib_buffer, buf_size), ec);
+						m_chunked_size -= bytes_transferred;
+						m_zlib_buffer_size = bytes_transferred;
+						m_stream.avail_in = (uInt)m_zlib_buffer_size;
+						m_stream.next_in = (z_const Bytef *)&m_zlib_buffer[0];
+					}
+
+					bytes_transferred = 0;
+
+					{
+						typename MutableBufferSequence::const_iterator iter = buffers.begin();
+						typename MutableBufferSequence::const_iterator end = buffers.end();
+						// 计算得到用户buffer_size总大小.
+						for (; iter != end; ++iter)
+						{
+							boost::asio::mutable_buffer buffer(*iter);
+							m_stream.next_in = (z_const Bytef *)(&m_zlib_buffer[0] + m_zlib_buffer_size - m_stream.avail_in);
+							m_stream.avail_out = boost::asio::buffer_size(buffer);
+							m_stream.next_out = boost::asio::buffer_cast<Bytef*>(buffer);
+							int ret = inflate(&m_stream, Z_SYNC_FLUSH);
+							if (ret < 0)
+							{
+								ec = boost::asio::error::operation_not_supported;
+								return 0;
+							}
+
+							bytes_transferred += (boost::asio::buffer_size(buffer) - m_stream.avail_out);
+							if (bytes_transferred != boost::asio::buffer_size(buffer))
+								break;
+						}
+					}
+
+					return bytes_transferred;
+				}
+#endif
+			}
 		}
 
-		// 再从socket中读取数据.
-		std::size_t bytes_transferred = m_sock.read_some(buffers, ec);
-		if (ec == boost::asio::error::shut_down)
-			ec = boost::asio::error::eof;
+		// 如果没有启用chunked.
+#ifdef AVHTTP_ENABLE_ZLIB
+		if (m_is_gzip && !m_is_chunked)
+		{
+			if (!m_stream.zalloc)
+			{
+				if (inflateInit2(&m_stream, 32+15 ) != Z_OK)
+				{
+					ec = boost::asio::error::operation_not_supported;
+					return 0;
+				}
+			}
+
+			if (m_stream.avail_in == 0)
+			{
+				bytes_transferred = read_some_impl(boost::asio::buffer(m_zlib_buffer, 1024), ec);
+				m_zlib_buffer_size = bytes_transferred;
+				m_stream.avail_in = (uInt)m_zlib_buffer_size;
+				m_stream.next_in = (z_const Bytef *)&m_zlib_buffer[0];
+			}
+
+			bytes_transferred = 0;
+
+			{
+				typename MutableBufferSequence::const_iterator iter = buffers.begin();
+				typename MutableBufferSequence::const_iterator end = buffers.end();
+				// 计算得到用户buffer_size总大小.
+				for (; iter != end; ++iter)
+				{
+					boost::asio::mutable_buffer buffer(*iter);
+					m_stream.next_in = (z_const Bytef *)(&m_zlib_buffer[0] + m_zlib_buffer_size - m_stream.avail_in);
+					m_stream.avail_out = boost::asio::buffer_size(buffer);
+					m_stream.next_out = boost::asio::buffer_cast<Bytef*>(buffer);
+					int ret = inflate(&m_stream, Z_SYNC_FLUSH);
+					if (ret < 0)
+					{
+						ec = boost::asio::error::operation_not_supported;
+						return 0;
+					}
+
+					bytes_transferred += (boost::asio::buffer_size(buffer) - m_stream.avail_out);
+					if (bytes_transferred != boost::asio::buffer_size(buffer))
+						break;
+				}
+			}
+
+			return bytes_transferred;
+		}
+#endif
+
+		bytes_transferred = read_some_impl(buffers, ec);
 		return bytes_transferred;
 	}
 
@@ -574,12 +772,12 @@ public:
 	// @param handler在读取操作完成或出现错误时, 将被回调, 它满足以下条件:
 	// @begin code
 	//  void handler(
-	//    int bytes_transferred,				// 返回读取的数据字节数.
-	//    const boost::system::error_code& ec	// 用于返回操作状态.
+	//    const boost::system::error_code &ec,	// 用于返回操作状态.
+	//    std::size_t bytes_transferred			// 返回读取的数据字节数.
 	//  );
 	// @end code
 	// @begin example
-	//   void handler(int bytes_transferred, const boost::system::error_code& ec)
+	//   void handler(const boost::system::error_code &ec, std::size_t bytes_transferred)
 	//   {
 	//		// 处理异步回调.
 	//   }
@@ -592,8 +790,113 @@ public:
 	// 关于示例中的boost::asio::buffer用法可以参考boost中的文档. 它可以接受一个
 	// boost.array或std.vector作为数据容器.
 	template <typename MutableBufferSequence, typename Handler>
-	void async_read_some(const MutableBufferSequence& buffers, Handler handler)
+	void async_read_some(const MutableBufferSequence &buffers, Handler handler)
 	{
+		BOOST_ASIO_READ_HANDLER_CHECK(Handler, handler) type_check;
+
+		if (m_is_chunked)	// 如果启用了分块传输模式, 则解析块大小, 并读取小于块大小的数据.
+		{
+			// chunked_size大小为0, 读取下一个块头大小, 如果启用了gzip, 则必须解压了所有数据才
+			// 读取下一个chunk头.
+			if (m_chunked_size == 0
+#ifdef AVHTTP_ENABLE_ZLIB
+				&& m_stream.avail_in == 0
+#endif
+				)
+			{
+				int bytes_transferred = 0;
+				int response_size = m_response.size();
+
+				// 是否跳过CRLF, 除第一次读取第一段数据外, 后面的每个chunked都需要将
+				// 末尾的CRLF跳过.
+				if (!m_skip_crlf)
+				{
+					boost::shared_array<char> crlf(new char[2]);
+					memset((void*)crlf.get(), 0, 2);
+
+					if (response_size > 0)	// 从m_response缓冲中跳过.
+					{
+						bytes_transferred = m_response.sgetn(
+							crlf.get(), std::min(response_size, 2));
+						if (bytes_transferred == 1)
+						{
+							// 继续异步读取下一个LF字节.
+							typedef boost::function<void (boost::system::error_code, std::size_t)> HandlerWrapper;
+							HandlerWrapper h(handler);
+							m_sock.async_read_some(boost::asio::buffer(&crlf.get()[1], 1),
+								boost::bind(&http_stream::handle_skip_crlf<MutableBufferSequence, HandlerWrapper>,
+									this, boost::cref(buffers), h, crlf,
+									boost::asio::placeholders::error,
+									boost::asio::placeholders::bytes_transferred
+								)
+							);
+							return;
+						}
+						else
+						{
+							// 读取到CRLF, so, 这里只能是2!!! 然后开始处理chunked size.
+							BOOST_ASSERT(bytes_transferred == 2);
+							BOOST_ASSERT(crlf.get()[0] == '\r' && crlf.get()[1] == '\n');
+						}
+					}
+					else
+					{
+						// 异步读取CRLF.
+						typedef boost::function<void (boost::system::error_code, std::size_t)> HandlerWrapper;
+						HandlerWrapper h(handler);
+						m_sock.async_read_some(boost::asio::buffer(&crlf.get()[0], 2),
+							boost::bind(&http_stream::handle_skip_crlf<MutableBufferSequence, HandlerWrapper>,
+								this, buffers, h, crlf,
+								boost::asio::placeholders::error,
+								boost::asio::placeholders::bytes_transferred
+							)
+						);
+						return;
+					}
+				}
+
+				// 跳过CRLF, 开始读取chunked size.
+				typedef boost::function<void (boost::system::error_code, std::size_t)> HandlerWrapper;
+				HandlerWrapper h(handler);
+				boost::asio::async_read_until(m_sock, m_response, "\r\n",
+					boost::bind(&http_stream::handle_chunked_size<MutableBufferSequence, HandlerWrapper>,
+						this, buffers, h,
+						boost::asio::placeholders::error,
+						boost::asio::placeholders::bytes_transferred
+					)
+				);
+				return;
+			}
+			else
+			{
+				std::size_t max_length = 0;
+				{
+					typename MutableBufferSequence::const_iterator iter = buffers.begin();
+					typename MutableBufferSequence::const_iterator end = buffers.end();
+					// 计算得到用户buffer_size总大小.
+					for (; iter != end; ++iter)
+					{
+						boost::asio::mutable_buffer buffer(*iter);
+						max_length += boost::asio::buffer_size(buffer);
+					}
+					// 得到合适的缓冲大小.
+					max_length = std::min(max_length, m_chunked_size);
+				}
+				// 读取数据到m_response, 如果有压缩, 需要在handle_async_read中解压.
+				boost::asio::streambuf::mutable_buffers_type bufs =	m_response.prepare(max_length);
+				typedef boost::function<void (boost::system::error_code, std::size_t)> HandlerWrapper;
+				HandlerWrapper h(handler);
+				m_sock.async_read_some(boost::asio::buffer(bufs),
+					boost::bind(&http_stream::handle_async_read<MutableBufferSequence, HandlerWrapper>,
+						this, buffers, h,
+						boost::asio::placeholders::error,
+						boost::asio::placeholders::bytes_transferred
+					)
+				);
+				return;
+			}
+		}
+
 		boost::system::error_code ec;
 		if (m_response.size() > 0)
 		{
@@ -602,6 +905,7 @@ public:
 				boost::asio::detail::bind_handler(handler, ec, bytes_transferred));
 			return;
 		}
+
 		// 当缓冲区数据不够, 直接从socket中异步读取.
 		m_sock.async_read_some(buffers, handler);
 	}
@@ -626,7 +930,7 @@ public:
 	// 关于示例中的boost::asio::buffer用法可以参考boost中的文档. 它可以接受一个
 	// boost.array或std.vector作为数据容器.
 	template <typename ConstBufferSequence>
-	std::size_t write_some(const ConstBufferSequence& buffers)
+	std::size_t write_some(const ConstBufferSequence &buffers)
 	{
 		boost::system::error_code ec;
 		std::size_t bytes_transferred = write_some(buffers, ec);
@@ -651,7 +955,7 @@ public:
 	// 关于示例中的boost::asio::buffer用法可以参考boost中的文档. 它可以接受一个
 	// boost.array或std.vector作为数据容器.
 	template <typename ConstBufferSequence>
-	std::size_t write_some(const ConstBufferSequence& buffers,
+	std::size_t write_some(const ConstBufferSequence &buffers,
 		boost::system::error_code &ec)
 	{
 		std::size_t bytes_transferred = m_sock.write_some(buffers, ec);
@@ -668,11 +972,11 @@ public:
 	// @begin code
 	//  void handler(
 	//    int bytes_transferred,				// 返回发送的数据字节数.
-	//    const boost::system::error_code& ec	// 用于返回操作状态.
+	//    const boost::system::error_code &ec	// 用于返回操作状态.
 	//  );
 	// @end code
 	// @begin example
-	//   void handler(int bytes_transferred, const boost::system::error_code& ec)
+	//   void handler(int bytes_transferred, const boost::system::error_code &ec)
 	//   {
 	//		// 处理异步回调.
 	//   }
@@ -686,6 +990,8 @@ public:
 	template <typename ConstBufferSequence, typename Handler>
 	void async_write_some(const ConstBufferSequence &buffers, Handler handler)
 	{
+		BOOST_ASIO_WAIT_HANDLER_CHECK(Handler, handler) type_check;
+
 		m_sock.async_write_some(buffers, handler);
 	}
 
@@ -735,26 +1041,46 @@ public:
 		// 保存到一个新的opts中操作.
 		request_opts opts = opt;
 
+		// 得到url选项.
+		std::string new_url;
+		if (opts.find(http_options::url, new_url))
+			opts.remove(http_options::url);		// 删除处理过的选项.
+
+		if (!new_url.empty())
+		{
+			BOOST_ASSERT(url::from_string(new_url).host() == m_url.host());	// 必须是同一主机.
+			m_url = new_url;
+		}
+
 		// 得到request_method.
 		std::string request_method = "GET";
-		if (opts.find("_request_method", request_method))
-			opts.remove("_request_method");	// 删除处理过的选项.
+		if (opts.find(http_options::request_method, request_method))
+			opts.remove(http_options::request_method);	// 删除处理过的选项.
+
+		// 得到http版本信息.
+		std::string http_version = "HTTP/1.1";
+		if (opts.find(http_options::http_version, http_version))
+			opts.remove(http_options::http_version);	// 删除处理过的选项.
 
 		// 得到Host信息.
 		std::string host = m_url.to_string(url::host_component | url::port_component);
-		if (opts.find("Host", host))
-			opts.remove("Host");	// 删除处理过的选项.
+		if (opts.find(http_options::host, host))
+			opts.remove(http_options::host);	// 删除处理过的选项.
 
 		// 得到Accept信息.
 		std::string accept = "*/*";
-		if (opts.find("Accept", accept))
-			opts.remove("Accept");	// 删除处理过的选项.
+		if (opts.find(http_options::accept, accept))
+			opts.remove(http_options::accept);	// 删除处理过的选项.
 
+		// 默认添加close.
+		std::string connection = "close";
+		if (opts.find(http_options::connection, connection))
+			opts.remove(http_options::connection);		// 删除处理过的选项.
 
 		// 是否带有body选项.
 		std::string body;
-		if (opts.find("_request_body", body))
-			opts.remove("_request_body");	// 删除处理过的选项.
+		if (opts.find(http_options::request_body, body))
+			opts.remove(http_options::request_body);	// 删除处理过的选项.
 
 		// 循环构造其它选项.
 		std::string other_option_string;
@@ -770,9 +1096,10 @@ public:
 		std::ostream request_stream(&m_request);
 		request_stream << request_method << " ";
 		request_stream << m_url.to_string(url::path_component | url::query_component);
-		request_stream << " HTTP/1.0\r\n";
+		request_stream << " " << http_version << "\r\n";
 		request_stream << "Host: " << host << "\r\n";
 		request_stream << "Accept: " << accept << "\r\n";
+		request_stream << "Connection: " << connection << "\r\n";
 		request_stream << other_option_string << "\r\n";
 		if (!body.empty())
 		{
@@ -851,6 +1178,16 @@ public:
 			ec = avhttp::errc::malformed_response_headers;
 			return;
 		}
+
+		// 解析是否启用了gz压缩.
+		std::string encoding = m_response_opts.find(http_options::content_encoding);
+#ifdef AVHTTP_ENABLE_ZLIB
+		if (encoding == "gzip" || encoding == "x-gzip")
+			m_is_gzip = true;
+#endif
+		encoding = m_response_opts.find(http_options::transfer_encoding);
+		if (encoding == "chunked")
+			m_is_chunked = true;
 	}
 
 	///向http服务器发起一个异步请求.
@@ -858,11 +1195,11 @@ public:
 	// @param handler 将被调用在打开完成时. 它必须满足以下条件:
 	// @begin code
 	//  void handler(
-	//    const boost::system::error_code& ec	// 用于返回操作状态.
+	//    const boost::system::error_code &ec	// 用于返回操作状态.
 	//  );
 	// @end code
 	// @begin example
-	//  void request_handler(const boost::system::error_code& ec)
+	//  void request_handler(const boost::system::error_code &ec)
 	//  {
 	//    if (!ec)
 	//    {
@@ -877,7 +1214,7 @@ public:
 	//  h.async_request(opt, boost::bind(&request_handler, boost::asio::placeholders::error));
 	// @end example
 	template <typename Handler>
-	void async_request(request_opts &opt, Handler handler)
+	void async_request(const request_opts &opt, Handler handler)
 	{
 		boost::system::error_code ec;
 
@@ -891,26 +1228,46 @@ public:
 		// 保存到一个新的opts中操作.
 		request_opts opts = opt;
 
+		// 得到url选项.
+		std::string new_url;
+		if (opts.find(http_options::url, new_url))
+			opts.remove(http_options::url);		// 删除处理过的选项.
+
+		if (!new_url.empty())
+		{
+			BOOST_ASSERT(url::from_string(new_url).host() == m_url.host());	// 必须是同一主机.
+			m_url = new_url;
+		}
+
 		// 得到request_method.
 		std::string request_method = "GET";
-		if (opts.find("_request_method", request_method))
-			opts.remove("_request_method");	// 删除处理过的选项.
+		if (opts.find(http_options::request_method, request_method))
+			opts.remove(http_options::request_method);	// 删除处理过的选项.
+
+		// 得到http的版本信息.
+		std::string http_version = "HTTP/1.1";
+		if (opts.find(http_options::http_version, http_version))
+			opts.remove(http_options::http_version);	// 删除处理过的选项.
 
 		// 得到Host信息.
 		std::string host = m_url.to_string(url::host_component | url::port_component);
-		if (opts.find("Host", host))
-			opts.remove("Host");	// 删除处理过的选项.
+		if (opts.find(http_options::host, host))
+			opts.remove(http_options::host);	// 删除处理过的选项.
 
 		// 得到Accept信息.
 		std::string accept = "*/*";
-		if (opts.find("Accept", accept))
-			opts.remove("Accept");	// 删除处理过的选项.
+		if (opts.find(http_options::accept, accept))
+			opts.remove(http_options::accept);	// 删除处理过的选项.
 
+		// 默认添加close.
+		std::string connection = "close";
+		if (opts.find(http_options::connection, connection))
+			opts.remove(http_options::connection);		// 删除处理过的选项.
 
 		// 是否带有body选项.
 		std::string body;
-		if (opts.find("_request_body", body))
-			opts.remove("_request_body");	// 删除处理过的选项.
+		if (opts.find(http_options::request_body, body))
+			opts.remove(http_options::request_body);	// 删除处理过的选项.
 
 		// 循环构造其它选项.
 		std::string other_option_string;
@@ -926,9 +1283,10 @@ public:
 		std::ostream request_stream(&m_request);
 		request_stream << request_method << " ";
 		request_stream << m_url.to_string(url::path_component | url::query_component);
-		request_stream << " HTTP/1.0\r\n";
+		request_stream << " " << http_version << "\r\n";
 		request_stream << "Host: " << host << "\r\n";
 		request_stream << "Accept: " << accept << "\r\n";
+		request_stream << "Connection: " << connection << "\r\n";
 		request_stream << other_option_string << "\r\n";
 		if (!body.empty())
 		{
@@ -968,7 +1326,7 @@ public:
 	// @param ec保存失败信息.
 	// @备注: 停止所有正在进行的读写操作, 正在进行的异步调用将回调
 	// boost::asio::error::operation_aborted错误.
-	void close(boost::system::error_code& ec)
+	void close(boost::system::error_code &ec)
 	{
 		ec = boost::system::error_code();
 
@@ -991,6 +1349,13 @@ public:
 	bool is_open() const
 	{
 		return m_sock.is_open();
+	}
+
+	///设置最大重定向次数.
+	// @param n 指定最大重定向次数, 为0表示禁用重定向.
+	void max_redirects(int n)
+	{
+		m_max_redirects = n;
 	}
 
 	///设置代理, 通过设置代理访问http服务器.
@@ -1021,7 +1386,7 @@ public:
 	//  h.request_options(options);
 	//  ...
 	// @end example
-	void request_options(const request_opts& options)
+	void request_options(const request_opts &options)
 	{
 		m_request_opts = options;
 	}
@@ -1052,6 +1417,13 @@ public:
 		return m_location;
 	}
 
+	///返回content_length.
+	// @content_length信息, 如果没有则为0.
+	boost::int64_t content_length()
+	{
+		return m_content_length;
+	}
+
 	///设置是否认证服务器证书.
 	// @param is_check 如果为true表示认证服务器证书, 如果为false表示不认证服务器证书.
 	// 默认为认证服务器证书.
@@ -1063,6 +1435,39 @@ public:
 	}
 
 protected:
+
+	// 同步相关的其它实现.
+
+	template <typename MutableBufferSequence>
+	std::size_t read_some_impl(const MutableBufferSequence &buffers,
+		boost::system::error_code &ec)
+	{
+		// 如果还有数据在m_response中, 先读取m_response中的数据.
+		if (m_response.size() > 0)
+		{
+			std::size_t bytes_transferred = 0;
+			typename MutableBufferSequence::const_iterator iter = buffers.begin();
+			typename MutableBufferSequence::const_iterator end = buffers.end();
+			for (; iter != end && m_response.size() > 0; ++iter)
+			{
+				boost::asio::mutable_buffer buffer(*iter);
+				size_t length = boost::asio::buffer_size(buffer);
+				if (length > 0)
+				{
+					bytes_transferred += m_response.sgetn(
+						boost::asio::buffer_cast<char*>(buffer), length);
+				}
+			}
+			ec = boost::system::error_code();
+			return bytes_transferred;
+		}
+
+		// 再从socket中读取数据.
+		std::size_t bytes_transferred = m_sock.read_some(buffers, ec);
+		if (ec == boost::asio::error::shut_down)
+			ec = boost::asio::error::eof;
+		return bytes_transferred;
+	}
 
 	// 异步处理模板成员的相关实现.
 
@@ -1198,7 +1603,7 @@ protected:
 			// 异步读取所有Http header部分.
 			boost::asio::async_read_until(m_sock, m_response, "\r\n\r\n",
 				boost::bind(&http_stream::handle_header<Handler>, this, handler,
-				boost::asio::placeholders::bytes_transferred, boost::asio::placeholders::error));
+					boost::asio::placeholders::bytes_transferred, boost::asio::placeholders::error));
 		}
 	}
 
@@ -1223,11 +1628,12 @@ protected:
 			return;
 		}
 		boost::system::error_code ec;
+
 		// 判断是否需要跳转.
 		if (m_status_code == avhttp::errc::moved_permanently || m_status_code == avhttp::errc::found)
 		{
 			m_sock.close(ec);
-			if (++m_redirects <= AVHTTP_MAX_REDIRECTS)
+			if (++m_redirects <= m_max_redirects)
 			{
 				async_open(m_location, handler);
 				return;
@@ -1235,14 +1641,207 @@ protected:
 		}
 		if (m_status_code != avhttp::errc::ok && m_status_code != avhttp::errc::partial_content)
 			ec = make_error_code(static_cast<avhttp::errc::errc_t>(m_status_code));
+
+		// 解析是否启用了gz压缩.
+		std::string encoding = m_response_opts.find(http_options::content_encoding);
+#ifdef AVHTTP_ENABLE_ZLIB
+		if (encoding == "gzip" || encoding == "x-gzip")
+			m_is_gzip = true;
+#endif
+		encoding = m_response_opts.find(http_options::transfer_encoding);
+		if (encoding == "chunked")
+			m_is_chunked = true;
+
 		// 回调通知.
 		handler(ec);
 	}
 
+	template <typename MutableBufferSequence, typename Handler>
+	void handle_skip_crlf(const MutableBufferSequence &buffers,
+		Handler handler, boost::shared_array<char> crlf,
+		const boost::system::error_code &ec, std::size_t bytes_transferred)
+	{
+		if (!ec)
+		{
+			BOOST_ASSERT(crlf.get()[0] == '\r' && crlf.get()[1] == '\n');
+			// 跳过CRLF, 开始读取chunked size.
+			typedef boost::function<void (boost::system::error_code, std::size_t)> HandlerWrapper;
+			HandlerWrapper h(handler);
+			boost::asio::async_read_until(m_sock, m_response, "\r\n",
+				boost::bind(&http_stream::handle_chunked_size<MutableBufferSequence, HandlerWrapper>,
+					this, boost::cref(buffers), h,
+					boost::asio::placeholders::error,
+					boost::asio::placeholders::bytes_transferred
+				)
+			);
+			return;
+		}
+		else
+		{
+			handler(ec, bytes_transferred);
+		}
+	}
+
+	template <typename MutableBufferSequence, typename Handler>
+	void handle_async_read(const MutableBufferSequence &buffers,
+		Handler handler, const boost::system::error_code &ec, std::size_t bytes_transferred)
+	{
+		boost::system::error_code err;
+
+		if (!ec || m_response.size() > 0)
+		{
+			// 提交缓冲.
+			if (!ec)
+				m_response.commit(bytes_transferred);
+
+#ifdef AVHTTP_ENABLE_ZLIB
+			if (!m_is_gzip)	// 如果没有启用gzip, 则直接读取数据后返回.
+#endif
+			{
+				bytes_transferred = read_some_impl(boost::asio::buffer(buffers, m_chunked_size), err);
+				m_chunked_size -= bytes_transferred;
+				handler(err, bytes_transferred);
+				return;
+			}
+#ifdef AVHTTP_ENABLE_ZLIB
+			else					// 否则读取数据到解压缓冲中.
+			{
+				if (m_stream.avail_in == 0)
+				{
+					std::size_t buf_size = std::min(m_chunked_size, std::size_t(1024));
+					bytes_transferred = read_some_impl(boost::asio::buffer(m_zlib_buffer, buf_size), err);
+					m_chunked_size -= bytes_transferred;
+					m_zlib_buffer_size = bytes_transferred;
+					m_stream.avail_in = (uInt)m_zlib_buffer_size;
+					m_stream.next_in = (z_const Bytef *)&m_zlib_buffer[0];
+				}
+
+				bytes_transferred = 0;
+
+				{
+					typename MutableBufferSequence::const_iterator iter = buffers.begin();
+					typename MutableBufferSequence::const_iterator end = buffers.end();
+					// 计算得到用户buffer_size总大小.
+					for (; iter != end; ++iter)
+					{
+						boost::asio::mutable_buffer buffer(*iter);
+						m_stream.next_in = (z_const Bytef *)(&m_zlib_buffer[0] + m_zlib_buffer_size - m_stream.avail_in);
+						m_stream.avail_out = boost::asio::buffer_size(buffer);
+						m_stream.next_out = boost::asio::buffer_cast<Bytef*>(buffer);
+						int ret = inflate(&m_stream, Z_SYNC_FLUSH);
+						if (ret < 0)
+						{
+							err = boost::asio::error::operation_not_supported;
+							// 解压发生错误, 通知用户并放弃处理.
+							handler(err, 0);
+							return;
+						}
+
+						bytes_transferred += (boost::asio::buffer_size(buffer) - m_stream.avail_out);
+						if (bytes_transferred != boost::asio::buffer_size(buffer))
+							break;
+					}
+				}
+
+				if (m_chunked_size == 0 && m_stream.avail_in == 0)
+					err = ec;
+
+				handler(err, bytes_transferred);
+			}
+#endif
+		}
+		else
+		{
+			handler(ec, bytes_transferred);
+		}
+	}
+
+	template <typename MutableBufferSequence, typename Handler>
+	void handle_chunked_size(const MutableBufferSequence &buffers,
+		Handler handler, const boost::system::error_code &ec, std::size_t bytes_transferred)
+	{
+		if (!ec)
+		{
+			// 解析m_response中的chunked size.
+			std::string hex_chunked_size;
+			boost::system::error_code err;
+			while (!err && m_response.size() > 0)
+			{
+				char c;
+				bytes_transferred = read_some_impl(boost::asio::buffer(&c, 1), err);
+				if (bytes_transferred == 1)
+				{
+					hex_chunked_size.push_back(c);
+					std::size_t s = hex_chunked_size.size();
+					if (s >= 2)
+					{
+						if (hex_chunked_size[s - 2] == '\r' && hex_chunked_size[s - 1] == '\n')
+							break;
+					}
+				}
+			}
+			BOOST_ASSERT(!err);
+			// 得到chunked size.
+			std::stringstream ss;
+			ss << std::hex << hex_chunked_size;
+			ss >> m_chunked_size;
+
+#ifdef AVHTTP_ENABLE_ZLIB // 初始化ZLIB库, 每次解压每个chunked的时候, 都要重新初始化.
+			if (!m_stream.zalloc)
+			{
+				if (inflateInit2(&m_stream, 32+15 ) != Z_OK)
+				{
+					handler(make_error_code(boost::asio::error::operation_not_supported), 0);
+					return;
+				}
+			}
+#endif
+			// chunked_size不包括数据尾的crlf, 所以置数据尾的crlf为false状态.
+			m_skip_crlf = false;
+
+			// 读取数据.
+			if (m_chunked_size != 0)	// 开始读取chunked中的数据, 如果是压缩, 则解压到用户接受缓冲.
+			{
+				std::size_t max_length = 0;
+				{
+					typename MutableBufferSequence::const_iterator iter = buffers.begin();
+					typename MutableBufferSequence::const_iterator end = buffers.end();
+					// 计算得到用户buffer_size总大小.
+					for (; iter != end; ++iter)
+					{
+						boost::asio::mutable_buffer buffer(*iter);
+						max_length += boost::asio::buffer_size(buffer);
+					}
+					// 得到合适的缓冲大小.
+					max_length = std::min(max_length, m_chunked_size);
+				}
+				// 读取数据到m_response, 如果有压缩, 需要在handle_async_read中解压.
+				boost::asio::streambuf::mutable_buffers_type bufs =	m_response.prepare(max_length);
+				typedef boost::function<void (boost::system::error_code, std::size_t)> HandlerWrapper;
+				HandlerWrapper h(handler);
+				m_sock.async_read_some(boost::asio::buffer(bufs),
+					boost::bind(&http_stream::handle_async_read<MutableBufferSequence, HandlerWrapper>,
+						this, buffers, h,
+						boost::asio::placeholders::error,
+						boost::asio::placeholders::bytes_transferred
+					)
+				);
+				return;
+			}
+
+			if (m_chunked_size == 0)
+			{
+				boost::system::error_code err = make_error_code(boost::asio::error::eof);
+				handler(err, 0);
+			}
+		}
+
+		// 遇到错误, 通知上层程序.
+		handler(ec, 0);
+	}
+
 
 protected:
-
-	// 同步相关的其它实现.
 
 	// 连接到socks代理, 在这一步中完成和socks的信息交换过程, 出错信息在ec中.
 	template <typename Stream>
@@ -1390,7 +1989,7 @@ protected:
 	}
 
 	template <typename Stream>
-	void socks_proxy_handshake(Stream &sock, boost::system::error_code & ec)
+	void socks_proxy_handshake(Stream &sock, boost::system::error_code &ec)
 	{
 		using namespace avhttp::detail;
 
@@ -1579,6 +2178,9 @@ protected:
 		socks5_auth_status,		// 认证状态.
 		socks5_result,			// 最终结局.
 		socks5_read_domainname,	// 读取域名信息.
+#ifdef AVHTTP_ENABLE_OPENSSL
+		ssl_handshake,			// ssl进行异步握手.
+#endif
 	};
 
 	// socks代理进行异步连接.
@@ -1873,6 +2475,21 @@ protected:
 				if (response == 90)	// access granted.
 				{
 					m_response.consume(m_response.size());	// 没有发生错误, 开始异步发送请求.
+
+#ifdef AVHTTP_ENABLE_OPENSSL
+					if (m_protocol == "https")
+					{
+						// 开始握手.
+						m_proxy_status = ssl_handshake;
+						ssl_socket* ssl_sock = m_sock.get<ssl_socket>();
+						ssl_sock->async_handshake(boost::bind(&http_stream::handle_socks_process<Stream, Handler>, this,
+							boost::ref(sock), handler,
+							0,
+							boost::asio::placeholders::error));
+						return;
+					}
+					else
+#endif
 					async_request(m_request_opts, handler);
 					return;
 				}
@@ -1890,6 +2507,13 @@ protected:
 				}
 			}
 			break;
+#ifdef AVHTTP_ENABLE_OPENSSL
+		case ssl_handshake:
+			{
+				async_request(m_request_opts, handler);
+			}
+			break;
+#endif
 		case socks5_response_version:
 			{
 				boost::asio::const_buffer cb = m_response.data();
@@ -2013,6 +2637,20 @@ protected:
 				{
 					m_response.consume(m_response.size());
 
+#ifdef AVHTTP_ENABLE_OPENSSL
+					if (m_protocol == "https")
+					{
+						// 开始握手.
+						m_proxy_status = ssl_handshake;
+						ssl_socket* ssl_sock = m_sock.get<ssl_socket>();
+						ssl_sock->async_handshake(boost::bind(&http_stream::handle_socks_process<Stream, Handler>, this,
+							boost::ref(sock), handler,
+							0,
+							boost::asio::placeholders::error));
+						return;
+					}
+					else
+#endif
 					// 没有发生错误, 开始异步发送请求.
 					async_request(m_request_opts, handler);
 
@@ -2051,9 +2689,22 @@ protected:
 			{
 				m_response.consume(m_response.size());
 
+#ifdef AVHTTP_ENABLE_OPENSSL
+				if (m_protocol == "https")
+				{
+					// 开始握手.
+					m_proxy_status = ssl_handshake;
+					ssl_socket* ssl_sock = m_sock.get<ssl_socket>();
+					ssl_sock->async_handshake(boost::bind(&http_stream::handle_socks_process<Stream, Handler>, this,
+						boost::ref(sock), handler,
+						0,
+						boost::asio::placeholders::error));
+					return;
+				}
+				else
+#endif
 				// 没有发生错误, 开始异步发送请求.
 				async_request(m_request_opts, handler);
-
 				return;
 			}
 			break;
@@ -2061,7 +2712,8 @@ protected:
 	}
 
 #ifdef AVHTTP_ENABLE_OPENSSL
-	inline bool certificate_matches_host(X509* cert, const std::string& host)
+
+	inline bool certificate_matches_host(X509 *cert, const std::string &host)
 	{
 		// Try converting host name to an address. If it is an address then we need
 		// to look for an IP address in the certificate rather than a host name.
@@ -2154,11 +2806,21 @@ protected:
 	bool m_keep_alive;								// 获得connection选项, 同时受m_response_opts影响.
 	int m_status_code;								// http返回状态码.
 	std::size_t m_redirects;						// 重定向次数计数.
+	std::size_t m_max_redirects;					// 重定向次数计数.
 	std::string m_content_type;						// 数据类型.
-	std::size_t m_content_length;					// 数据内容长度.
+	boost::int64_t m_content_length;				// 数据内容长度.
 	std::string m_location;							// 重定向的地址.
 	boost::asio::streambuf m_request;				// 请求缓冲.
 	boost::asio::streambuf m_response;				// 回复缓冲.
+#ifdef AVHTTP_ENABLE_ZLIB
+	z_stream m_stream;								// zlib支持.
+	char m_zlib_buffer[1024];						// 解压缓冲.
+	std::size_t m_zlib_buffer_size;					// 输入的字节数.
+	bool m_is_gzip;									// 是否使用gz.
+#endif
+	bool m_is_chunked;								// 是否使用chunked编码.
+	bool m_skip_crlf;								// 跳过crlf.
+	std::size_t m_chunked_size;						// chunked大小.
 };
 
 }

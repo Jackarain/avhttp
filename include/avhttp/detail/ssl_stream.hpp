@@ -58,7 +58,7 @@ public:
 
 	typedef boost::function<void(boost::system::error_code const&)> handler_type;
 
-
+#ifndef BOOST_NO_EXCEPTIONS
 	void connect(endpoint_type const &endpoint)
 	{
 		// 1. connect to peer
@@ -67,6 +67,7 @@ public:
 		m_sock.next_layer().connect(endpoint);
 		m_sock.handshake(boost::asio::ssl::stream_base::client);
 	}
+#endif
 
 	void connect(endpoint_type const &endpoint, boost::system::error_code &ec)
 	{
@@ -80,7 +81,7 @@ public:
 	}
 
 	template <class Handler>
-	void async_connect(endpoint_type &endpoint, Handler &handler)
+	void async_connect(endpoint_type &endpoint, Handler handler)
 	{
 		// the connect is split up in the following steps:
 		// 1. connect to peer
@@ -94,40 +95,60 @@ public:
 			, boost::bind(&ssl_stream::connected, this, _1, h));
 	}
 
+#ifndef BOOST_NO_EXCEPTIONS
+	void handshake()
+	{
+		m_sock.handshake(boost::asio::ssl::stream_base::client);
+	}
+#endif
+
+	void handshake(boost::system::error_code &ec)
+	{
+		m_sock.handshake(boost::asio::ssl::stream_base::client, ec);
+	}
+
+	template <class Handler>
+	void async_handshake(Handler handler)
+	{
+		boost::shared_ptr<handler_type> h(new handler_type(handler));
+		m_sock.async_handshake(boost::asio::ssl::stream_base::client
+			, boost::bind(&ssl_stream::handle_handshake, this, _1, h));
+	}
+
 	template <class Mutable_Buffers, class Handler>
-	void async_read_some(Mutable_Buffers const& buffers, Handler const& handler)
+	void async_read_some(Mutable_Buffers const &buffers, Handler handler)
 	{
 		m_sock.async_read_some(buffers, handler);
 	}
 
 	template <class Mutable_Buffers>
-	std::size_t read_some(Mutable_Buffers const& buffers, boost::system::error_code& ec)
+	std::size_t read_some(Mutable_Buffers const &buffers, boost::system::error_code &ec)
 	{
 		return m_sock.read_some(buffers, ec);
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
 	template <class Mutable_Buffers>
-	std::size_t read_some(Mutable_Buffers const& buffers)
+	std::size_t read_some(Mutable_Buffers const &buffers)
 	{
 		return m_sock.read_some(buffers);
 	}
 
 	template <class IO_Control_Command>
-	void io_control(IO_Control_Command& ioc)
+	void io_control(IO_Control_Command &ioc)
 	{
 		m_sock.next_layer().io_control(ioc);
 	}
 #endif
 
 	template <class IO_Control_Command>
-	void io_control(IO_Control_Command& ioc, boost::system::error_code& ec)
+	void io_control(IO_Control_Command &ioc, boost::system::error_code &ec)
 	{
 		m_sock.next_layer().io_control(ioc, ec);
 	}
 
 	template <class Const_Buffers, class Handler>
-	void async_write_some(Const_Buffers const &buffers, Handler const& handler)
+	void async_write_some(Const_Buffers const &buffers, Handler handler)
 	{
 		m_sock.async_write_some(buffers, handler);
 	}
@@ -145,25 +166,25 @@ public:
 		return m_sock.write_some(buffers);
 	}
 
-	void bind(endpoint_type const& endpoint)
+	void bind(endpoint_type const &endpoint)
 	{
 		m_sock.next_layer().bind(endpoint);
 	}
 #endif
 
-	void bind(endpoint_type const& endpoint, boost::system::error_code& ec)
+	void bind(endpoint_type const &endpoint, boost::system::error_code &ec)
 	{
 		m_sock.next_layer().bind(endpoint, ec);
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
-	void open(protocol_type const& p)
+	void open(protocol_type const &p)
 	{
 		m_sock.next_layer().open(p);
 	}
 #endif
 
-	void open(protocol_type const& p, boost::system::error_code& ec)
+	void open(protocol_type const &p, boost::system::error_code &ec)
 	{
 		m_sock.next_layer().open(p, ec);
 	}
@@ -180,7 +201,7 @@ public:
 	}
 #endif
 
-	void close(boost::system::error_code& ec)
+	void close(boost::system::error_code &ec)
 	{
 		m_sock.next_layer().close(ec);
 	}
@@ -192,7 +213,7 @@ public:
 	}
 #endif
 
-	endpoint_type remote_endpoint(boost::system::error_code& ec) const
+	endpoint_type remote_endpoint(boost::system::error_code &ec) const
 	{
 		return const_cast<sock_type&>(m_sock).next_layer().remote_endpoint(ec);
 	}
@@ -204,7 +225,7 @@ public:
 	}
 #endif
 
-	endpoint_type local_endpoint(boost::system::error_code& ec) const
+	endpoint_type local_endpoint(boost::system::error_code &ec) const
 	{
 		return const_cast<sock_type&>(m_sock).next_layer().local_endpoint(ec);
 	}
@@ -230,15 +251,15 @@ public:
 	}
 
 	template <typename SettableSocketOption>
-	boost::system::error_code set_option(const SettableSocketOption& option,
-		boost::system::error_code& ec)
+	boost::system::error_code set_option(const SettableSocketOption &option,
+		boost::system::error_code &ec)
 	{
 		return m_sock.next_layer().set_option(option, ec);
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
 	template <typename SettableSerialPortOption>
-	void set_option(const SettableSerialPortOption& option)
+	void set_option(const SettableSerialPortOption &option)
 	{
 		m_sock.next_layer().set_option(option);
 	}
@@ -246,7 +267,7 @@ public:
 
 private:
 
-	void connected(boost::system::error_code const& e, boost::shared_ptr<handler_type> h)
+	void connected(boost::system::error_code const &e, boost::shared_ptr<handler_type> h)
 	{
 		if (e)
 		{
@@ -255,10 +276,10 @@ private:
 		}
 
 		m_sock.async_handshake(boost::asio::ssl::stream_base::client
-			, boost::bind(&ssl_stream::handshake, this, _1, h));
+			, boost::bind(&ssl_stream::handle_handshake, this, _1, h));
 	}
 
-	void handshake(boost::system::error_code const& e, boost::shared_ptr<handler_type> h)
+	void handle_handshake(boost::system::error_code const &e, boost::shared_ptr<handler_type> h)
 	{
 		(*h)(e);
 	}

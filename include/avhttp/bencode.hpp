@@ -16,6 +16,7 @@
 # pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
+#include <stdlib.h>
 #include <cstdlib>
 #include <boost/static_assert.hpp>
 #include "entry.hpp"
@@ -26,7 +27,7 @@ namespace avhttp {
 namespace detail {
 
 	template <class OutIt>
-	int write_string(OutIt& out, const std::string& val)
+	int write_string(OutIt &out, const std::string &val)
 	{
 		for (std::string::const_iterator i = val.begin()
 			, end(val.end()); i != end; ++i)
@@ -54,7 +55,7 @@ namespace detail {
 	}
 
 	template <class OutIt>
-	int write_integer(OutIt& out, entry::integer_type val)
+	int write_integer(OutIt &out, entry::integer_type val)
 	{
 		// the stack allocated buffer for keeping the
 		// decimal representation of the number can
@@ -73,14 +74,14 @@ namespace detail {
 	}
 
 	template <class OutIt>
-	void write_char(OutIt& out, char c)
+	void write_char(OutIt &out, char c)
 	{
 		*out = c;
 		++out;
 	}
 
 	template <class InIt>
-	std::string read_until(InIt& in, InIt end, char end_token, bool& err)
+	std::string read_until(InIt &in, InIt end, char end_token, bool &err)
 	{
 		std::string ret;
 		if (in == end)
@@ -102,7 +103,7 @@ namespace detail {
 	}
 
 	template<class InIt>
-	void read_string(InIt& in, InIt end, int len, std::string& str, bool& err)
+	void read_string(InIt &in, InIt end, int len, std::string &str, bool &err)
 	{
 		BOOST_ASSERT(len >= 0);
 		for (int i = 0; i < len; ++i)
@@ -119,7 +120,7 @@ namespace detail {
 
 	// returns the number of bytes written
 	template<class OutIt>
-	int bencode_recursive(OutIt& out, const entry& e)
+	int bencode_recursive(OutIt &out, const entry &e)
 	{
 		int ret = 0;
 		switch(e.type())
@@ -167,7 +168,7 @@ namespace detail {
 	}
 
 	template<class InIt>
-	void bdecode_recursive(InIt& in, InIt end, entry& ret, bool& err, int depth)
+	void bdecode_recursive(InIt &in, InIt end, entry &ret, bool &err, int depth)
 	{
 		if (depth >= 100)
 		{
@@ -194,7 +195,7 @@ namespace detail {
 			++in; // 'e' 
 			ret = entry(entry::int_t);
 			char* end_pointer;
-#if defined WIN32 && !defined _MINGW
+#if defined WIN32 && !defined __MINGW_H
 			ret.integer() = _strtoi64(val.c_str(), &end_pointer, 10);
 #else
 			ret.integer() = strtoll(val.c_str(), &end_pointer, 10);
@@ -215,7 +216,7 @@ namespace detail {
 			while (*in != 'e')
 			{
 				ret.list().push_back(entry());
-				entry& e = ret.list().back();
+				entry &e = ret.list().back();
 				bdecode_recursive(in, end, e, err, depth + 1);
 				if (err)
 				{
@@ -245,7 +246,7 @@ namespace detail {
 				{
 					return;
 				}
-				entry& e = ret[key.string()];
+				entry &e = ret[key.string()];
 				bdecode_recursive(in, end, e, err, depth + 1);
 				if (err)
 				{
@@ -291,7 +292,7 @@ namespace detail {
 } // namespace detail
 
 template<class OutIt>
-int bencode(OutIt out, const entry& e)
+int bencode(OutIt out, const entry &e)
 {
 	return detail::bencode_recursive(out, e);
 }
@@ -307,7 +308,7 @@ entry bdecode(InIt start, InIt end)
 }
 
 template<class InIt>
-entry bdecode(InIt start, InIt end, int& len)
+entry bdecode(InIt start, InIt end, int &len)
 {
 	entry e;
 	bool err = false;
