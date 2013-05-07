@@ -85,10 +85,10 @@ int main(int argc, char* argv[])
 		{
 			printf("\n");
 			int percent = 0;
-			boost::int64_t file_size = d.file_size();
 			boost::int64_t bytes_download = 0;
 			while (percent != 100)
 			{
+				boost::int64_t file_size = d.file_size();
 				bytes_download = d.bytes_download();
 				percent = ((double)bytes_download / (double)file_size) * 100.0f;
 				boost::this_thread::sleep(boost::posix_time::millisec(200));
