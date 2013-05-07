@@ -1414,6 +1414,13 @@ public:
 		return m_location;
 	}
 
+	///返回content_length.
+	// @content_length信息, 如果没有则为0.
+	boost::int64_t content_length()
+	{
+		return m_content_length;
+	}
+
 	///设置是否认证服务器证书.
 	// @param is_check 如果为true表示认证服务器证书, 如果为false表示不认证服务器证书.
 	// 默认为认证服务器证书.
@@ -2798,14 +2805,14 @@ protected:
 	std::size_t m_redirects;						// 重定向次数计数.
 	std::size_t m_max_redirects;					// 重定向次数计数.
 	std::string m_content_type;						// 数据类型.
-	std::size_t m_content_length;					// 数据内容长度.
+	boost::int64_t m_content_length;				// 数据内容长度.
 	std::string m_location;							// 重定向的地址.
 	boost::asio::streambuf m_request;				// 请求缓冲.
 	boost::asio::streambuf m_response;				// 回复缓冲.
 #ifdef AVHTTP_ENABLE_ZLIB
 	z_stream m_stream;								// zlib支持.
 	char m_zlib_buffer[1024];						// 解压缓冲.
-	std::size_t m_zlib_buffer_size;					//	输入的字节数.
+	std::size_t m_zlib_buffer_size;					// 输入的字节数.
 	bool m_is_gzip;									// 是否使用gz.
 #endif
 	bool m_is_chunked;								// 是否使用chunked编码.

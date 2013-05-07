@@ -32,6 +32,14 @@
 namespace avhttp {
 namespace detail {
 
+#ifndef atoi64
+# ifdef WIN32
+#  define atoi64 _atoi64
+# else
+#  define atoi64(x) strtoll(x, (char**)NULL, 10)
+# endif
+#endif // atoi64
+
 inline bool headers_equal(const std::string &a, const std::string &b)
 {
 	if (a.length() != b.length())
@@ -40,13 +48,13 @@ inline bool headers_equal(const std::string &a, const std::string &b)
 }
 
 inline void check_header(const std::string &name, const std::string &value,
-	std::string &content_type, std::size_t &content_length,
+	std::string &content_type, boost::int64_t &content_length,
 	std::string &location)
 {
 	if (headers_equal(name, "Content-Type"))
 		content_type = value;
 	else if (headers_equal(name, "Content-Length"))
-		content_length = std::atoi(value.c_str());
+		content_length = atoi64(value.c_str());
 	else if (headers_equal(name, "Location"))
 		location = value;
 }
@@ -165,7 +173,7 @@ bool parse_http_status_line(Iterator begin, Iterator end,
 
 template <typename Iterator>
 bool parse_http_headers(Iterator begin, Iterator end,
-	std::string &content_type, std::size_t &content_length,
+	std::string &content_type, boost::int64_t &content_length,
 	std::string &location)
 {
 	enum
@@ -282,7 +290,7 @@ typedef avhttp::option::option_item_list http_headers;
 
 template <typename Iterator>
 bool parse_http_headers(Iterator begin, Iterator end,
-	std::string &content_type, std::size_t &content_length,
+	std::string &content_type, boost::int64_t &content_length,
 	std::string &location, http_headers &headers)
 {
 	enum
@@ -396,6 +404,10 @@ bool parse_http_headers(Iterator begin, Iterator end,
 	}
 	return false;
 }
+
+#ifdef atoi64
+#undef atoi64
+#endif
 
 } // namespace detail
 } // namespace avhttp
