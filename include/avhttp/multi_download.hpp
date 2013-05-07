@@ -298,14 +298,17 @@ public:
 			m_downlaoded_field.reset(m_file_size);
 		}
 
-		// 是否支持长连接模式.
-		std::string keep_alive;
-		h.response_options().find("Connection", keep_alive);
-		boost::to_lower(keep_alive);
-		if (keep_alive == "keep-alive")
-			m_keep_alive = true;
-		else
-			m_keep_alive = false;
+		// 是否支持长连接模式, 不支持多点下载, 长连接也没有意义.
+		if (m_accept_multi)
+		{
+			std::string keep_alive;
+			h.response_options().find("Connection", keep_alive);
+			boost::to_lower(keep_alive);
+			if (keep_alive == "keep-alive")
+				m_keep_alive = true;
+			else
+				m_keep_alive = false;
+		}
 
 		// 创建存储对象.
 		if (!s.storage)
@@ -746,7 +749,7 @@ protected:
 				m_downlaoded_field.update(offset, offset + bytes_transferred);
 
 			// 使用m_storage写入.
-			m_storage->write(object.buffer.c_array(),	offset, bytes_transferred);
+			m_storage->write(object.buffer.c_array(), offset, bytes_transferred);
 		}
 
 		// 如果发生错误或终止.
@@ -978,14 +981,17 @@ protected:
 			m_downlaoded_field.reset(m_file_size);
 		}
 
-		// 是否支持长连接模式.
-		std::string keep_alive;
-		h.response_options().find("Connection", keep_alive);
-		boost::to_lower(keep_alive);
-		if (keep_alive == "keep-alive")
-			m_keep_alive = true;
-		else
-			m_keep_alive = false;
+		// 是否支持长连接模式, 不支持多点下载, 长连接也没有意义.
+		if (m_accept_multi)
+		{
+			std::string keep_alive;
+			h.response_options().find("Connection", keep_alive);
+			boost::to_lower(keep_alive);
+			if (keep_alive == "keep-alive")
+				m_keep_alive = true;
+			else
+				m_keep_alive = false;
+		}
 
 		// 创建存储对象.
 		if (!m_settings.storage)
