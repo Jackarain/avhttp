@@ -32,6 +32,9 @@
 extern "C"
 {
 #include "zlib.h"
+#ifndef z_const
+# define z_const
+#endif
 }
 #endif
 
