@@ -1818,6 +1818,12 @@ protected:
 				);
 				return;
 			}
+
+			if (m_chunked_size == 0)
+			{
+				boost::system::error_code err = make_error_code(boost::asio::error::eof);
+				handler(err, 0);
+			}
 		}
 
 		// 遇到错误, 通知上层程序.
