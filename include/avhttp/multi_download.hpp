@@ -104,8 +104,8 @@ class multi_download : public boost::noncopyable
 	{
 		byte_rate()
 			: current_byte_rate(0)
-			, index(0)
 			, seconds(5)
+			, index(0)
 		{
 			last_byte_rate.resize(seconds);
 			for (int i = 0; i < seconds; i++)
@@ -131,10 +131,10 @@ public:
 		, m_accept_multi(false)
 		, m_keep_alive(false)
 		, m_file_size(-1)
-		, m_drop_size(-1)
-		, m_number_of_connections(0)
 		, m_timer(io)
+		, m_number_of_connections(0)
 		, m_time_total(0)
+		, m_drop_size(-1)
 		, m_abort(false)
 	{}
 	~multi_download()
