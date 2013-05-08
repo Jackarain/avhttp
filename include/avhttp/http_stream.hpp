@@ -825,7 +825,7 @@ public:
 							HandlerWrapper h(handler);
 							m_sock.async_read_some(boost::asio::buffer(&crlf.get()[1], 1),
 								boost::bind(&http_stream::handle_skip_crlf<MutableBufferSequence, HandlerWrapper>,
-									this, boost::cref(buffers), h, crlf,
+									this, buffers, h, crlf,
 									boost::asio::placeholders::error,
 									boost::asio::placeholders::bytes_transferred
 								)
@@ -1669,7 +1669,7 @@ protected:
 			HandlerWrapper h(handler);
 			boost::asio::async_read_until(m_sock, m_response, "\r\n",
 				boost::bind(&http_stream::handle_chunked_size<MutableBufferSequence, HandlerWrapper>,
-					this, boost::cref(buffers), h,
+					this, buffers, h,
 					boost::asio::placeholders::error,
 					boost::asio::placeholders::bytes_transferred
 				)
