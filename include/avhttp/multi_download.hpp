@@ -103,9 +103,9 @@ class multi_download : public boost::noncopyable
 	struct byte_rate
 	{
 		byte_rate()
-			: current_byte_rate(0)
-			, seconds(5)
+			: seconds(5)
 			, index(0)
+			, current_byte_rate(0)
 		{
 			last_byte_rate.resize(seconds);
 			for (int i = 0; i < seconds; i++)

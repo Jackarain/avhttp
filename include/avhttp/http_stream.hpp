@@ -2467,7 +2467,7 @@ protected:
 				// 分析服务器返回.
 				boost::asio::const_buffer cb = m_response.data();
 				const char *rp = boost::asio::buffer_cast<const char*>(cb);
-				int version = read_uint8(rp);
+				/*int version = */read_uint8(rp);
 				int response = read_uint8(rp);
 
 				// 90: request granted.
