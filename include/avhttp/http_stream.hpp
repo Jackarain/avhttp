@@ -162,15 +162,15 @@ class http_stream : public boost::noncopyable
 public:
 	http_stream(boost::asio::io_service &io)
 		: m_io_service(io)
-		, m_check_certificate(true)
+		, m_resolver(io)
 		, m_sock(io)
 		, m_nossl_socket(io)
+		, m_check_certificate(true)
 		, m_keep_alive(false)
 		, m_status_code(-1)
 		, m_redirects(0)
 		, m_max_redirects(AVHTTP_MAX_REDIRECTS)
 		, m_content_length(0)
-		, m_resolver(io)
 #ifdef AVHTTP_ENABLE_ZLIB
 		, m_is_gzip(false)
 #endif
@@ -2052,11 +2052,13 @@ protected:
 			return;
 
 		// 接收socks服务器返回.
-		std::size_t bytes_to_read;
+		std::size_t bytes_to_read = 0;
 		if (s.type == proxy_settings::socks5 || s.type == proxy_settings::socks5_pw)
 			bytes_to_read = 10;
 		else if (s.type == proxy_settings::socks4)
 			bytes_to_read = 8;
+
+		BOOST_ASSERT(bytes_to_read == 0);
 
 		m_response.consume(m_response.size());
 		boost::asio::read(sock, m_response,
