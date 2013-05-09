@@ -396,6 +396,9 @@ public:
 			}
 		}
 
+		// 清空重定向次数.
+		m_redirects = 0;
+
 		// 根据http状态码来构造.
 		if (http_code)
 			ec = http_code;
@@ -1641,6 +1644,10 @@ protected:
 				return;
 			}
 		}
+
+		// 清空重定向次数.
+		m_redirects = 0;
+
 		if (m_status_code != avhttp::errc::ok && m_status_code != avhttp::errc::partial_content)
 			ec = make_error_code(static_cast<avhttp::errc::errc_t>(m_status_code));
 
