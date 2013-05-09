@@ -1747,6 +1747,7 @@ protected:
 					err = ec;
 
 				handler(err, bytes_transferred);
+				return;
 			}
 #endif
 		}
@@ -1833,6 +1834,7 @@ protected:
 			{
 				boost::system::error_code err = make_error_code(boost::asio::error::eof);
 				handler(err, 0);
+				return;
 			}
 		}
 
