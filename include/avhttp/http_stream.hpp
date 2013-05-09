@@ -1077,6 +1077,11 @@ public:
 		if (opts.find(http_options::accept, accept))
 			opts.remove(http_options::accept);	// 删除处理过的选项.
 
+		// 添加user_agent.
+		std::string user_agent = "avhttp/2.0";
+		if (opts.find(http_options::user_agent, user_agent))
+			opts.remove(http_options::user_agent);	// 删除处理过的选项.
+
 		// 默认添加close.
 		std::string connection = "close";
 		if (opts.find(http_options::connection, connection))
@@ -1104,6 +1109,7 @@ public:
 		request_stream << " " << http_version << "\r\n";
 		request_stream << "Host: " << host << "\r\n";
 		request_stream << "Accept: " << accept << "\r\n";
+		request_stream << "User-Agent: " << user_agent << "\r\n";
 		request_stream << "Connection: " << connection << "\r\n";
 		request_stream << other_option_string << "\r\n";
 		if (!body.empty())
@@ -1264,6 +1270,11 @@ public:
 		if (opts.find(http_options::accept, accept))
 			opts.remove(http_options::accept);	// 删除处理过的选项.
 
+		// 添加user_agent.
+		std::string user_agent = "avhttp/2.0";
+		if (opts.find(http_options::user_agent, user_agent))
+			opts.remove(http_options::user_agent);	// 删除处理过的选项.
+
 		// 默认添加close.
 		std::string connection = "close";
 		if (opts.find(http_options::connection, connection))
@@ -1291,6 +1302,7 @@ public:
 		request_stream << " " << http_version << "\r\n";
 		request_stream << "Host: " << host << "\r\n";
 		request_stream << "Accept: " << accept << "\r\n";
+		request_stream << "User-Agent: " << user_agent << "\r\n";
 		request_stream << "Connection: " << connection << "\r\n";
 		request_stream << other_option_string << "\r\n";
 		if (!body.empty())
