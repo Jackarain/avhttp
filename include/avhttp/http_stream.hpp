@@ -250,6 +250,7 @@ public:
 		m_request.consume(m_request.size());
 		m_response.consume(m_response.size());
 		m_protocol = "";
+		m_skip_crlf = true;
 
 		// 获得请求的url类型.
 		if (protocol == "http")
@@ -442,6 +443,7 @@ public:
 		m_request.consume(m_request.size());
 		m_response.consume(m_response.size());
 		m_protocol = "";
+		m_skip_crlf = true;
 
 		// 获得请求的url类型.
 		if (protocol == "http")
