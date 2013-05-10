@@ -162,15 +162,15 @@ class http_stream : public boost::noncopyable
 public:
 	http_stream(boost::asio::io_service &io)
 		: m_io_service(io)
-		, m_check_certificate(true)
+		, m_resolver(io)
 		, m_sock(io)
 		, m_nossl_socket(io)
+		, m_check_certificate(true)
 		, m_keep_alive(false)
 		, m_status_code(-1)
 		, m_redirects(0)
 		, m_max_redirects(AVHTTP_MAX_REDIRECTS)
 		, m_content_length(0)
-		, m_resolver(io)
 #ifdef AVHTTP_ENABLE_ZLIB
 		, m_is_gzip(false)
 #endif
@@ -250,6 +250,7 @@ public:
 		m_request.consume(m_request.size());
 		m_response.consume(m_response.size());
 		m_protocol = "";
+		m_skip_crlf = true;
 
 		// 获得请求的url类型.
 		if (protocol == "http")
@@ -395,6 +396,9 @@ public:
 			}
 		}
 
+		// 清空重定向次数.
+		m_redirects = 0;
+
 		// 根据http状态码来构造.
 		if (http_code)
 			ec = http_code;
@@ -442,6 +446,7 @@ public:
 		m_request.consume(m_request.size());
 		m_response.consume(m_response.size());
 		m_protocol = "";
+		m_skip_crlf = true;
 
 		// 获得请求的url类型.
 		if (protocol == "http")
@@ -1072,6 +1077,11 @@ public:
 		if (opts.find(http_options::accept, accept))
 			opts.remove(http_options::accept);	// 删除处理过的选项.
 
+		// 添加user_agent.
+		std::string user_agent = "avhttp/2.0";
+		if (opts.find(http_options::user_agent, user_agent))
+			opts.remove(http_options::user_agent);	// 删除处理过的选项.
+
 		// 默认添加close.
 		std::string connection = "close";
 		if (opts.find(http_options::connection, connection))
@@ -1099,6 +1109,7 @@ public:
 		request_stream << " " << http_version << "\r\n";
 		request_stream << "Host: " << host << "\r\n";
 		request_stream << "Accept: " << accept << "\r\n";
+		request_stream << "User-Agent: " << user_agent << "\r\n";
 		request_stream << "Connection: " << connection << "\r\n";
 		request_stream << other_option_string << "\r\n";
 		if (!body.empty())
@@ -1259,6 +1270,11 @@ public:
 		if (opts.find(http_options::accept, accept))
 			opts.remove(http_options::accept);	// 删除处理过的选项.
 
+		// 添加user_agent.
+		std::string user_agent = "avhttp/2.0";
+		if (opts.find(http_options::user_agent, user_agent))
+			opts.remove(http_options::user_agent);	// 删除处理过的选项.
+
 		// 默认添加close.
 		std::string connection = "close";
 		if (opts.find(http_options::connection, connection))
@@ -1286,6 +1302,7 @@ public:
 		request_stream << " " << http_version << "\r\n";
 		request_stream << "Host: " << host << "\r\n";
 		request_stream << "Accept: " << accept << "\r\n";
+		request_stream << "User-Agent: " << user_agent << "\r\n";
 		request_stream << "Connection: " << connection << "\r\n";
 		request_stream << other_option_string << "\r\n";
 		if (!body.empty())
@@ -1639,6 +1656,10 @@ protected:
 				return;
 			}
 		}
+
+		// 清空重定向次数.
+		m_redirects = 0;
+
 		if (m_status_code != avhttp::errc::ok && m_status_code != avhttp::errc::partial_content)
 			ec = make_error_code(static_cast<avhttp::errc::errc_t>(m_status_code));
 
@@ -1747,6 +1768,7 @@ protected:
 					err = ec;
 
 				handler(err, bytes_transferred);
+				return;
 			}
 #endif
 		}
@@ -1833,6 +1855,7 @@ protected:
 			{
 				boost::system::error_code err = make_error_code(boost::asio::error::eof);
 				handler(err, 0);
+				return;
 			}
 		}
 
@@ -1916,7 +1939,7 @@ protected:
 				method = read_uint8(p);
 				if (version != 5)	// 版本不等于5, 不支持socks5.
 				{
-					ec = make_error_code(errc::unsupported_version);
+					ec = make_error_code(errc::socks_unsupported_version);
 					return;
 				}
 			}
@@ -1924,7 +1947,7 @@ protected:
 			{
 				if (s.username.empty())
 				{
-					ec = make_error_code(errc::username_required);
+					ec = make_error_code(errc::socks_username_required);
 					return;
 				}
 
@@ -1968,14 +1991,14 @@ protected:
 				// 不支持的认证版本.
 				if (version != 1)
 				{
-					ec = make_error_code(errc::unsupported_authentication_version);
+					ec = make_error_code(errc::socks_unsupported_authentication_version);
 					return;
 				}
 
 				// 认证错误.
 				if (status != 0)
 				{
-					ec = make_error_code(errc::authentication_error);
+					ec = make_error_code(errc::socks_authentication_error);
 					return;
 				}
 
@@ -2041,7 +2064,7 @@ protected:
 		}
 		else
 		{
-			ec = make_error_code(errc::unsupported_version);
+			ec = make_error_code(errc::socks_unsupported_version);
 			return;
 		}
 
@@ -2052,11 +2075,13 @@ protected:
 			return;
 
 		// 接收socks服务器返回.
-		std::size_t bytes_to_read;
+		std::size_t bytes_to_read = 0;
 		if (s.type == proxy_settings::socks5 || s.type == proxy_settings::socks5_pw)
 			bytes_to_read = 10;
 		else if (s.type == proxy_settings::socks4)
 			bytes_to_read = 8;
+
+		BOOST_ASSERT(bytes_to_read == 0);
 
 		m_response.consume(m_response.size());
 		boost::asio::read(sock, m_response,
@@ -2073,13 +2098,13 @@ protected:
 			if (s.type != proxy_settings::socks5 && s.type != proxy_settings::socks5_pw)
 			{
 				// 请求的socks协议不是sock5.
-				ec = make_error_code(errc::unsupported_version);
+				ec = make_error_code(errc::socks_unsupported_version);
 				return;
 			}
 
 			if (response != 0)
 			{
-				ec = make_error_code(errc::general_failure);
+				ec = make_error_code(errc::socks_general_failure);
 				// 得到更详细的错误信息.
 				switch (response)
 				{
@@ -2088,7 +2113,7 @@ protected:
 				case 4: ec = boost::asio::error::host_unreachable; break;
 				case 5: ec = boost::asio::error::connection_refused; break;
 				case 6: ec = boost::asio::error::timed_out; break;
-				case 7: ec = make_error_code(errc::command_not_supported); break;
+				case 7: ec = make_error_code(errc::socks_command_not_supported); break;
 				case 8: ec = boost::asio::error::address_family_not_supported; break;
 				}
 				return;
@@ -2146,19 +2171,19 @@ protected:
 			}
 			else
 			{
-				ec = errc::general_failure;
+				ec = errc::socks_general_failure;
 				switch (response)
 				{
-				case 91: ec = errc::authentication_error; break;
-				case 92: ec = errc::no_identd; break;
-				case 93: ec = errc::identd_error; break;
+				case 91: ec = errc::socks_authentication_error; break;
+				case 92: ec = errc::socks_no_identd; break;
+				case 93: ec = errc::socks_identd_error; break;
 				}
 				return;
 			}
 		}
 		else
 		{
-			ec = errc::general_failure;
+			ec = errc::socks_general_failure;
 			return;
 		}
 	}
@@ -2465,7 +2490,7 @@ protected:
 				// 分析服务器返回.
 				boost::asio::const_buffer cb = m_response.data();
 				const char *rp = boost::asio::buffer_cast<const char*>(cb);
-				int version = read_uint8(rp);
+				/*int version = */read_uint8(rp);
 				int response = read_uint8(rp);
 
 				// 90: request granted.
@@ -2495,12 +2520,12 @@ protected:
 				}
 				else
 				{
-					boost::system::error_code ec = errc::general_failure;
+					boost::system::error_code ec = errc::socks_general_failure;
 					switch (response)
 					{
-					case 91: ec = errc::authentication_error; break;
-					case 92: ec = errc::no_identd; break;
-					case 93: ec = errc::identd_error; break;
+					case 91: ec = errc::socks_authentication_error; break;
+					case 92: ec = errc::socks_no_identd; break;
+					case 93: ec = errc::socks_identd_error; break;
 					}
 					handler(ec);
 					return;
@@ -2522,7 +2547,7 @@ protected:
 				int method = read_uint8(rp);
 				if (version != 5)	// 版本不等于5, 不支持socks5.
 				{
-					boost::system::error_code ec = make_error_code(errc::unsupported_version);
+					boost::system::error_code ec = make_error_code(errc::socks_unsupported_version);
 					handler(ec);
 					return;
 				}
@@ -2533,7 +2558,7 @@ protected:
 				{
 					if (s.username.empty())
 					{
-						boost::system::error_code ec = make_error_code(errc::username_required);
+						boost::system::error_code ec = make_error_code(errc::socks_username_required);
 						handler(ec);
 						return;
 					}
@@ -2580,14 +2605,14 @@ protected:
 
 				if (version != 1)	// 不支持的版本.
 				{
-					boost::system::error_code ec = make_error_code(errc::unsupported_authentication_version);
+					boost::system::error_code ec = make_error_code(errc::socks_unsupported_authentication_version);
 					handler(ec);
 					return;
 				}
 
 				if (status != 0)	// 认证错误.
 				{
-					boost::system::error_code ec = make_error_code(errc::authentication_error);
+					boost::system::error_code ec = make_error_code(errc::socks_authentication_error);
 					handler(ec);
 					return;
 				}
@@ -2607,14 +2632,14 @@ protected:
 
 				if (version != 5)
 				{
-					boost::system::error_code ec = make_error_code(errc::general_failure);
+					boost::system::error_code ec = make_error_code(errc::socks_general_failure);
 					handler(ec);
 					return;
 				}
 
 				if (response != 0)
 				{
-					boost::system::error_code ec = make_error_code(errc::general_failure);
+					boost::system::error_code ec = make_error_code(errc::socks_general_failure);
 					// 得到更详细的错误信息.
 					switch (response)
 					{
@@ -2623,7 +2648,7 @@ protected:
 					case 4: ec = boost::asio::error::host_unreachable; break;
 					case 5: ec = boost::asio::error::connection_refused; break;
 					case 6: ec = boost::asio::error::timed_out; break;
-					case 7: ec = make_error_code(errc::command_not_supported); break;
+					case 7: ec = make_error_code(errc::socks_command_not_supported); break;
 					case 8: ec = boost::asio::error::address_family_not_supported; break;
 					}
 					handler(ec);

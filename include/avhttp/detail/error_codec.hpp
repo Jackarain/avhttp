@@ -185,28 +185,28 @@ enum errc_t
 	version_not_supported = 505,
 
 	/// SOCKS unsupported version.
-	unsupported_version = 1000,
+	socks_unsupported_version = 1000,
 
 	/// SOCKS username required.
-	username_required,
+	socks_username_required,
 
 	/// SOCKS unsupported authentication version.
-	unsupported_authentication_version,
+	socks_unsupported_authentication_version,
 
 	/// SOCKS authentication error.
-	authentication_error,
+	socks_authentication_error,
 
 	/// SOCKS general failure.
-	general_failure,
+	socks_general_failure,
 
 	/// SOCKS command not supported.
-	command_not_supported,
+	socks_command_not_supported,
 
 	/// SOCKS no identd running.
-	no_identd,
+	socks_no_identd,
 
 	/// SOCKS no identd running.
-	identd_error
+	socks_identd_error
 };
 
 /// Converts a value of type @c errc_t to a corresponding object of type
@@ -337,21 +337,21 @@ class error_category_impl
 			return "Gateway time-out";
 		case errc::version_not_supported:
 			return "HTTP version not supported";
-		case  errc::unsupported_version:
+		case  errc::socks_unsupported_version:
 			return "SOCKS unsupported version";
-		case errc::username_required:
+		case errc::socks_username_required:
 			return "SOCKS username required";
-		case errc::unsupported_authentication_version:
+		case errc::socks_unsupported_authentication_version:
 			return "SOCKS unsupported authentication version";
-		case errc::authentication_error:
+		case errc::socks_authentication_error:
 			return "SOCKS authentication error";
-		case errc::general_failure:
+		case errc::socks_general_failure:
 			return "SOCKS general failure";
-		case errc::command_not_supported:
+		case errc::socks_command_not_supported:
 			return "SOCKS command not supported";
-		case errc::no_identd:
+		case errc::socks_no_identd:
 			return "SOCKS no identd running";
-		case errc::identd_error:
+		case errc::socks_identd_error:
 			return "SOCKS no identd running";
 		default:
 			return "Unknown HTTP error";
