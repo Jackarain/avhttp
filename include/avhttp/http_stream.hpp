@@ -1886,6 +1886,10 @@ protected:
 			if (m_chunked_size != 0)	// 开始读取chunked中的数据, 如果是压缩, 则解压到用户接受缓冲.
 			{
 				std::size_t max_length = 0;
+
+				if (m_response.size() != 0)
+					max_length = 0;
+				else
 				{
 					typename MutableBufferSequence::const_iterator iter = buffers.begin();
 					typename MutableBufferSequence::const_iterator end = buffers.end();
@@ -1898,6 +1902,7 @@ protected:
 					// 得到合适的缓冲大小.
 					max_length = std::min(max_length, m_chunked_size);
 				}
+
 				// 读取数据到m_response, 如果有压缩, 需要在handle_async_read中解压.
 				boost::asio::streambuf::mutable_buffers_type bufs =	m_response.prepare(max_length);
 				typedef boost::function<void (boost::system::error_code, std::size_t)> HandlerWrapper;
