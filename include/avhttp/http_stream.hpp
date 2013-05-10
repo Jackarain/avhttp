@@ -1863,7 +1863,7 @@ protected:
 			ss << std::hex << hex_chunked_size;
 			ss >> m_chunked_size;
 
-#ifdef AVHTTP_ENABLE_ZLIB // 初始化ZLIB库, 每次解压每个chunked的时候, 都要重新初始化.
+#ifdef AVHTTP_ENABLE_ZLIB // 初始化ZLIB库, 每次解压每个chunked的时候, 不需要重新初始化.
 			if (!m_stream.zalloc)
 			{
 				if (inflateInit2(&m_stream, 32+15 ) != Z_OK)
