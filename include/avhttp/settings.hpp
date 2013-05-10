@@ -48,6 +48,7 @@ namespace http_options {
 	static const std::string content_type("Content-Type");
 	static const std::string content_length("Content-Length");
 	static const std::string connection("Connection");
+	static const std::string proxy_connection("Proxy-Connection");
 	static const std::string accept_encoding("Accept-Encoding");
 	static const std::string transfer_encoding("Transfer-Encoding");
 	static const std::string content_encoding("Content-Encoding");
@@ -203,7 +204,7 @@ struct proxy_settings
 		socks5,
 		// 需要用户密码认证的socks5代理.
 		socks5_pw,
-		// TODO: http代理, 不需要认证.
+		// http代理, 不需要认证.
 		http,
 		// TODO: http代理, 需要认证.
 		http_pw,

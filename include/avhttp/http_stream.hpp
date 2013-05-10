@@ -335,9 +335,32 @@ public:
 #endif
 				// 和代理服务器连接握手完成.
 			}
+			else if (m_proxy.type == proxy_settings::http ||
+				m_proxy.type == proxy_settings::http_pw)		// http代理.
+			{
+				// 开始解析端口和主机名.
+				tcp::resolver resolver(m_io_service);
+				std::ostringstream port_string;
+				port_string << m_proxy.port;
+				tcp::resolver::query query(m_proxy.hostname, port_string.str());
+				tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
+				tcp::resolver::iterator end;
+
+				// 尝试连接解析出来的代理服务器地址.
+				ec = boost::asio::error::host_not_found;
+				while (ec && endpoint_iterator != end)
+				{
+					m_sock.close(ec);
+					m_sock.connect(*endpoint_iterator++, ec);
+				}
+				if (ec)
+				{
+					return;
+				}
+			}
 			else
 			{
-				// TODO: 暂时未实现其它代理功能.
+				// 不支持的操作功能.
 				ec = boost::asio::error::operation_not_supported;
 				return;
 			}
@@ -488,18 +511,10 @@ public:
 			return;
 		}
 
-		// 异步代理功能.
-		if (m_proxy.type != proxy_settings::none)
+		// 异步socks代理功能处理.
+		if (m_proxy.type == proxy_settings::socks4 || m_proxy.type == proxy_settings::socks5
+			|| m_proxy.type == proxy_settings::socks5_pw)
 		{
-			// HTTP代理协议未实现.
-			if (m_proxy.type != proxy_settings::socks4 && m_proxy.type != proxy_settings::socks5
-				&& m_proxy.type != proxy_settings::socks5_pw)
-			{
-				m_io_service.post(boost::asio::detail::bind_handler(
-					handler, boost::asio::error::operation_not_supported));
-				return;
-			}
-
 			if (protocol == "http")
 			{
 				async_socks_proxy_connect(m_sock, handler);
@@ -510,12 +525,24 @@ public:
 				async_socks_proxy_connect(m_nossl_socket, handler);
 			}
 #endif
-
 			return;
 		}
 
+		std::string host;
+		std::string port;
+		if (m_proxy.type == proxy_settings::http || m_proxy.type == proxy_settings::http_pw)
+		{
+			host = m_proxy.hostname;
+			port = boost::lexical_cast<std::string>(m_proxy.port);
+		}
+		else
+		{
+			host = m_url.host();
+			port = boost::lexical_cast<std::string>(m_url.port());
+		}
+
 		// 构造异步查询HOST.
-		tcp::resolver::query query(m_url.host(), boost::lexical_cast<std::string>(m_url.port()));
+		tcp::resolver::query query(host, port);
 
 		// 开始异步查询HOST信息.
 		typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
@@ -1073,7 +1100,7 @@ public:
 			opts.remove(http_options::host);	// 删除处理过的选项.
 
 		// 得到Accept信息.
-		std::string accept = "*/*";
+		std::string accept = "text/html, application/xhtml+xml, */*";
 		if (opts.find(http_options::accept, accept))
 			opts.remove(http_options::accept);	// 删除处理过的选项.
 
@@ -1084,8 +1111,16 @@ public:
 
 		// 默认添加close.
 		std::string connection = "close";
-		if (opts.find(http_options::connection, connection))
-			opts.remove(http_options::connection);		// 删除处理过的选项.
+		if (m_proxy.type == proxy_settings::http_pw || m_proxy.type == proxy_settings::http)
+		{
+			if (opts.find(http_options::proxy_connection, connection))
+				opts.remove(http_options::proxy_connection);		// 删除处理过的选项.
+		}
+		else
+		{
+			if (opts.find(http_options::connection, connection))
+				opts.remove(http_options::connection);		// 删除处理过的选项.
+		}
 
 		// 是否带有body选项.
 		std::string body;
@@ -1105,12 +1140,18 @@ public:
 		m_request.consume(m_request.size());
 		std::ostream request_stream(&m_request);
 		request_stream << request_method << " ";
-		request_stream << m_url.to_string(url::path_component | url::query_component);
+		if (m_proxy.type == proxy_settings::http_pw || m_proxy.type == proxy_settings::http)
+			request_stream << m_url.to_string().c_str();
+		else
+			request_stream << m_url.to_string(url::path_component | url::query_component);
 		request_stream << " " << http_version << "\r\n";
 		request_stream << "Host: " << host << "\r\n";
 		request_stream << "Accept: " << accept << "\r\n";
 		request_stream << "User-Agent: " << user_agent << "\r\n";
-		request_stream << "Connection: " << connection << "\r\n";
+		if (m_proxy.type == proxy_settings::http_pw || m_proxy.type == proxy_settings::http)
+			request_stream << "Proxy-Connection: " << connection << "\r\n";
+		else
+			request_stream << "Connection: " << connection << "\r\n";
 		request_stream << other_option_string << "\r\n";
 		if (!body.empty())
 		{
@@ -1277,8 +1318,16 @@ public:
 
 		// 默认添加close.
 		std::string connection = "close";
-		if (opts.find(http_options::connection, connection))
-			opts.remove(http_options::connection);		// 删除处理过的选项.
+		if (m_proxy.type == proxy_settings::http_pw || m_proxy.type == proxy_settings::http)
+		{
+			if (opts.find(http_options::proxy_connection, connection))
+				opts.remove(http_options::proxy_connection);		// 删除处理过的选项.
+		}
+		else
+		{
+			if (opts.find(http_options::connection, connection))
+				opts.remove(http_options::connection);		// 删除处理过的选项.
+		}
 
 		// 是否带有body选项.
 		std::string body;
@@ -1298,12 +1347,18 @@ public:
 		m_request.consume(m_request.size());
 		std::ostream request_stream(&m_request);
 		request_stream << request_method << " ";
-		request_stream << m_url.to_string(url::path_component | url::query_component);
+		if (m_proxy.type == proxy_settings::http_pw || m_proxy.type == proxy_settings::http)
+			request_stream << m_url.to_string().c_str();
+		else
+			request_stream << m_url.to_string(url::path_component | url::query_component);
 		request_stream << " " << http_version << "\r\n";
 		request_stream << "Host: " << host << "\r\n";
 		request_stream << "Accept: " << accept << "\r\n";
 		request_stream << "User-Agent: " << user_agent << "\r\n";
-		request_stream << "Connection: " << connection << "\r\n";
+		if (m_proxy.type == proxy_settings::http_pw || m_proxy.type == proxy_settings::http)
+			request_stream << "Proxy-Connection: " << connection << "\r\n";
+		else
+			request_stream << "Connection: " << connection << "\r\n";
 		request_stream << other_option_string << "\r\n";
 		if (!body.empty())
 		{
