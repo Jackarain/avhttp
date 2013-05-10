@@ -1105,7 +1105,7 @@ public:
 			opts.remove(http_options::accept);	// 删除处理过的选项.
 
 		// 添加user_agent.
-		std::string user_agent = "avhttp/2.0";
+		std::string user_agent = "avhttp/2.1";
 		if (opts.find(http_options::user_agent, user_agent))
 			opts.remove(http_options::user_agent);	// 删除处理过的选项.
 
@@ -1312,7 +1312,7 @@ public:
 			opts.remove(http_options::accept);	// 删除处理过的选项.
 
 		// 添加user_agent.
-		std::string user_agent = "avhttp/2.0";
+		std::string user_agent = "avhttp/2.1";
 		if (opts.find(http_options::user_agent, user_agent))
 			opts.remove(http_options::user_agent);	// 删除处理过的选项.
 
