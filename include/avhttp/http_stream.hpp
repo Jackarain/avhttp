@@ -1767,8 +1767,8 @@ protected:
 		if (!ec || m_response.size() > 0)
 		{
 			// 提交缓冲.
-			if (!ec)
-				m_response.commit(bytes_transferred);
+			// if (!ec)
+			m_response.commit(bytes_transferred);
 
 #ifdef AVHTTP_ENABLE_ZLIB
 			if (!m_is_gzip)	// 如果没有启用gzip, 则直接读取数据后返回.
