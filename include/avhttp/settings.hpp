@@ -44,6 +44,7 @@ namespace http_options {
 	static const std::string accept("Accept");
 	static const std::string cookie("cookie");
 	static const std::string referer("Referer");
+	static const std::string user_agent("User-Agent");
 	static const std::string content_type("Content-Type");
 	static const std::string content_length("Content-Length");
 	static const std::string connection("Connection");

@@ -78,7 +78,7 @@ int main(int argc, char* argv[])
 
 		if (d.file_size() != -1)
 			std::cout << "file \'" << d.file_name().c_str() <<
-			"\' size is: " << "(" << d.file_size() << " bytes) " << add_suffix(d.file_size()).c_str() << std::endl;
+			"\' size is: " << "(" << d.file_size() << " bytes) " << add_suffix((float)d.file_size()).c_str() << std::endl;
 
 		boost::thread t(boost::bind(&boost::asio::io_service::run, &io));
 
@@ -91,7 +91,7 @@ int main(int argc, char* argv[])
 			{
 				boost::int64_t file_size = d.file_size();
 				bytes_download = d.bytes_download();
-				percent = ((double)bytes_download / (double)file_size) * 100.0f;
+				percent = (int)(((double)bytes_download / (double)file_size) * 100.0f);
 				boost::this_thread::sleep(boost::posix_time::millisec(200));
 				printf("\r");
 				printf("%3d%% [", percent);
@@ -102,7 +102,7 @@ int main(int argc, char* argv[])
 					printf(">");
 				for (int i = 0; i < 49 - progress; i++)
 					printf(" ");
-				printf("]  %s  %s/s", add_suffix(bytes_download).c_str(), add_suffix(d.download_rate()).c_str());
+				printf("]  %s  %s/s", add_suffix((float)bytes_download).c_str(), add_suffix((float)d.download_rate()).c_str());
 			}
 			printf("\n");
 		}

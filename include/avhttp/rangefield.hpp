@@ -78,8 +78,8 @@ class rangefield
 public:
 	// @param size表示区间的总大小.
 	rangefield(boost::int64_t size = 0)
-		: m_size(size)
-		, m_need_gc(false)
+		: m_need_gc(false)
+		, m_size(size)
 	{}
 
 	~rangefield()
