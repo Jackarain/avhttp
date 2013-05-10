@@ -1307,7 +1307,7 @@ public:
 			opts.remove(http_options::host);	// 删除处理过的选项.
 
 		// 得到Accept信息.
-		std::string accept = "*/*";
+		std::string accept = "text/html, application/xhtml+xml, */*";
 		if (opts.find(http_options::accept, accept))
 			opts.remove(http_options::accept);	// 删除处理过的选项.
 
