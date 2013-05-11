@@ -787,6 +787,9 @@ public:
 				}
 #endif
 			}
+
+			if (m_chunked_size == 0)
+				return 0;
 		}
 
 		// 如果没有启用chunked.
