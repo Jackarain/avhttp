@@ -312,7 +312,8 @@ public:
 				}
 			}
 			else if (m_proxy.type == proxy_settings::socks5 ||
-				proxy_settings::socks4 || proxy_settings::socks5_pw)	// socks代理.
+				m_proxy.type == proxy_settings::socks4 ||
+				m_proxy.type == proxy_settings::socks5_pw)	// socks代理.
 			{
 				if (protocol == "http")
 				{
@@ -354,7 +355,7 @@ public:
 						return;
 					}
 					// 开始握手.
-					ssl_socket* ssl_sock = m_sock.get<ssl_socket>();
+					ssl_socket *ssl_sock = m_sock.get<ssl_socket>();
 					ssl_sock->handshake(ec);
 					if (ec)
 					{
@@ -2962,7 +2963,7 @@ protected:
 			return;
 		}
 
-		boost::system::error_code http_code;
+		// 发起CONNECT请求.
 		request_opts opts = m_request_opts;
 
 		// 向代理发起请求.
@@ -2991,7 +2992,7 @@ protected:
 		m_request.consume(m_request.size());
 		std::ostream request_stream(&m_request);
 		request_stream << request_method << " ";
-		request_stream << m_url.to_string().c_str();
+		request_stream << m_url.host() << ":" << m_url.port();
 		request_stream << " " << http_version << "\r\n";
 		request_stream << "Host: " << host << "\r\n";
 		request_stream << "Accept: " << accept << "\r\n";
@@ -3067,6 +3068,8 @@ protected:
 			ec = avhttp::errc::malformed_response_headers;
 			return;
 		}
+
+		m_response.consume(m_response.size());
 
 		return;
 	}
