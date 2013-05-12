@@ -194,11 +194,6 @@ public:
 	}
 
 public:
-	// 返回 http_stream 使用的 io_service　引用.
-	boost::asio::io_service & get_io_service()
-	{
-		return m_io_service;
-	}
 
 	///打开一个指定的url.
 	// 失败将抛出一个boost::system::system_error异常.
@@ -1366,6 +1361,12 @@ public:
 	bool is_open() const
 	{
 		return m_sock.is_open();
+	}
+
+	///反回当前http_stream所使用的io_service的引用.
+	boost::asio::io_service& get_io_service()
+	{
+		return m_io_service;
 	}
 
 	///设置最大重定向次数.
