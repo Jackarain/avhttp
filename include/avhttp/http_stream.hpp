@@ -278,6 +278,25 @@ public:
 		else if (protocol == "https")
 		{
 			m_sock.instantiate<ssl_socket>(m_nossl_socket);
+
+			// 加载证书路径或证书.
+			ssl_socket *ssl_sock = m_sock.get<ssl_socket>();
+			if (!m_ca_directory.empty())
+			{
+				ssl_sock->add_verify_path(m_ca_directory, ec);
+				if (ec)
+				{
+					return;
+				}
+			}
+			if (!m_ca_cert.empty())
+			{
+				ssl_sock->load_verify_file(m_ca_cert, ec);
+				if (ec)
+				{
+					return;
+				}
+			}
 		}
 #endif
 		else
@@ -539,6 +558,30 @@ public:
 		else if (protocol == "https")
 		{
 			m_sock.instantiate<ssl_socket>(m_nossl_socket);
+
+			// 加载证书路径或证书.
+			boost::system::error_code ec;
+			ssl_socket *ssl_sock = m_sock.get<ssl_socket>();
+			if (!m_ca_directory.empty())
+			{
+				ssl_sock->add_verify_path(m_ca_directory, ec);
+				if (ec)
+				{
+					m_io_service.post(boost::asio::detail::bind_handler(
+						handler, ec));
+					return;
+				}
+			}
+			if (!m_ca_cert.empty())
+			{
+				ssl_sock->load_verify_file(m_ca_cert, ec);
+				if (ec)
+				{
+					m_io_service.post(boost::asio::detail::bind_handler(
+						handler, ec));
+					return;
+				}
+			}
 		}
 #endif
 		else
@@ -1401,21 +1444,18 @@ public:
 
 	///添加证书路径.
 	// @param path证书路径.
-	// @ec 如果失败, 则返回错误信息.
-	void add_verify_path(const std::string &path, boost::system::error_code &ec)
+	void add_verify_path(const std::string &path)
 	{
-#ifdef AVHTTP_ENABLE_OPENSSL
-		if (m_protocol == "https")
-		{
-			ssl_socket* ssl_sock = m_sock.get<ssl_socket>();
-			ssl_sock->add_verify_path(path, ec);
-		}
-		else
-#endif
-		{
-			ec = boost::asio::error::operation_not_supported;
-			return;
-		}
+		m_ca_directory = path;
+		return;
+	}
+
+	///加载证书文件.
+	// @param filename指定的证书文件名.
+	void load_verify_file(const std::string &filename)
+	{
+		m_ca_cert = filename;
+		return;
 	}
 
 protected:
@@ -3394,6 +3434,8 @@ protected:
 	socket_type m_sock;								// socket.
 	nossl_socket m_nossl_socket;					// 非ssl socket, 只用于https的proxy实现.
 	bool m_check_certificate;						// 是否认证服务端证书.
+	std::string m_ca_directory;						// 证书路径.
+	std::string m_ca_cert;							// CA证书文件.
 	request_opts m_request_opts;					// 向http服务器请求的头信息.
 	response_opts m_response_opts;					// http服务器返回的http头信息.
 	proxy_settings m_proxy;							// 代理设置.

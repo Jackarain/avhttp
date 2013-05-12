@@ -65,6 +65,11 @@ public:
 		m_context.add_verify_path(path, ec);
 	}
 
+	void load_verify_file(const std::string &filename, boost::system::error_code &ec)
+	{
+		m_context.load_verify_file(filename, ec);
+	}
+
 #ifndef BOOST_NO_EXCEPTIONS
 	void connect(endpoint_type const &endpoint)
 	{

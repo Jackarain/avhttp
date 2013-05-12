@@ -53,7 +53,7 @@ namespace aux
 		{}
 	};
 
-// -------------- add_verify_path -----------
+	// -------------- add_verify_path -----------
 
 	struct add_verify_path_visitor
 		: boost::static_visitor<>
@@ -70,6 +70,26 @@ namespace aux
 		void operator()(boost::blank) const {}
 
 		const std::string &path_;
+		boost::system::error_code &ec_;
+	};
+
+	// -------------- load_verify_file -----------
+
+	struct load_verify_file_visitor
+		: boost::static_visitor<>
+	{
+		load_verify_file_visitor(const std::string &filename, boost::system::error_code &ec)
+			: filename_(filename)
+			, ec_(ec)
+		{}
+
+		template <class T>
+		void operator()(T* p) const
+		{ p->load_verify_file(filename_, ec_); }
+
+		void operator()(boost::blank) const {}
+
+		const std::string &filename_;
 		boost::system::error_code &ec_;
 	};
 
@@ -699,6 +719,15 @@ public:
 		BOOST_ASSERT(instantiated());
 		boost::apply_visitor(
 			aux::add_verify_path_visitor(path, ec)
+			, m_variant
+			);
+	}
+
+	void load_verify_file(const std::string &filename, boost::system::error_code &ec)
+	{
+		BOOST_ASSERT(instantiated());
+		boost::apply_visitor(
+			aux::load_verify_file_visitor(filename, ec)
 			, m_variant
 			);
 	}
