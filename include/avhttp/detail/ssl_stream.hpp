@@ -70,6 +70,12 @@ public:
 		m_context.load_verify_file(filename, ec);
 	}
 
+	template <typename VerifyCallback>
+	void set_verify_callback(VerifyCallback callback, boost::system::error_code &ec)
+	{
+		m_sock.set_verify_callback(callback, ec);
+	}
+
 #ifndef BOOST_NO_EXCEPTIONS
 	void connect(endpoint_type const &endpoint)
 	{

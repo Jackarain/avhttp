@@ -123,6 +123,15 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 				return;
 			}
 		}
+		if (m_check_certificate)
+		{
+			ssl_sock->set_verify_callback(
+				boost::asio::ssl::rfc2818_verification(m_url.host()), ec);
+			if (ec)
+			{
+				return;
+			}
+		}
 	}
 #endif
 	else
@@ -251,40 +260,6 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 		{
 			return;
 		}
-
-#ifdef AVHTTP_ENABLE_OPENSSL
-		if (m_protocol == "https")
-		{
-			// 认证证书.
-			if (m_check_certificate)
-			{
-				ssl_socket *ssl_sock = m_sock.get<ssl_socket>();
-				if (X509 *cert = SSL_get_peer_certificate(ssl_sock->impl()->ssl))
-				{
-					long result = SSL_get_verify_result(ssl_sock->impl()->ssl);
-					if (result == X509_V_OK)
-					{
-						if (certificate_matches_host(cert, m_url.host()))
-							ec = boost::system::error_code();
-						else
-							ec = make_error_code(boost::system::errc::permission_denied);
-					}
-					else
-						ec = make_error_code(boost::system::errc::permission_denied);
-					X509_free(cert);
-				}
-				else
-				{
-					ec = make_error_code(boost::asio::error::invalid_argument);
-				}
-
-				if (ec)
-				{
-					return;
-				}
-			}
-		}
-#endif
 	}
 	else
 	{
@@ -379,6 +354,17 @@ void http_stream::async_open(const url &u, Handler handler)
 		if (!m_ca_cert.empty())
 		{
 			ssl_sock->load_verify_file(m_ca_cert, ec);
+			if (ec)
+			{
+				m_io_service.post(boost::asio::detail::bind_handler(
+					handler, ec));
+				return;
+			}
+		}
+		if (m_check_certificate)
+		{
+			ssl_sock->set_verify_callback(
+				boost::asio::ssl::rfc2818_verification(m_url.host()), ec);
 			if (ec)
 			{
 				m_io_service.post(boost::asio::detail::bind_handler(
@@ -1124,41 +1110,6 @@ void http_stream::handle_connect(Handler handler,
 {
 	if (!err)
 	{
-#ifdef AVHTTP_ENABLE_OPENSSL
-		if (m_protocol == "https")
-		{
-			// 认证证书.
-			boost::system::error_code ec;
-			if (m_check_certificate)
-			{
-				ssl_socket *ssl_sock = m_sock.get<ssl_socket>();
-				if (X509 *cert = SSL_get_peer_certificate(ssl_sock->impl()->ssl))
-				{
-					long result = SSL_get_verify_result(ssl_sock->impl()->ssl);
-					if (result == X509_V_OK)
-					{
-						if (certificate_matches_host(cert, m_url.host()))
-							ec = boost::system::error_code();
-						else
-							ec = make_error_code(boost::system::errc::permission_denied);
-					}
-					else
-						ec = make_error_code(boost::system::errc::permission_denied);
-					X509_free(cert);
-				}
-				else
-				{
-					ec = make_error_code(boost::asio::error::invalid_argument);
-				}
-			}
-
-			if (ec)
-			{
-				handler(ec);
-				return;
-			}
-		}
-#endif
 		// 发起异步请求.
 		async_request(m_request_opts, handler);
 	}
@@ -3056,7 +3007,7 @@ bool http_stream::certificate_matches_host(X509 *cert, const std::string &host)
 						== ASN1_STRING_length(gen->d.dNSName))
 					{
 						OPENSSL_free(name_in_utf8);
-						break;
+						return true;
 					}
 					OPENSSL_free(name_in_utf8);
 				}

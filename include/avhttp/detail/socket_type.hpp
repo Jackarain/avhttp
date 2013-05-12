@@ -53,46 +53,6 @@ namespace aux
 		{}
 	};
 
-	// -------------- add_verify_path -----------
-
-	struct add_verify_path_visitor
-		: boost::static_visitor<>
-	{
-		add_verify_path_visitor(const std::string &path, boost::system::error_code &ec)
-			: path_(path)
-			, ec_(ec)
-		{}
-
-		template <class T>
-		void operator()(T* p) const
-		{ p->add_verify_path(path_, ec_); }
-
-		void operator()(boost::blank) const {}
-
-		const std::string &path_;
-		boost::system::error_code &ec_;
-	};
-
-	// -------------- load_verify_file -----------
-
-	struct load_verify_file_visitor
-		: boost::static_visitor<>
-	{
-		load_verify_file_visitor(const std::string &filename, boost::system::error_code &ec)
-			: filename_(filename)
-			, ec_(ec)
-		{}
-
-		template <class T>
-		void operator()(T* p) const
-		{ p->load_verify_file(filename_, ec_); }
-
-		void operator()(boost::blank) const {}
-
-		const std::string &filename_;
-		boost::system::error_code &ec_;
-	};
-
 	// -------------- io_control -----------
 
 	template<class IO_Control_Command>
@@ -712,24 +672,6 @@ public:
 	~variant_stream()
 	{
 		boost::apply_visitor(aux::delete_visitor(), m_variant);
-	}
-
-	void add_verify_path(const std::string &path, boost::system::error_code &ec)
-	{
-		BOOST_ASSERT(instantiated());
-		boost::apply_visitor(
-			aux::add_verify_path_visitor(path, ec)
-			, m_variant
-			);
-	}
-
-	void load_verify_file(const std::string &filename, boost::system::error_code &ec)
-	{
-		BOOST_ASSERT(instantiated());
-		boost::apply_visitor(
-			aux::load_verify_file_visitor(filename, ec)
-			, m_variant
-			);
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
