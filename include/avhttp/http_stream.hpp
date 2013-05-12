@@ -1389,6 +1389,25 @@ public:
 #endif
 	}
 
+	///添加证书路径.
+	// @param path证书路径.
+	// @ec 如果失败, 则返回错误信息.
+	void add_verify_path(const std::string &path, boost::system::error_code &ec)
+	{
+#ifdef AVHTTP_ENABLE_OPENSSL
+		if (m_protocol == "https")
+		{
+			ssl_socket* ssl_sock = m_sock.get<ssl_socket>();
+			ssl_sock->add_verify_path(path, ec);
+		}
+		else
+#endif
+		{
+			ec = boost::asio::error::operation_not_supported;
+			return;
+		}
+	}
+
 protected:
 
 	// 同步相关的其它实现.

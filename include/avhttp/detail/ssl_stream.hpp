@@ -60,6 +60,11 @@ public:
 
 	typedef boost::function<void(boost::system::error_code const&)> handler_type;
 
+	void add_verify_path(const std::string &path, boost::system::error_code &ec)
+	{
+		m_context.add_verify_path(path, ec);
+	}
+
 #ifndef BOOST_NO_EXCEPTIONS
 	void connect(endpoint_type const &endpoint)
 	{
