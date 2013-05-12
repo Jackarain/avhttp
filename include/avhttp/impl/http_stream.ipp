@@ -65,10 +65,10 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 {
 	const std::string protocol = u.protocol();
 
-	// ±£´æurl.
+	// ä¿å­˜url.
 	m_url = u;
 
-	// Çå¿ÕÒ»Ğ©Ñ¡Ïî.
+	// æ¸…ç©ºä¸€äº›é€‰é¡¹.
 	m_content_type = "";
 	m_status_code = 0;
 	m_content_length = 0;
@@ -78,7 +78,7 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 	m_protocol = "";
 	m_skip_crlf = true;
 
-	// »ñµÃÇëÇóµÄurlÀàĞÍ.
+	// è·å¾—è¯·æ±‚çš„urlç±»å‹.
 	if (protocol == "http")
 	{
 		m_protocol = "http";
@@ -95,7 +95,7 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 		return;
 	}
 
-	// ¹¹Ôìsocket.
+	// æ„é€ socket.
 	if (protocol == "http")
 	{
 		m_sock.instantiate<nossl_socket>(m_io_service);
@@ -105,7 +105,7 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 	{
 		m_sock.instantiate<ssl_socket>(m_nossl_socket);
 
-		// ¼ÓÔØÖ¤ÊéÂ·¾¶»òÖ¤Êé.
+		// åŠ è½½è¯ä¹¦è·¯å¾„æˆ–è¯ä¹¦.
 		ssl_socket *ssl_sock = m_sock.get<ssl_socket>();
 		if (!m_ca_directory.empty())
 		{
@@ -131,12 +131,12 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 		return;
 	}
 
-	// ¿ªÊ¼½øĞĞÁ¬½Ó.
+	// å¼€å§‹è¿›è¡Œè¿æ¥.
 	if (m_sock.instantiated() && !m_sock.is_open())
 	{
 		if (m_proxy.type == proxy_settings::none)
 		{
-			// ¿ªÊ¼½âÎö¶Ë¿ÚºÍÖ÷»úÃû.
+			// å¼€å§‹è§£æç«¯å£å’Œä¸»æœºå.
 			tcp::resolver resolver(m_io_service);
 			std::ostringstream port_string;
 			port_string << m_url.port();
@@ -144,7 +144,7 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 			tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
 			tcp::resolver::iterator end;
 
-			// ³¢ÊÔÁ¬½Ó½âÎö³öÀ´µÄ·şÎñÆ÷µØÖ·.
+			// å°è¯•è¿æ¥è§£æå‡ºæ¥çš„æœåŠ¡å™¨åœ°å€.
 			ec = boost::asio::error::host_not_found;
 			while (ec && endpoint_iterator != end)
 			{
@@ -158,7 +158,7 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 		}
 		else if (m_proxy.type == proxy_settings::socks5 ||
 			m_proxy.type == proxy_settings::socks4 ||
-			m_proxy.type == proxy_settings::socks5_pw)	// socks´úÀí.
+			m_proxy.type == proxy_settings::socks5_pw)	// socksä»£ç†.
 		{
 			if (protocol == "http")
 			{
@@ -176,7 +176,7 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 				{
 					return;
 				}
-				// ¿ªÊ¼ÎÕÊÖ.
+				// å¼€å§‹æ¡æ‰‹.
 				ssl_socket* ssl_sock = m_sock.get<ssl_socket>();
 				ssl_sock->handshake(ec);
 				if (ec)
@@ -185,21 +185,21 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 				}
 			}
 #endif
-			// ºÍ´úÀí·şÎñÆ÷Á¬½ÓÎÕÊÖÍê³É.
+			// å’Œä»£ç†æœåŠ¡å™¨è¿æ¥æ¡æ‰‹å®Œæˆ.
 		}
 		else if (m_proxy.type == proxy_settings::http ||
-			m_proxy.type == proxy_settings::http_pw)		// http´úÀí.
+			m_proxy.type == proxy_settings::http_pw)		// httpä»£ç†.
 		{
 #ifdef AVHTTP_ENABLE_OPENSSL
 			if (m_protocol == "https")
 			{
-				// https´úÀí´¦Àí.
+				// httpsä»£ç†å¤„ç†.
 				https_proxy_connect(m_nossl_socket, ec);
 				if (ec)
 				{
 					return;
 				}
-				// ¿ªÊ¼ÎÕÊÖ.
+				// å¼€å§‹æ¡æ‰‹.
 				ssl_socket *ssl_sock = m_sock.get<ssl_socket>();
 				ssl_sock->handshake(ec);
 				if (ec)
@@ -211,7 +211,7 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 #endif
 				if (m_protocol == "http")
 				{
-					// ¿ªÊ¼½âÎö¶Ë¿ÚºÍÖ÷»úÃû.
+					// å¼€å§‹è§£æç«¯å£å’Œä¸»æœºå.
 					tcp::resolver resolver(m_io_service);
 					std::ostringstream port_string;
 					port_string << m_proxy.port;
@@ -219,7 +219,7 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 					tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
 					tcp::resolver::iterator end;
 
-					// ³¢ÊÔÁ¬½Ó½âÎö³öÀ´µÄ´úÀí·şÎñÆ÷µØÖ·.
+					// å°è¯•è¿æ¥è§£æå‡ºæ¥çš„ä»£ç†æœåŠ¡å™¨åœ°å€.
 					ec = boost::asio::error::host_not_found;
 					while (ec && endpoint_iterator != end)
 					{
@@ -233,19 +233,19 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 				}
 				else
 				{
-					// ²»Ö§³ÖµÄ²Ù×÷¹¦ÄÜ.
+					// ä¸æ”¯æŒçš„æ“ä½œåŠŸèƒ½.
 					ec = boost::asio::error::operation_not_supported;
 					return;
 				}
 		}
 		else
 		{
-			// ²»Ö§³ÖµÄ²Ù×÷¹¦ÄÜ.
+			// ä¸æ”¯æŒçš„æ“ä½œåŠŸèƒ½.
 			ec = boost::asio::error::operation_not_supported;
 			return;
 		}
 
-		// ½ûÓÃNagleÔÚsocketÉÏ.
+		// ç¦ç”¨Nagleåœ¨socketä¸Š.
 		m_sock.set_option(tcp::no_delay(true), ec);
 		if (ec)
 		{
@@ -255,7 +255,7 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 #ifdef AVHTTP_ENABLE_OPENSSL
 		if (m_protocol == "https")
 		{
-			// ÈÏÖ¤Ö¤Êé.
+			// è®¤è¯è¯ä¹¦.
 			if (m_check_certificate)
 			{
 				ssl_socket *ssl_sock = m_sock.get<ssl_socket>();
@@ -288,17 +288,17 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 	}
 	else
 	{
-		// socketÒÑ¾­´ò¿ª.
+		// socketå·²ç»æ‰“å¼€.
 		ec = boost::asio::error::already_open;
 		return;
 	}
 
 	boost::system::error_code http_code;
 
-	// ·¢³öÇëÇó.
+	// å‘å‡ºè¯·æ±‚.
 	request(m_request_opts, http_code);
 
-	// ÅĞ¶ÏÊÇ·ñĞèÒªÌø×ª.
+	// åˆ¤æ–­æ˜¯å¦éœ€è¦è·³è½¬.
 	if (http_code == avhttp::errc::moved_permanently || http_code == avhttp::errc::found)
 	{
 		m_sock.close(ec);
@@ -309,14 +309,14 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 		}
 	}
 
-	// Çå¿ÕÖØ¶¨Ïò´ÎÊı.
+	// æ¸…ç©ºé‡å®šå‘æ¬¡æ•°.
 	m_redirects = 0;
 
-	// ¸ù¾İhttp×´Ì¬ÂëÀ´¹¹Ôì.
+	// æ ¹æ®httpçŠ¶æ€ç æ¥æ„é€ .
 	if (http_code)
 		ec = http_code;
 	else
-		ec = boost::system::error_code();	// ´ò¿ª³É¹¦.
+		ec = boost::system::error_code();	// æ‰“å¼€æˆåŠŸ.
 
 	return;
 }
@@ -326,10 +326,10 @@ void http_stream::async_open(const url &u, Handler handler)
 {
 	const std::string protocol = u.protocol();
 
-	// ±£´æurl.
+	// ä¿å­˜url.
 	m_url = u;
 
-	// Çå¿ÕÒ»Ğ©Ñ¡Ïî.
+	// æ¸…ç©ºä¸€äº›é€‰é¡¹.
 	m_content_type = "";
 	m_status_code = 0;
 	m_content_length = 0;
@@ -339,7 +339,7 @@ void http_stream::async_open(const url &u, Handler handler)
 	m_protocol = "";
 	m_skip_crlf = true;
 
-	// »ñµÃÇëÇóµÄurlÀàĞÍ.
+	// è·å¾—è¯·æ±‚çš„urlç±»å‹.
 	if (protocol == "http")
 		m_protocol = "http";
 #ifdef AVHTTP_ENABLE_OPENSSL
@@ -353,7 +353,7 @@ void http_stream::async_open(const url &u, Handler handler)
 		return;
 	}
 
-	// ¹¹Ôìsocket.
+	// æ„é€ socket.
 	if (protocol == "http")
 	{
 		m_sock.instantiate<nossl_socket>(m_io_service);
@@ -363,7 +363,7 @@ void http_stream::async_open(const url &u, Handler handler)
 	{
 		m_sock.instantiate<ssl_socket>(m_nossl_socket);
 
-		// ¼ÓÔØÖ¤ÊéÂ·¾¶»òÖ¤Êé.
+		// åŠ è½½è¯ä¹¦è·¯å¾„æˆ–è¯ä¹¦.
 		boost::system::error_code ec;
 		ssl_socket *ssl_sock = m_sock.get<ssl_socket>();
 		if (!m_ca_directory.empty())
@@ -395,7 +395,7 @@ void http_stream::async_open(const url &u, Handler handler)
 		return;
 	}
 
-	// ÅĞ¶ÏsocketÊÇ·ñ´ò¿ª.
+	// åˆ¤æ–­socketæ˜¯å¦æ‰“å¼€.
 	if (m_sock.instantiated() && m_sock.is_open())
 	{
 		m_io_service.post(boost::asio::detail::bind_handler(
@@ -403,7 +403,7 @@ void http_stream::async_open(const url &u, Handler handler)
 		return;
 	}
 
-	// Òì²½socks´úÀí¹¦ÄÜ´¦Àí.
+	// å¼‚æ­¥socksä»£ç†åŠŸèƒ½å¤„ç†.
 	if (m_proxy.type == proxy_settings::socks4 || m_proxy.type == proxy_settings::socks5
 		|| m_proxy.type == proxy_settings::socks5_pw)
 	{
@@ -427,7 +427,7 @@ void http_stream::async_open(const url &u, Handler handler)
 #ifdef AVHTTP_ENABLE_OPENSSL
 		if (m_protocol == "https")
 		{
-			// https´úÀí.
+			// httpsä»£ç†.
 			async_https_proxy_connect(m_nossl_socket, handler);
 			return;
 		}
@@ -444,10 +444,10 @@ void http_stream::async_open(const url &u, Handler handler)
 		port = boost::lexical_cast<std::string>(m_url.port());
 	}
 
-	// ¹¹ÔìÒì²½²éÑ¯HOST.
+	// æ„é€ å¼‚æ­¥æŸ¥è¯¢HOST.
 	tcp::resolver::query query(host, port);
 
-	// ¿ªÊ¼Òì²½²éÑ¯HOSTĞÅÏ¢.
+	// å¼€å§‹å¼‚æ­¥æŸ¥è¯¢HOSTä¿¡æ¯.
 	typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
 	HandlerWrapper h = handler;
 	m_resolver.async_resolve(query,
@@ -477,18 +477,18 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 	boost::system::error_code &ec)
 {
 	std::size_t bytes_transferred = 0;
-	if (m_is_chunked)	// Èç¹ûÆôÓÃÁË·Ö¿é´«ÊäÄ£Ê½, Ôò½âÎö¿é´óĞ¡, ²¢¶ÁÈ¡Ğ¡ÓÚ¿é´óĞ¡µÄÊı¾İ.
+	if (m_is_chunked)	// å¦‚æœå¯ç”¨äº†åˆ†å—ä¼ è¾“æ¨¡å¼, åˆ™è§£æå—å¤§å°, å¹¶è¯»å–å°äºå—å¤§å°çš„æ•°æ®.
 	{
 		char crlf[2] = { '\r', '\n' };
-		// chunked_size´óĞ¡Îª0, ¶ÁÈ¡ÏÂÒ»¸ö¿éÍ·´óĞ¡.
+		// chunked_sizeå¤§å°ä¸º0, è¯»å–ä¸‹ä¸€ä¸ªå—å¤´å¤§å°.
 		if (m_chunked_size == 0
 #ifdef AVHTTP_ENABLE_ZLIB
 			&& m_stream.avail_in == 0
 #endif
 			)
 		{
-			// ÊÇ·ñÌø¹ıCRLF, ³ıµÚÒ»´Î¶ÁÈ¡µÚÒ»¶ÎÊı¾İÍâ, ºóÃæµÄÃ¿¸öchunked¶¼ĞèÒª½«
-			// Ä©Î²µÄCRLFÌø¹ı.
+			// æ˜¯å¦è·³è¿‡CRLF, é™¤ç¬¬ä¸€æ¬¡è¯»å–ç¬¬ä¸€æ®µæ•°æ®å¤–, åé¢çš„æ¯ä¸ªchunkedéƒ½éœ€è¦å°†
+			// æœ«å°¾çš„CRLFè·³è¿‡.
 			if (!m_skip_crlf)
 			{
 				ec = boost::system::error_code();
@@ -499,7 +499,7 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 					return 0;
 			}
 			std::string hex_chunked_size;
-			// ¶ÁÈ¡.
+			// è¯»å–.
 			while (!ec)
 			{
 				char c;
@@ -518,7 +518,7 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 			if (ec)
 				return 0;
 
-			// µÃµ½chunked size.
+			// å¾—åˆ°chunked size.
 			std::stringstream ss;
 			ss << std::hex << hex_chunked_size;
 			ss >> m_chunked_size;
@@ -533,7 +533,7 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 				}
 			}
 #endif
-			// chunked_size²»°üÀ¨Êı¾İÎ²µÄcrlf, ËùÒÔÖÃÊı¾İÎ²µÄcrlfÎªfalse×´Ì¬.
+			// chunked_sizeä¸åŒ…æ‹¬æ•°æ®å°¾çš„crlf, æ‰€ä»¥ç½®æ•°æ®å°¾çš„crlfä¸ºfalseçŠ¶æ€.
 			m_skip_crlf = false;
 		}
 
@@ -551,24 +551,24 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 #ifdef AVHTTP_ENABLE_ZLIB
 			|| m_stream.avail_in != 0
 #endif
-			)	// ¿ªÊ¼¶ÁÈ¡chunkedÖĞµÄÊı¾İ, Èç¹ûÊÇÑ¹Ëõ, Ôò½âÑ¹µ½ÓÃ»§½ÓÊÜ»º³å.
+			)	// å¼€å§‹è¯»å–chunkedä¸­çš„æ•°æ®, å¦‚æœæ˜¯å‹ç¼©, åˆ™è§£å‹åˆ°ç”¨æˆ·æ¥å—ç¼“å†².
 		{
 			std::size_t max_length = 0;
 			{
 				typename MutableBufferSequence::const_iterator iter = buffers.begin();
 				typename MutableBufferSequence::const_iterator end = buffers.end();
-				// ¼ÆËãµÃµ½ÓÃ»§buffer_size×Ü´óĞ¡.
+				// è®¡ç®—å¾—åˆ°ç”¨æˆ·buffer_sizeæ€»å¤§å°.
 				for (; iter != end; ++iter)
 				{
 					boost::asio::mutable_buffer buffer(*iter);
 					max_length += boost::asio::buffer_size(buffer);
 				}
-				// µÃµ½ºÏÊÊµÄ»º³å´óĞ¡.
+				// å¾—åˆ°åˆé€‚çš„ç¼“å†²å¤§å°.
 				max_length = std::min(max_length, m_chunked_size);
 			}
 
 #ifdef AVHTTP_ENABLE_ZLIB
-			if (!m_is_gzip)	// Èç¹ûÃ»ÓĞÆôÓÃgzip, ÔòÖ±½Ó¶ÁÈ¡Êı¾İºó·µ»Ø.
+			if (!m_is_gzip)	// å¦‚æœæ²¡æœ‰å¯ç”¨gzip, åˆ™ç›´æ¥è¯»å–æ•°æ®åè¿”å›.
 #endif
 			{
 				bytes_transferred = read_some_impl(boost::asio::buffer(buffers, max_length), ec);
@@ -576,7 +576,7 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 				return bytes_transferred;
 			}
 #ifdef AVHTTP_ENABLE_ZLIB
-			else					// ·ñÔò¶ÁÈ¡Êı¾İµ½½âÑ¹»º³åÖĞ.
+			else					// å¦åˆ™è¯»å–æ•°æ®åˆ°è§£å‹ç¼“å†²ä¸­.
 			{
 				if (m_stream.avail_in == 0)
 				{
@@ -593,7 +593,7 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 				{
 					typename MutableBufferSequence::const_iterator iter = buffers.begin();
 					typename MutableBufferSequence::const_iterator end = buffers.end();
-					// ¼ÆËãµÃµ½ÓÃ»§buffer_size×Ü´óĞ¡.
+					// è®¡ç®—å¾—åˆ°ç”¨æˆ·buffer_sizeæ€»å¤§å°.
 					for (; iter != end; ++iter)
 					{
 						boost::asio::mutable_buffer buffer(*iter);
@@ -622,7 +622,7 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 			return 0;
 	}
 
-	// Èç¹ûÃ»ÓĞÆôÓÃchunked.
+	// å¦‚æœæ²¡æœ‰å¯ç”¨chunked.
 #ifdef AVHTTP_ENABLE_ZLIB
 	if (m_is_gzip && !m_is_chunked)
 	{
@@ -648,7 +648,7 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 		{
 			typename MutableBufferSequence::const_iterator iter = buffers.begin();
 			typename MutableBufferSequence::const_iterator end = buffers.end();
-			// ¼ÆËãµÃµ½ÓÃ»§buffer_size×Ü´óĞ¡.
+			// è®¡ç®—å¾—åˆ°ç”¨æˆ·buffer_sizeæ€»å¤§å°.
 			for (; iter != end; ++iter)
 			{
 				boost::asio::mutable_buffer buffer(*iter);
@@ -681,10 +681,10 @@ void http_stream::async_read_some(const MutableBufferSequence &buffers, Handler 
 {
 	BOOST_ASIO_READ_HANDLER_CHECK(Handler, handler) type_check;
 
-	if (m_is_chunked)	// Èç¹ûÆôÓÃÁË·Ö¿é´«ÊäÄ£Ê½, Ôò½âÎö¿é´óĞ¡, ²¢¶ÁÈ¡Ğ¡ÓÚ¿é´óĞ¡µÄÊı¾İ.
+	if (m_is_chunked)	// å¦‚æœå¯ç”¨äº†åˆ†å—ä¼ è¾“æ¨¡å¼, åˆ™è§£æå—å¤§å°, å¹¶è¯»å–å°äºå—å¤§å°çš„æ•°æ®.
 	{
-		// chunked_size´óĞ¡Îª0, ¶ÁÈ¡ÏÂÒ»¸ö¿éÍ·´óĞ¡, Èç¹ûÆôÓÃÁËgzip, Ôò±ØĞë½âÑ¹ÁËËùÓĞÊı¾İ²Å
-		// ¶ÁÈ¡ÏÂÒ»¸öchunkÍ·.
+		// chunked_sizeå¤§å°ä¸º0, è¯»å–ä¸‹ä¸€ä¸ªå—å¤´å¤§å°, å¦‚æœå¯ç”¨äº†gzip, åˆ™å¿…é¡»è§£å‹äº†æ‰€æœ‰æ•°æ®æ‰
+		// è¯»å–ä¸‹ä¸€ä¸ªchunkå¤´.
 		if (m_chunked_size == 0
 #ifdef AVHTTP_ENABLE_ZLIB
 			&& m_stream.avail_in == 0
@@ -694,20 +694,20 @@ void http_stream::async_read_some(const MutableBufferSequence &buffers, Handler 
 			int bytes_transferred = 0;
 			int response_size = m_response.size();
 
-			// ÊÇ·ñÌø¹ıCRLF, ³ıµÚÒ»´Î¶ÁÈ¡µÚÒ»¶ÎÊı¾İÍâ, ºóÃæµÄÃ¿¸öchunked¶¼ĞèÒª½«
-			// Ä©Î²µÄCRLFÌø¹ı.
+			// æ˜¯å¦è·³è¿‡CRLF, é™¤ç¬¬ä¸€æ¬¡è¯»å–ç¬¬ä¸€æ®µæ•°æ®å¤–, åé¢çš„æ¯ä¸ªchunkedéƒ½éœ€è¦å°†
+			// æœ«å°¾çš„CRLFè·³è¿‡.
 			if (!m_skip_crlf)
 			{
 				boost::shared_array<char> crlf(new char[2]);
 				memset((void*)crlf.get(), 0, 2);
 
-				if (response_size > 0)	// ´Óm_response»º³åÖĞÌø¹ı.
+				if (response_size > 0)	// ä»m_responseç¼“å†²ä¸­è·³è¿‡.
 				{
 					bytes_transferred = m_response.sgetn(
 						crlf.get(), std::min(response_size, 2));
 					if (bytes_transferred == 1)
 					{
-						// ¼ÌĞøÒì²½¶ÁÈ¡ÏÂÒ»¸öLF×Ö½Ú.
+						// ç»§ç»­å¼‚æ­¥è¯»å–ä¸‹ä¸€ä¸ªLFå­—èŠ‚.
 						typedef boost::function<void (boost::system::error_code, std::size_t)> HandlerWrapper;
 						HandlerWrapper h(handler);
 						m_sock.async_read_some(boost::asio::buffer(&crlf.get()[1], 1),
@@ -721,14 +721,14 @@ void http_stream::async_read_some(const MutableBufferSequence &buffers, Handler 
 					}
 					else
 					{
-						// ¶ÁÈ¡µ½CRLF, so, ÕâÀïÖ»ÄÜÊÇ2!!! È»ºó¿ªÊ¼´¦Àíchunked size.
+						// è¯»å–åˆ°CRLF, so, è¿™é‡Œåªèƒ½æ˜¯2!!! ç„¶åå¼€å§‹å¤„ç†chunked size.
 						BOOST_ASSERT(bytes_transferred == 2);
 						BOOST_ASSERT(crlf.get()[0] == '\r' && crlf.get()[1] == '\n');
 					}
 				}
 				else
 				{
-					// Òì²½¶ÁÈ¡CRLF.
+					// å¼‚æ­¥è¯»å–CRLF.
 					typedef boost::function<void (boost::system::error_code, std::size_t)> HandlerWrapper;
 					HandlerWrapper h(handler);
 					m_sock.async_read_some(boost::asio::buffer(&crlf.get()[0], 2),
@@ -742,7 +742,7 @@ void http_stream::async_read_some(const MutableBufferSequence &buffers, Handler 
 				}
 			}
 
-			// Ìø¹ıCRLF, ¿ªÊ¼¶ÁÈ¡chunked size.
+			// è·³è¿‡CRLF, å¼€å§‹è¯»å–chunked size.
 			typedef boost::function<void (boost::system::error_code, std::size_t)> HandlerWrapper;
 			HandlerWrapper h(handler);
 			boost::asio::async_read_until(m_sock, m_response, "\r\n",
@@ -758,25 +758,25 @@ void http_stream::async_read_some(const MutableBufferSequence &buffers, Handler 
 		{
 			std::size_t max_length = 0;
 
-			// ÕâÀïÎª0ÊÇÖ±½Ó¶ÁÈ¡m_responseÖĞµÄÊı¾İ, ¶ø²»ÔÙ´Ósocket¶ÁÈ¡Êı¾İ, ±ÜÃâ
-			// ¶ÁÈ¡Êı¾İµ½Î²²¿µÄÊ±ºò, ·¢Éú³¤Ê±¼äµÈ´ıµÄÇé¿ö.
+			// è¿™é‡Œä¸º0æ˜¯ç›´æ¥è¯»å–m_responseä¸­çš„æ•°æ®, è€Œä¸å†ä»socketè¯»å–æ•°æ®, é¿å…
+			// è¯»å–æ•°æ®åˆ°å°¾éƒ¨çš„æ—¶å€™, å‘ç”Ÿé•¿æ—¶é—´ç­‰å¾…çš„æƒ…å†µ.
 			if (m_response.size() != 0)
 				max_length = 0;
 			else
 			{
 				typename MutableBufferSequence::const_iterator iter = buffers.begin();
 				typename MutableBufferSequence::const_iterator end = buffers.end();
-				// ¼ÆËãµÃµ½ÓÃ»§buffer_size×Ü´óĞ¡.
+				// è®¡ç®—å¾—åˆ°ç”¨æˆ·buffer_sizeæ€»å¤§å°.
 				for (; iter != end; ++iter)
 				{
 					boost::asio::mutable_buffer buffer(*iter);
 					max_length += boost::asio::buffer_size(buffer);
 				}
-				// µÃµ½ºÏÊÊµÄ»º³å´óĞ¡.
+				// å¾—åˆ°åˆé€‚çš„ç¼“å†²å¤§å°.
 				max_length = std::min(max_length, m_chunked_size);
 			}
 
-			// ¶ÁÈ¡Êı¾İµ½m_response, Èç¹ûÓĞÑ¹Ëõ, ĞèÒªÔÚhandle_async_readÖĞ½âÑ¹.
+			// è¯»å–æ•°æ®åˆ°m_response, å¦‚æœæœ‰å‹ç¼©, éœ€è¦åœ¨handle_async_readä¸­è§£å‹.
 			boost::asio::streambuf::mutable_buffers_type bufs = m_response.prepare(max_length);
 			typedef boost::function<void (boost::system::error_code, std::size_t)> HandlerWrapper;
 			HandlerWrapper h(handler);
@@ -800,7 +800,7 @@ void http_stream::async_read_some(const MutableBufferSequence &buffers, Handler 
 		return;
 	}
 
-	// µ±»º³åÇøÊı¾İ²»¹», Ö±½Ó´ÓsocketÖĞÒì²½¶ÁÈ¡.
+	// å½“ç¼“å†²åŒºæ•°æ®ä¸å¤Ÿ, ç›´æ¥ä»socketä¸­å¼‚æ­¥è¯»å–.
 	m_sock.async_read_some(buffers, handler);
 }
 
@@ -854,72 +854,72 @@ void http_stream::async_request(const request_opts &opt, Handler handler)
 {
 	boost::system::error_code ec;
 
-	// ÅĞ¶ÏsocketÊÇ·ñ´ò¿ª.
+	// åˆ¤æ–­socketæ˜¯å¦æ‰“å¼€.
 	if (!m_sock.is_open())
 	{
 		handler(boost::asio::error::network_reset);
 		return;
 	}
 
-	// ±£´æµ½Ò»¸öĞÂµÄoptsÖĞ²Ù×÷.
+	// ä¿å­˜åˆ°ä¸€ä¸ªæ–°çš„optsä¸­æ“ä½œ.
 	request_opts opts = opt;
 
-	// µÃµ½urlÑ¡Ïî.
+	// å¾—åˆ°urlé€‰é¡¹.
 	std::string new_url;
 	if (opts.find(http_options::url, new_url))
-		opts.remove(http_options::url);		// É¾³ı´¦Àí¹ıµÄÑ¡Ïî.
+		opts.remove(http_options::url);		// åˆ é™¤å¤„ç†è¿‡çš„é€‰é¡¹.
 
 	if (!new_url.empty())
 	{
-		BOOST_ASSERT(url::from_string(new_url).host() == m_url.host());	// ±ØĞëÊÇÍ¬Ò»Ö÷»ú.
+		BOOST_ASSERT(url::from_string(new_url).host() == m_url.host());	// å¿…é¡»æ˜¯åŒä¸€ä¸»æœº.
 		m_url = new_url;
 	}
 
-	// µÃµ½request_method.
+	// å¾—åˆ°request_method.
 	std::string request_method = "GET";
 	if (opts.find(http_options::request_method, request_method))
-		opts.remove(http_options::request_method);	// É¾³ı´¦Àí¹ıµÄÑ¡Ïî.
+		opts.remove(http_options::request_method);	// åˆ é™¤å¤„ç†è¿‡çš„é€‰é¡¹.
 
-	// µÃµ½httpµÄ°æ±¾ĞÅÏ¢.
+	// å¾—åˆ°httpçš„ç‰ˆæœ¬ä¿¡æ¯.
 	std::string http_version = "HTTP/1.1";
 	if (opts.find(http_options::http_version, http_version))
-		opts.remove(http_options::http_version);	// É¾³ı´¦Àí¹ıµÄÑ¡Ïî.
+		opts.remove(http_options::http_version);	// åˆ é™¤å¤„ç†è¿‡çš„é€‰é¡¹.
 
-	// µÃµ½HostĞÅÏ¢.
+	// å¾—åˆ°Hostä¿¡æ¯.
 	std::string host = m_url.to_string(url::host_component | url::port_component);
 	if (opts.find(http_options::host, host))
-		opts.remove(http_options::host);	// É¾³ı´¦Àí¹ıµÄÑ¡Ïî.
+		opts.remove(http_options::host);	// åˆ é™¤å¤„ç†è¿‡çš„é€‰é¡¹.
 
-	// µÃµ½AcceptĞÅÏ¢.
+	// å¾—åˆ°Acceptä¿¡æ¯.
 	std::string accept = "text/html, application/xhtml+xml, */*";
 	if (opts.find(http_options::accept, accept))
-		opts.remove(http_options::accept);	// É¾³ı´¦Àí¹ıµÄÑ¡Ïî.
+		opts.remove(http_options::accept);	// åˆ é™¤å¤„ç†è¿‡çš„é€‰é¡¹.
 
-	// Ìí¼Óuser_agent.
+	// æ·»åŠ user_agent.
 	std::string user_agent = "avhttp/2.1";
 	if (opts.find(http_options::user_agent, user_agent))
-		opts.remove(http_options::user_agent);	// É¾³ı´¦Àí¹ıµÄÑ¡Ïî.
+		opts.remove(http_options::user_agent);	// åˆ é™¤å¤„ç†è¿‡çš„é€‰é¡¹.
 
-	// Ä¬ÈÏÌí¼Óclose.
+	// é»˜è®¤æ·»åŠ close.
 	std::string connection = "close";
 	if ((m_proxy.type == proxy_settings::http_pw || m_proxy.type == proxy_settings::http)
 		&& m_protocol != "https")
 	{
 		if (opts.find(http_options::proxy_connection, connection))
-			opts.remove(http_options::proxy_connection);		// É¾³ı´¦Àí¹ıµÄÑ¡Ïî.
+			opts.remove(http_options::proxy_connection);		// åˆ é™¤å¤„ç†è¿‡çš„é€‰é¡¹.
 	}
 	else
 	{
 		if (opts.find(http_options::connection, connection))
-			opts.remove(http_options::connection);		// É¾³ı´¦Àí¹ıµÄÑ¡Ïî.
+			opts.remove(http_options::connection);		// åˆ é™¤å¤„ç†è¿‡çš„é€‰é¡¹.
 	}
 
-	// ÊÇ·ñ´øÓĞbodyÑ¡Ïî.
+	// æ˜¯å¦å¸¦æœ‰bodyé€‰é¡¹.
 	std::string body;
 	if (opts.find(http_options::request_body, body))
-		opts.remove(http_options::request_body);	// É¾³ı´¦Àí¹ıµÄÑ¡Ïî.
+		opts.remove(http_options::request_body);	// åˆ é™¤å¤„ç†è¿‡çš„é€‰é¡¹.
 
-	// Ñ­»·¹¹ÔìÆäËüÑ¡Ïî.
+	// å¾ªç¯æ„é€ å…¶å®ƒé€‰é¡¹.
 	std::string other_option_string;
 	request_opts::option_item_list &list = opts.option_all();
 	for (request_opts::option_item_list::iterator val = list.begin(); val != list.end(); val++)
@@ -927,7 +927,7 @@ void http_stream::async_request(const request_opts &opt, Handler handler)
 		other_option_string += (val->first + ": " + val->second + "\r\n");
 	}
 
-	// ÕûºÏ¸÷Ñ¡Ïîµ½HttpÇëÇó×Ö·û´®ÖĞ.
+	// æ•´åˆå„é€‰é¡¹åˆ°Httpè¯·æ±‚å­—ç¬¦ä¸²ä¸­.
 	std::string request_string;
 	m_request.consume(m_request.size());
 	std::ostream request_stream(&m_request);
@@ -952,7 +952,7 @@ void http_stream::async_request(const request_opts &opt, Handler handler)
 		request_stream << body;
 	}
 
-	// Òì²½·¢ËÍÇëÇó.
+	// å¼‚æ­¥å‘é€è¯·æ±‚.
 	typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
 	boost::asio::async_write(m_sock, m_request, boost::asio::transfer_exactly(m_request.size()),
 		boost::bind(&http_stream::handle_request<HandlerWrapper>,
@@ -984,10 +984,10 @@ void http_stream::close(boost::system::error_code &ec)
 
 	if (is_open())
 	{
-		// ¹Ø±Õsocket.
+		// å…³é—­socket.
 		m_sock.close(ec);
 
-		// Çå¿ÕÄÚ²¿µÄ¸÷ÖÖ»º³åĞÅÏ¢.
+		// æ¸…ç©ºå†…éƒ¨çš„å„ç§ç¼“å†²ä¿¡æ¯.
 		m_request.consume(m_request.size());
 		m_response.consume(m_response.size());
 		m_content_type.clear();
@@ -1061,13 +1061,13 @@ void http_stream::load_verify_file(const std::string &filename)
 }
 
 
-// ÒÔÏÂÎªÄÚ²¿Ïà¹ØÊµÏÖ, ·Ç½Ó¿Ú.
+// ä»¥ä¸‹ä¸ºå†…éƒ¨ç›¸å…³å®ç°, éæ¥å£.
 
 template <typename MutableBufferSequence>
 std::size_t http_stream::read_some_impl(const MutableBufferSequence &buffers,
 	boost::system::error_code &ec)
 {
-	// Èç¹û»¹ÓĞÊı¾İÔÚm_responseÖĞ, ÏÈ¶ÁÈ¡m_responseÖĞµÄÊı¾İ.
+	// å¦‚æœè¿˜æœ‰æ•°æ®åœ¨m_responseä¸­, å…ˆè¯»å–m_responseä¸­çš„æ•°æ®.
 	if (m_response.size() > 0)
 	{
 		std::size_t bytes_transferred = 0;
@@ -1087,7 +1087,7 @@ std::size_t http_stream::read_some_impl(const MutableBufferSequence &buffers,
 		return bytes_transferred;
 	}
 
-	// ÔÙ´ÓsocketÖĞ¶ÁÈ¡Êı¾İ.
+	// å†ä»socketä¸­è¯»å–æ•°æ®.
 	std::size_t bytes_transferred = m_sock.read_some(buffers, ec);
 	if (ec == boost::asio::error::shut_down)
 		ec = boost::asio::error::eof;
@@ -1100,10 +1100,10 @@ void http_stream::handle_resolve(const boost::system::error_code &err,
 {
 	if (!err)
 	{
-		// ·¢ÆğÒì²½Á¬½Ó.
-		// !!!±¸×¢: ÓÉÓÚm_sock¿ÉÄÜÊÇssl, ÄÇÃ´Á¬½ÓµÄÎÕÊÖÏà¹ØÊµÏÖ±»·â×°µ½ssl_stream
-		// ÁË, ËùÒÔ, Èç¹ûĞèÒªÊ¹ÓÃboost::asio::async_connectµÄ»°, ĞèÒªÔÚhttp_stream
-		// ÖĞÊµÏÖÎÕÊÖ²Ù×÷, ·ñÔò½«»áµÃµ½Ò»¸ö´íÎó.
+		// å‘èµ·å¼‚æ­¥è¿æ¥.
+		// !!!å¤‡æ³¨: ç”±äºm_sockå¯èƒ½æ˜¯ssl, é‚£ä¹ˆè¿æ¥çš„æ¡æ‰‹ç›¸å…³å®ç°è¢«å°è£…åˆ°ssl_stream
+		// äº†, æ‰€ä»¥, å¦‚æœéœ€è¦ä½¿ç”¨boost::asio::async_connectçš„è¯, éœ€è¦åœ¨http_stream
+		// ä¸­å®ç°æ¡æ‰‹æ“ä½œ, å¦åˆ™å°†ä¼šå¾—åˆ°ä¸€ä¸ªé”™è¯¯.
 		m_sock.async_connect(tcp::endpoint(*endpoint_iterator),
 			boost::bind(&http_stream::handle_connect<Handler>,
 				this, handler, endpoint_iterator,
@@ -1113,7 +1113,7 @@ void http_stream::handle_resolve(const boost::system::error_code &err,
 	}
 	else
 	{
-		// ³ö´í»Øµ÷.
+		// å‡ºé”™å›è°ƒ.
 		handler(err);
 	}
 }
@@ -1127,7 +1127,7 @@ void http_stream::handle_connect(Handler handler,
 #ifdef AVHTTP_ENABLE_OPENSSL
 		if (m_protocol == "https")
 		{
-			// ÈÏÖ¤Ö¤Êé.
+			// è®¤è¯è¯ä¹¦.
 			boost::system::error_code ec;
 			if (m_check_certificate)
 			{
@@ -1159,20 +1159,20 @@ void http_stream::handle_connect(Handler handler,
 			}
 		}
 #endif
-		// ·¢ÆğÒì²½ÇëÇó.
+		// å‘èµ·å¼‚æ­¥è¯·æ±‚.
 		async_request(m_request_opts, handler);
 	}
 	else
 	{
-		// ¼ì²éÊÇ·ñÒÑ¾­³¢ÊÔÁËendpointÁĞ±íÖĞµÄËùÓĞendpoint.
+		// æ£€æŸ¥æ˜¯å¦å·²ç»å°è¯•äº†endpointåˆ—è¡¨ä¸­çš„æ‰€æœ‰endpoint.
 		if (++endpoint_iterator == tcp::resolver::iterator())
 			handler(err);
 		else
 		{
-			// ¼ÌĞø·¢ÆğÒì²½Á¬½Ó.
-			// !!!±¸×¢: ÓÉÓÚm_sock¿ÉÄÜÊÇssl, ÄÇÃ´Á¬½ÓµÄÎÕÊÖÏà¹ØÊµÏÖ±»·â×°µ½ssl_stream
-			// ÁË, ËùÒÔ, Èç¹ûĞèÒªÊ¹ÓÃboost::asio::async_connectµÄ»°, ĞèÒªÔÚhttp_stream
-			// ÖĞÊµÏÖÎÕÊÖ²Ù×÷, ·ñÔò½«»áµÃµ½Ò»¸ö´íÎó.
+			// ç»§ç»­å‘èµ·å¼‚æ­¥è¿æ¥.
+			// !!!å¤‡æ³¨: ç”±äºm_sockå¯èƒ½æ˜¯ssl, é‚£ä¹ˆè¿æ¥çš„æ¡æ‰‹ç›¸å…³å®ç°è¢«å°è£…åˆ°ssl_stream
+			// äº†, æ‰€ä»¥, å¦‚æœéœ€è¦ä½¿ç”¨boost::asio::async_connectçš„è¯, éœ€è¦åœ¨http_stream
+			// ä¸­å®ç°æ¡æ‰‹æ“ä½œ, å¦åˆ™å°†ä¼šå¾—åˆ°ä¸€ä¸ªé”™è¯¯.
 			m_sock.async_connect(tcp::endpoint(*endpoint_iterator),
 				boost::bind(&http_stream::handle_connect<Handler>,
 					this, handler, endpoint_iterator,
@@ -1186,14 +1186,14 @@ void http_stream::handle_connect(Handler handler,
 template <typename Handler>
 void http_stream::handle_request(Handler handler, const boost::system::error_code &err)
 {
-	// ·¢Éú´íÎó.
+	// å‘ç”Ÿé”™è¯¯.
 	if (err)
 	{
 		handler(err);
 		return;
 	}
 
-	// Òì²½¶ÁÈ¡Http status.
+	// å¼‚æ­¥è¯»å–Http status.
 	boost::asio::async_read_until(m_sock, m_response, "\r\n",
 		boost::bind(&http_stream::handle_status<Handler>,
 			this, handler,
@@ -1205,16 +1205,16 @@ void http_stream::handle_request(Handler handler, const boost::system::error_cod
 template <typename Handler>
 void http_stream::handle_status(Handler handler, const boost::system::error_code &err)
 {
-	// ·¢Éú´íÎó.
+	// å‘ç”Ÿé”™è¯¯.
 	if (err)
 	{
 		handler(err);
 		return;
 	}
 
-	// ¸´ÖÆµ½ĞÂµÄstreambufÖĞ´¦ÀíÊ×ĞĞhttp×´Ì¬, Èç¹û²»ÊÇhttp×´Ì¬ĞĞ, ÄÇÃ´½«±£³Öm_responseÖĞµÄÄÚÈİ,
-	// ÕâÖ÷ÒªÊÇÎªÁË¼æÈİ·Ç±ê×¼http·şÎñÆ÷Ö±½ÓÏò¿Í»§¶Ë·¢ËÍÎÄ¼şµÄĞèÒª, µ«ÊÇÒÀÈ»ĞèÒªÒÔmalformed_status_line
-	// Í¨ÖªÓÃ»§, ¹ØÓÚm_responseÖĞµÄÊı¾İÈçºÎ´¦Àí, ÓÉÓÃ»§×Ô¼º¾ö¶¨ÊÇ·ñ¶ÁÈ¡.
+	// å¤åˆ¶åˆ°æ–°çš„streambufä¸­å¤„ç†é¦–è¡ŒhttpçŠ¶æ€, å¦‚æœä¸æ˜¯httpçŠ¶æ€è¡Œ, é‚£ä¹ˆå°†ä¿æŒm_responseä¸­çš„å†…å®¹,
+	// è¿™ä¸»è¦æ˜¯ä¸ºäº†å…¼å®¹éæ ‡å‡†httpæœåŠ¡å™¨ç›´æ¥å‘å®¢æˆ·ç«¯å‘é€æ–‡ä»¶çš„éœ€è¦, ä½†æ˜¯ä¾ç„¶éœ€è¦ä»¥malformed_status_line
+	// é€šçŸ¥ç”¨æˆ·, å…³äºm_responseä¸­çš„æ•°æ®å¦‚ä½•å¤„ç†, ç”±ç”¨æˆ·è‡ªå·±å†³å®šæ˜¯å¦è¯»å–.
 	boost::asio::streambuf tempbuf;
 	int response_size = m_response.size();
 	boost::asio::streambuf::const_buffers_type::const_iterator begin(m_response.data().begin());
@@ -1222,7 +1222,7 @@ void http_stream::handle_status(Handler handler, const boost::system::error_code
 	std::ostream tempbuf_stream(&tempbuf);
 	tempbuf_stream.write(ptr, response_size);
 
-	// ¼ì²éhttp×´Ì¬Âë, version_majorºÍversion_minorÊÇhttpĞ­ÒéµÄ°æ±¾ºÅ.
+	// æ£€æŸ¥httpçŠ¶æ€ç , version_majorå’Œversion_minoræ˜¯httpåè®®çš„ç‰ˆæœ¬å·.
 	int version_major = 0;
 	int version_minor = 0;
 	m_status_code = 0;
@@ -1235,10 +1235,10 @@ void http_stream::handle_status(Handler handler, const boost::system::error_code
 		return;
 	}
 
-	// ´¦Àíµô×´Ì¬ÂëËùÕ¼ÓÃµÄ×Ö½ÚÊı.
+	// å¤„ç†æ‰çŠ¶æ€ç æ‰€å ç”¨çš„å­—èŠ‚æ•°.
 	m_response.consume(response_size - tempbuf.size());
 
-	// "continue"±íÊ¾ÎÒÃÇĞèÒª¼ÌĞøµÈ´ı½ÓÊÕ×´Ì¬.
+	// "continue"è¡¨ç¤ºæˆ‘ä»¬éœ€è¦ç»§ç»­ç­‰å¾…æ¥æ”¶çŠ¶æ€.
 	if (m_status_code == avhttp::errc::continue_request)
 	{
 		boost::asio::async_read_until(m_sock, m_response, "\r\n",
@@ -1250,12 +1250,12 @@ void http_stream::handle_status(Handler handler, const boost::system::error_code
 	}
 	else
 	{
-		// Çå³ıÔ­ÓĞµÄ·µ»ØÑ¡Ïî.
+		// æ¸…é™¤åŸæœ‰çš„è¿”å›é€‰é¡¹.
 		m_response_opts.clear();
-		// Ìí¼Ó×´Ì¬Âë.
+		// æ·»åŠ çŠ¶æ€ç .
 		m_response_opts.insert("_status_code", boost::str(boost::format("%d") % m_status_code));
 
-		// Òì²½¶ÁÈ¡ËùÓĞHttp header²¿·Ö.
+		// å¼‚æ­¥è¯»å–æ‰€æœ‰Http headeréƒ¨åˆ†.
 		boost::asio::async_read_until(m_sock, m_response, "\r\n\r\n",
 			boost::bind(&http_stream::handle_header<Handler>,
 				this, handler,
@@ -1279,7 +1279,7 @@ void http_stream::handle_header(Handler handler, int bytes_transferred, const bo
 	header_string.resize(bytes_transferred);
 	m_response.sgetn(&header_string[0], bytes_transferred);
 
-	// ½âÎöHttp Header.
+	// è§£æHttp Header.
 	if (!detail::parse_http_headers(header_string.begin(), header_string.end(),
 		m_content_type, m_content_length, m_location, m_response_opts.option_all()))
 	{
@@ -1288,7 +1288,7 @@ void http_stream::handle_header(Handler handler, int bytes_transferred, const bo
 	}
 	boost::system::error_code ec;
 
-	// ÅĞ¶ÏÊÇ·ñĞèÒªÌø×ª.
+	// åˆ¤æ–­æ˜¯å¦éœ€è¦è·³è½¬.
 	if (m_status_code == avhttp::errc::moved_permanently || m_status_code == avhttp::errc::found)
 	{
 		m_sock.close(ec);
@@ -1299,13 +1299,13 @@ void http_stream::handle_header(Handler handler, int bytes_transferred, const bo
 		}
 	}
 
-	// Çå¿ÕÖØ¶¨Ïò´ÎÊı.
+	// æ¸…ç©ºé‡å®šå‘æ¬¡æ•°.
 	m_redirects = 0;
 
 	if (m_status_code != avhttp::errc::ok && m_status_code != avhttp::errc::partial_content)
 		ec = make_error_code(static_cast<avhttp::errc::errc_t>(m_status_code));
 
-	// ½âÎöÊÇ·ñÆôÓÃÁËgzÑ¹Ëõ.
+	// è§£ææ˜¯å¦å¯ç”¨äº†gzå‹ç¼©.
 	std::string encoding = m_response_opts.find(http_options::content_encoding);
 #ifdef AVHTTP_ENABLE_ZLIB
 	if (encoding == "gzip" || encoding == "x-gzip")
@@ -1315,7 +1315,7 @@ void http_stream::handle_header(Handler handler, int bytes_transferred, const bo
 	if (encoding == "chunked")
 		m_is_chunked = true;
 
-	// »Øµ÷Í¨Öª.
+	// å›è°ƒé€šçŸ¥.
 	handler(ec);
 }
 
@@ -1327,7 +1327,7 @@ void http_stream::handle_skip_crlf(const MutableBufferSequence &buffers,
 	if (!ec)
 	{
 		BOOST_ASSERT(crlf.get()[0] == '\r' && crlf.get()[1] == '\n');
-		// Ìø¹ıCRLF, ¿ªÊ¼¶ÁÈ¡chunked size.
+		// è·³è¿‡CRLF, å¼€å§‹è¯»å–chunked size.
 		typedef boost::function<void (boost::system::error_code, std::size_t)> HandlerWrapper;
 		HandlerWrapper h(handler);
 		boost::asio::async_read_until(m_sock, m_response, "\r\n",
@@ -1353,11 +1353,11 @@ void http_stream::handle_async_read(const MutableBufferSequence &buffers,
 
 	if (!ec || m_response.size() > 0)
 	{
-		// Ìá½»»º³å.
+		// æäº¤ç¼“å†².
 		m_response.commit(bytes_transferred);
 
 #ifdef AVHTTP_ENABLE_ZLIB
-		if (!m_is_gzip)	// Èç¹ûÃ»ÓĞÆôÓÃgzip, ÔòÖ±½Ó¶ÁÈ¡Êı¾İºó·µ»Ø.
+		if (!m_is_gzip)	// å¦‚æœæ²¡æœ‰å¯ç”¨gzip, åˆ™ç›´æ¥è¯»å–æ•°æ®åè¿”å›.
 #endif
 		{
 			bytes_transferred = read_some_impl(boost::asio::buffer(buffers, m_chunked_size), err);
@@ -1366,7 +1366,7 @@ void http_stream::handle_async_read(const MutableBufferSequence &buffers,
 			return;
 		}
 #ifdef AVHTTP_ENABLE_ZLIB
-		else					// ·ñÔò¶ÁÈ¡Êı¾İµ½½âÑ¹»º³åÖĞ.
+		else					// å¦åˆ™è¯»å–æ•°æ®åˆ°è§£å‹ç¼“å†²ä¸­.
 		{
 			if (m_stream.avail_in == 0)
 			{
@@ -1383,7 +1383,7 @@ void http_stream::handle_async_read(const MutableBufferSequence &buffers,
 			{
 				typename MutableBufferSequence::const_iterator iter = buffers.begin();
 				typename MutableBufferSequence::const_iterator end = buffers.end();
-				// ¼ÆËãµÃµ½ÓÃ»§buffer_size×Ü´óĞ¡.
+				// è®¡ç®—å¾—åˆ°ç”¨æˆ·buffer_sizeæ€»å¤§å°.
 				for (; iter != end; ++iter)
 				{
 					boost::asio::mutable_buffer buffer(*iter);
@@ -1394,7 +1394,7 @@ void http_stream::handle_async_read(const MutableBufferSequence &buffers,
 					if (ret < 0)
 					{
 						err = boost::asio::error::operation_not_supported;
-						// ½âÑ¹·¢Éú´íÎó, Í¨ÖªÓÃ»§²¢·ÅÆú´¦Àí.
+						// è§£å‹å‘ç”Ÿé”™è¯¯, é€šçŸ¥ç”¨æˆ·å¹¶æ”¾å¼ƒå¤„ç†.
 						handler(err, 0);
 						return;
 					}
@@ -1425,7 +1425,7 @@ void http_stream::handle_chunked_size(const MutableBufferSequence &buffers,
 {
 	if (!ec)
 	{
-		// ½âÎöm_responseÖĞµÄchunked size.
+		// è§£æm_responseä¸­çš„chunked size.
 		std::string hex_chunked_size;
 		boost::system::error_code err;
 		while (!err && m_response.size() > 0)
@@ -1444,12 +1444,12 @@ void http_stream::handle_chunked_size(const MutableBufferSequence &buffers,
 			}
 		}
 		BOOST_ASSERT(!err);
-		// µÃµ½chunked size.
+		// å¾—åˆ°chunked size.
 		std::stringstream ss;
 		ss << std::hex << hex_chunked_size;
 		ss >> m_chunked_size;
 
-#ifdef AVHTTP_ENABLE_ZLIB // ³õÊ¼»¯ZLIB¿â, Ã¿´Î½âÑ¹Ã¿¸öchunkedµÄÊ±ºò, ²»ĞèÒªÖØĞÂ³õÊ¼»¯.
+#ifdef AVHTTP_ENABLE_ZLIB // åˆå§‹åŒ–ZLIBåº“, æ¯æ¬¡è§£å‹æ¯ä¸ªchunkedçš„æ—¶å€™, ä¸éœ€è¦é‡æ–°åˆå§‹åŒ–.
 		if (!m_stream.zalloc)
 		{
 			if (inflateInit2(&m_stream, 32+15 ) != Z_OK)
@@ -1459,11 +1459,11 @@ void http_stream::handle_chunked_size(const MutableBufferSequence &buffers,
 			}
 		}
 #endif
-		// chunked_size²»°üÀ¨Êı¾İÎ²µÄcrlf, ËùÒÔÖÃÊı¾İÎ²µÄcrlfÎªfalse×´Ì¬.
+		// chunked_sizeä¸åŒ…æ‹¬æ•°æ®å°¾çš„crlf, æ‰€ä»¥ç½®æ•°æ®å°¾çš„crlfä¸ºfalseçŠ¶æ€.
 		m_skip_crlf = false;
 
-		// ¶ÁÈ¡Êı¾İ.
-		if (m_chunked_size != 0)	// ¿ªÊ¼¶ÁÈ¡chunkedÖĞµÄÊı¾İ, Èç¹ûÊÇÑ¹Ëõ, Ôò½âÑ¹µ½ÓÃ»§½ÓÊÜ»º³å.
+		// è¯»å–æ•°æ®.
+		if (m_chunked_size != 0)	// å¼€å§‹è¯»å–chunkedä¸­çš„æ•°æ®, å¦‚æœæ˜¯å‹ç¼©, åˆ™è§£å‹åˆ°ç”¨æˆ·æ¥å—ç¼“å†².
 		{
 			std::size_t max_length = 0;
 
@@ -1473,17 +1473,17 @@ void http_stream::handle_chunked_size(const MutableBufferSequence &buffers,
 			{
 				typename MutableBufferSequence::const_iterator iter = buffers.begin();
 				typename MutableBufferSequence::const_iterator end = buffers.end();
-				// ¼ÆËãµÃµ½ÓÃ»§buffer_size×Ü´óĞ¡.
+				// è®¡ç®—å¾—åˆ°ç”¨æˆ·buffer_sizeæ€»å¤§å°.
 				for (; iter != end; ++iter)
 				{
 					boost::asio::mutable_buffer buffer(*iter);
 					max_length += boost::asio::buffer_size(buffer);
 				}
-				// µÃµ½ºÏÊÊµÄ»º³å´óĞ¡.
+				// å¾—åˆ°åˆé€‚çš„ç¼“å†²å¤§å°.
 				max_length = std::min(max_length, m_chunked_size);
 			}
 
-			// ¶ÁÈ¡Êı¾İµ½m_response, Èç¹ûÓĞÑ¹Ëõ, ĞèÒªÔÚhandle_async_readÖĞ½âÑ¹.
+			// è¯»å–æ•°æ®åˆ°m_response, å¦‚æœæœ‰å‹ç¼©, éœ€è¦åœ¨handle_async_readä¸­è§£å‹.
 			boost::asio::streambuf::mutable_buffers_type bufs = m_response.prepare(max_length);
 			typedef boost::function<void (boost::system::error_code, std::size_t)> HandlerWrapper;
 			HandlerWrapper h(handler);
@@ -1505,7 +1505,7 @@ void http_stream::handle_chunked_size(const MutableBufferSequence &buffers,
 		}
 	}
 
-	// Óöµ½´íÎó, Í¨ÖªÉÏ²ã³ÌĞò.
+	// é‡åˆ°é”™è¯¯, é€šçŸ¥ä¸Šå±‚ç¨‹åº.
 	handler(ec, 0);
 }
 
@@ -1516,7 +1516,7 @@ void http_stream::socks_proxy_connect(Stream &sock, boost::system::error_code &e
 
 	const proxy_settings &s = m_proxy;
 
-	// ¿ªÊ¼½âÎö´úÀíµÄ¶Ë¿ÚºÍÖ÷»úÃû.
+	// å¼€å§‹è§£æä»£ç†çš„ç«¯å£å’Œä¸»æœºå.
 	tcp::resolver resolver(m_io_service);
 	std::ostringstream port_string;
 	port_string << s.port;
@@ -1524,11 +1524,11 @@ void http_stream::socks_proxy_connect(Stream &sock, boost::system::error_code &e
 	tcp::resolver::iterator endpoint_iterator = resolver.resolve(query, ec);
 	tcp::resolver::iterator end;
 
-	// Èç¹û½âÎöÊ§°Ü, Ôò·µ»Ø.
+	// å¦‚æœè§£æå¤±è´¥, åˆ™è¿”å›.
 	if (ec)
 		return;
 
-	// ³¢ÊÔÁ¬½Ó½âÎö³öÀ´µÄ·şÎñÆ÷µØÖ·.
+	// å°è¯•è¿æ¥è§£æå‡ºæ¥çš„æœåŠ¡å™¨åœ°å€.
 	ec = boost::asio::error::host_not_found;
 	while (ec && endpoint_iterator != end)
 	{
@@ -1542,7 +1542,7 @@ void http_stream::socks_proxy_connect(Stream &sock, boost::system::error_code &e
 
 	if (s.type == proxy_settings::socks5 || s.type == proxy_settings::socks5_pw)
 	{
-		// ·¢ËÍ°æ±¾ĞÅÏ¢.
+		// å‘é€ç‰ˆæœ¬ä¿¡æ¯.
 		{
 			m_request.consume(m_request.size());
 
@@ -1567,7 +1567,7 @@ void http_stream::socks_proxy_connect(Stream &sock, boost::system::error_code &e
 				return;
 		}
 
-		// ¶ÁÈ¡°æ±¾ĞÅÏ¢.
+		// è¯»å–ç‰ˆæœ¬ä¿¡æ¯.
 		m_response.consume(m_response.size());
 		boost::asio::read(sock, m_response, boost::asio::transfer_exactly(2), ec);
 		if (ec)
@@ -1579,7 +1579,7 @@ void http_stream::socks_proxy_connect(Stream &sock, boost::system::error_code &e
 			const char *p = boost::asio::buffer_cast<const char*>(b);
 			version = read_uint8(p);
 			method = read_uint8(p);
-			if (version != 5)	// °æ±¾²»µÈÓÚ5, ²»Ö§³Ösocks5.
+			if (version != 5)	// ç‰ˆæœ¬ä¸ç­‰äº5, ä¸æ”¯æŒsocks5.
 			{
 				ec = make_error_code(errc::socks_unsupported_version);
 				return;
@@ -1605,12 +1605,12 @@ void http_stream::socks_proxy_connect(Stream &sock, boost::system::error_code &e
 			write_string(s.password, p);
 			m_request.commit(bytes_to_write);
 
-			// ·¢ËÍÓÃ»§ÃÜÂëĞÅÏ¢.
+			// å‘é€ç”¨æˆ·å¯†ç ä¿¡æ¯.
 			boost::asio::write(sock, m_request, boost::asio::transfer_exactly(bytes_to_write), ec);
 			if (ec)
 				return;
 
-			// ¶ÁÈ¡×´Ì¬.
+			// è¯»å–çŠ¶æ€.
 			m_response.consume(m_response.size());
 			boost::asio::read(sock, m_response, boost::asio::transfer_exactly(2), ec);
 			if (ec)
@@ -1623,21 +1623,21 @@ void http_stream::socks_proxy_connect(Stream &sock, boost::system::error_code &e
 		}
 
 		{
-			// ¶ÁÈ¡°æ±¾×´Ì¬.
+			// è¯»å–ç‰ˆæœ¬çŠ¶æ€.
 			boost::asio::const_buffer b = m_response.data();
 			const char *p = boost::asio::buffer_cast<const char*>(b);
 
 			int version = read_uint8(p);
 			int status = read_uint8(p);
 
-			// ²»Ö§³ÖµÄÈÏÖ¤°æ±¾.
+			// ä¸æ”¯æŒçš„è®¤è¯ç‰ˆæœ¬.
 			if (version != 1)
 			{
 				ec = make_error_code(errc::socks_unsupported_authentication_version);
 				return;
 			}
 
-			// ÈÏÖ¤´íÎó.
+			// è®¤è¯é”™è¯¯.
 			if (status != 0)
 			{
 				ec = make_error_code(errc::socks_authentication_error);
@@ -1671,7 +1671,7 @@ void http_stream::socks_proxy_handshake(Stream &sock, boost::system::error_code 
 
 	if (s.type == proxy_settings::socks5 || s.type == proxy_settings::socks5_pw)
 	{
-		// ·¢ËÍsocks5Á¬½ÓÃüÁî.
+		// å‘é€socks5è¿æ¥å‘½ä»¤.
 		write_uint8(5, wp); // SOCKS VERSION 5.
 		write_uint8(1, wp); // CONNECT command.
 		write_uint8(0, wp); // reserved.
@@ -1686,12 +1686,12 @@ void http_stream::socks_proxy_handshake(Stream &sock, boost::system::error_code 
 	{
 		write_uint8(4, wp); // SOCKS VERSION 4.
 		write_uint8(1, wp); // CONNECT command.
-		// socks4Ğ­ÒéÖ»½ÓÊÜipµØÖ·, ²»Ö§³ÖÓòÃû.
+		// socks4åè®®åªæ¥å—ipåœ°å€, ä¸æ”¯æŒåŸŸå.
 		tcp::resolver resolver(m_io_service);
 		std::ostringstream port_string;
 		port_string << u.port();
 		tcp::resolver::query query(host.c_str(), port_string.str());
-		// ½âÎö³öÓòÃûÖĞµÄipµØÖ·.
+		// è§£æå‡ºåŸŸåä¸­çš„ipåœ°å€.
 		unsigned long ip = resolver.resolve(query, ec)->endpoint().address().to_v4().to_ulong();
 		write_uint16(u.port(), wp);	// port.
 		write_uint32(ip, wp);		// ip address.
@@ -1710,13 +1710,13 @@ void http_stream::socks_proxy_handshake(Stream &sock, boost::system::error_code 
 		return;
 	}
 
-	// ·¢ËÍ.
+	// å‘é€.
 	m_request.commit(bytes_to_write);
 	boost::asio::write(sock, m_request, boost::asio::transfer_exactly(bytes_to_write), ec);
 	if (ec)
 		return;
 
-	// ½ÓÊÕsocks·şÎñÆ÷·µ»Ø.
+	// æ¥æ”¶socksæœåŠ¡å™¨è¿”å›.
 	std::size_t bytes_to_read = 0;
 	if (s.type == proxy_settings::socks5 || s.type == proxy_settings::socks5_pw)
 		bytes_to_read = 10;
@@ -1729,7 +1729,7 @@ void http_stream::socks_proxy_handshake(Stream &sock, boost::system::error_code 
 	boost::asio::read(sock, m_response,
 		boost::asio::transfer_exactly(bytes_to_read), ec);
 
-	// ·ÖÎö·şÎñÆ÷·µ»Ø.
+	// åˆ†ææœåŠ¡å™¨è¿”å›.
 	boost::asio::const_buffer cb = m_response.data();
 	const char *rp = boost::asio::buffer_cast<const char*>(cb);
 	int version = read_uint8(rp);
@@ -1739,7 +1739,7 @@ void http_stream::socks_proxy_handshake(Stream &sock, boost::system::error_code 
 	{
 		if (s.type != proxy_settings::socks5 && s.type != proxy_settings::socks5_pw)
 		{
-			// ÇëÇóµÄsocksĞ­Òé²»ÊÇsock5.
+			// è¯·æ±‚çš„socksåè®®ä¸æ˜¯sock5.
 			ec = make_error_code(errc::socks_unsupported_version);
 			return;
 		}
@@ -1747,7 +1747,7 @@ void http_stream::socks_proxy_handshake(Stream &sock, boost::system::error_code 
 		if (response != 0)
 		{
 			ec = make_error_code(errc::socks_general_failure);
-			// µÃµ½¸üÏêÏ¸µÄ´íÎóĞÅÏ¢.
+			// å¾—åˆ°æ›´è¯¦ç»†çš„é”™è¯¯ä¿¡æ¯.
 			switch (response)
 			{
 			case 2: ec = boost::asio::error::no_permission; break;
@@ -1764,23 +1764,23 @@ void http_stream::socks_proxy_handshake(Stream &sock, boost::system::error_code 
 		rp++;	// skip reserved.
 		int atyp = read_uint8(rp);	// atyp.
 
-		if (atyp == 1)		// address / port ĞÎÊ½·µ»Ø.
+		if (atyp == 1)		// address / port å½¢å¼è¿”å›.
 		{
 			m_response.consume(m_response.size());
-			ec = boost::system::error_code();	// Ã»ÓĞ·¢Éú´íÎó, ·µ»Ø.
+			ec = boost::system::error_code();	// æ²¡æœ‰å‘ç”Ÿé”™è¯¯, è¿”å›.
 			return;
 		}
-		else if (atyp == 3)	// domainname ·µ»Ø.
+		else if (atyp == 3)	// domainname è¿”å›.
 		{
-			int len = read_uint8(rp);	// ¶ÁÈ¡domainname³¤¶È.
+			int len = read_uint8(rp);	// è¯»å–domainnameé•¿åº¦.
 			bytes_to_read = len - 3;
-			// ¼ÌĞø¶ÁÈ¡.
+			// ç»§ç»­è¯»å–.
 			m_response.commit(boost::asio::read(sock,
 				m_response.prepare(bytes_to_read), boost::asio::transfer_exactly(bytes_to_read), ec));
 			// if (ec)
 			//	return;
 			//
-			// µÃµ½domainname.
+			// å¾—åˆ°domainname.
 			// std::string domain;
 			// domain.resize(len);
 			// std::copy(rp, rp + len, domain.begin());
@@ -1788,7 +1788,7 @@ void http_stream::socks_proxy_handshake(Stream &sock, boost::system::error_code 
 			ec = boost::system::error_code();
 			return;
 		}
-		// else if (atyp == 4)	// ipv6 ·µ»Ø, ÔİÎŞÊµÏÖ!
+		// else if (atyp == 4)	// ipv6 è¿”å›, æš‚æ— å®ç°!
 		// {
 		//	ec = boost::asio::error::address_family_not_supported;
 		//	return;
@@ -1830,18 +1830,18 @@ void http_stream::socks_proxy_handshake(Stream &sock, boost::system::error_code 
 	}
 }
 
-// socks´úÀí½øĞĞÒì²½Á¬½Ó.
+// socksä»£ç†è¿›è¡Œå¼‚æ­¥è¿æ¥.
 template <typename Stream, typename Handler>
 void http_stream::async_socks_proxy_connect(Stream &sock, Handler handler)
 {
-	// ¹¹ÔìÒì²½²éÑ¯proxyÖ÷»úĞÅÏ¢.
+	// æ„é€ å¼‚æ­¥æŸ¥è¯¢proxyä¸»æœºä¿¡æ¯.
 	std::ostringstream port_string;
 	port_string << m_proxy.port;
 	tcp::resolver::query query(m_proxy.hostname, port_string.str());
 
 	m_proxy_status = socks_proxy_resolve;
 
-	// ¿ªÊ¼Òì²½½âÎö´úÀíµÄ¶Ë¿ÚºÍÖ÷»úÃû.
+	// å¼€å§‹å¼‚æ­¥è§£æä»£ç†çš„ç«¯å£å’Œä¸»æœºå.
 	typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
 	m_resolver.async_resolve(query,
 		boost::bind(&http_stream::async_socks_proxy_resolve<Stream, HandlerWrapper>,
@@ -1853,7 +1853,7 @@ void http_stream::async_socks_proxy_connect(Stream &sock, Handler handler)
 	);
 }
 
-// Òì²½´úÀí²éÑ¯»Øµ÷.
+// å¼‚æ­¥ä»£ç†æŸ¥è¯¢å›è°ƒ.
 template <typename Stream, typename Handler>
 void http_stream::async_socks_proxy_resolve(const boost::system::error_code &err,
 	tcp::resolver::iterator endpoint_iterator, Stream &sock, Handler handler)
@@ -1867,7 +1867,7 @@ void http_stream::async_socks_proxy_resolve(const boost::system::error_code &err
 	if (m_proxy_status == socks_proxy_resolve)
 	{
 		m_proxy_status = socks_connect_proxy;
-		// ¿ªÊ¼Òì²½Á¬½Ó´úÀí.
+		// å¼€å§‹å¼‚æ­¥è¿æ¥ä»£ç†.
 		boost::asio::async_connect(sock.lowest_layer(), endpoint_iterator,
 			boost::bind(&http_stream::handle_connect_socks<Stream, Handler>,
 				this, boost::ref(sock), handler,
@@ -1880,11 +1880,11 @@ void http_stream::async_socks_proxy_resolve(const boost::system::error_code &err
 
 	if (m_proxy_status == socks4_resolve_host)
 	{
-		// ±£´æIPºÍPORTĞÅÏ¢.
+		// ä¿å­˜IPå’ŒPORTä¿¡æ¯.
 		m_remote_endp = *endpoint_iterator;
 		m_remote_endp.port(m_url.port());
 
-		// ½øÈë×´Ì¬.
+		// è¿›å…¥çŠ¶æ€.
 		handle_socks_process(sock, handler, 0, err);
 	}
 }
@@ -1904,7 +1904,7 @@ void http_stream::handle_connect_socks(Stream &sock, Handler handler,
 			return;
 		}
 
-		// ¼ÌĞø³¢ÊÔÁ¬½ÓÏÂÒ»¸öIP.
+		// ç»§ç»­å°è¯•è¿æ¥ä¸‹ä¸€ä¸ªIP.
 		endpoint_iterator++;
 		boost::asio::async_connect(sock.lowest_layer(), endpoint_iterator,
 			boost::bind(&http_stream::handle_connect_socks<Stream, Handler>,
@@ -1916,10 +1916,10 @@ void http_stream::handle_connect_socks(Stream &sock, Handler handler,
 		return;
 	}
 
-	// Á¬½Ó³É¹¦, ·¢ËÍĞ­Òé°æ±¾ºÅ.
+	// è¿æ¥æˆåŠŸ, å‘é€åè®®ç‰ˆæœ¬å·.
 	if (m_proxy.type == proxy_settings::socks5 || m_proxy.type == proxy_settings::socks5_pw)
 	{
-		// ·¢ËÍ°æ±¾ĞÅÏ¢.
+		// å‘é€ç‰ˆæœ¬ä¿¡æ¯.
 		m_proxy_status = socks_send_version;
 
 		m_request.consume(m_request.size());
@@ -1958,12 +1958,12 @@ void http_stream::handle_connect_socks(Stream &sock, Handler handler,
 	{
 		m_proxy_status = socks4_resolve_host;
 
-		// ¹¹ÔìÒì²½²éÑ¯Ô¶³ÌÖ÷»úµÄHOST.
+		// æ„é€ å¼‚æ­¥æŸ¥è¯¢è¿œç¨‹ä¸»æœºçš„HOST.
 		std::ostringstream port_string;
 		port_string << m_url.port();
 		tcp::resolver::query query(m_url.host(), port_string.str());
 
-		// ¿ªÊ¼Òì²½½âÎö´úÀíµÄ¶Ë¿ÚºÍÖ÷»úÃû.
+		// å¼€å§‹å¼‚æ­¥è§£æä»£ç†çš„ç«¯å£å’Œä¸»æœºå.
 		typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
 		m_resolver.async_resolve(query,
 			boost::bind(&http_stream::async_socks_proxy_resolve<Stream, HandlerWrapper>,
@@ -1989,9 +1989,9 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 
 	switch (m_proxy_status)
 	{
-	case socks_send_version:	// Íê³É°æ±¾ºÅ·¢ËÍ.
+	case socks_send_version:	// å®Œæˆç‰ˆæœ¬å·å‘é€.
 		{
-			// ½ÓÊÕsocks·şÎñÆ÷·µ»Ø.
+			// æ¥æ”¶socksæœåŠ¡å™¨è¿”å›.
 			std::size_t bytes_to_read;
 			if (m_proxy.type == proxy_settings::socks5 || m_proxy.type == proxy_settings::socks5_pw)
 				bytes_to_read = 10;
@@ -2000,7 +2000,7 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 
 			if (m_proxy.type == proxy_settings::socks4)
 			{
-				// ĞŞ¸Ä×´Ì¬.
+				// ä¿®æ”¹çŠ¶æ€.
 				m_proxy_status = socks4_response;
 
 				m_response.consume(m_response.size());
@@ -2019,7 +2019,7 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 			{
 				m_proxy_status = socks5_response_version;
 
-				// ¶ÁÈ¡°æ±¾ĞÅÏ¢.
+				// è¯»å–ç‰ˆæœ¬ä¿¡æ¯.
 				m_response.consume(m_response.size());
 				boost::asio::async_read(sock, m_response, boost::asio::transfer_exactly(2),
 					boost::bind(&http_stream::handle_socks_process<Stream, Handler>,
@@ -2033,7 +2033,7 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 			}
 		}
 		break;
-	case socks4_resolve_host:	// socks4Ğ­Òé, IP/PORTÒÑ¾­µÃµ½, ¿ªÊ¼·¢ËÍ°æ±¾ĞÅÏ¢.
+	case socks4_resolve_host:	// socks4åè®®, IP/PORTå·²ç»å¾—åˆ°, å¼€å§‹å‘é€ç‰ˆæœ¬ä¿¡æ¯.
 		{
 			m_proxy_status = socks_send_version;
 
@@ -2045,7 +2045,7 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 			write_uint8(4, wp); // SOCKS VERSION 4.
 			write_uint8(1, wp); // CONNECT command.
 
-			// socks4Ğ­ÒéÖ»½ÓÊÜipµØÖ·, ²»Ö§³ÖÓòÃû.
+			// socks4åè®®åªæ¥å—ipåœ°å€, ä¸æ”¯æŒåŸŸå.
 			unsigned long ip = m_remote_endp.address().to_v4().to_ulong();
 			write_uint16(m_remote_endp.port(), wp);	// port.
 			write_uint32(ip, wp);					// ip address.
@@ -2074,7 +2074,7 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 	case socks5_send_userinfo:
 		{
 			m_proxy_status = socks5_auth_status;
-			// ¶ÁÈ¡ÈÏÖ¤×´Ì¬.
+			// è¯»å–è®¤è¯çŠ¶æ€.
 			m_response.consume(m_response.size());
 			boost::asio::async_read(sock, m_response, boost::asio::transfer_exactly(2),
 				boost::bind(&http_stream::handle_socks_process<Stream, Handler>,
@@ -2090,13 +2090,13 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 		{
 			m_proxy_status = socks5_connect_response;
 
-			// ½ÓÊÕ×´Ì¬ĞÅÏ¢.
+			// æ¥æ”¶çŠ¶æ€ä¿¡æ¯.
 			m_request.consume(m_request.size());
 			std::string host = m_url.host();
 			std::size_t bytes_to_write = 7 + host.size();
 			boost::asio::mutable_buffer mb = m_request.prepare(bytes_to_write);
 			char *wp = boost::asio::buffer_cast<char*>(mb);
-			// ·¢ËÍsocks5Á¬½ÓÃüÁî.
+			// å‘é€socks5è¿æ¥å‘½ä»¤.
 			write_uint8(5, wp); // SOCKS VERSION 5.
 			write_uint8(1, wp); // CONNECT command.
 			write_uint8(0, wp); // reserved.
@@ -2131,9 +2131,9 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 			);
 		}
 		break;
-	case socks4_response:	// socks4·şÎñÆ÷·µ»ØÇëÇó.
+	case socks4_response:	// socks4æœåŠ¡å™¨è¿”å›è¯·æ±‚.
 		{
-			// ·ÖÎö·şÎñÆ÷·µ»Ø.
+			// åˆ†ææœåŠ¡å™¨è¿”å›.
 			boost::asio::const_buffer cb = m_response.data();
 			const char *rp = boost::asio::buffer_cast<const char*>(cb);
 			/*int version = */read_uint8(rp);
@@ -2145,12 +2145,12 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 			// 93: request rejected because the client program and identd report different user-ids.
 			if (response == 90)	// access granted.
 			{
-				m_response.consume(m_response.size());	// Ã»ÓĞ·¢Éú´íÎó, ¿ªÊ¼Òì²½·¢ËÍÇëÇó.
+				m_response.consume(m_response.size());	// æ²¡æœ‰å‘ç”Ÿé”™è¯¯, å¼€å§‹å¼‚æ­¥å‘é€è¯·æ±‚.
 
 #ifdef AVHTTP_ENABLE_OPENSSL
 				if (m_protocol == "https")
 				{
-					// ¿ªÊ¼ÎÕÊÖ.
+					// å¼€å§‹æ¡æ‰‹.
 					m_proxy_status = ssl_handshake;
 					ssl_socket* ssl_sock = m_sock.get<ssl_socket>();
 					ssl_sock->async_handshake(boost::bind(&http_stream::handle_socks_process<Stream, Handler>, this,
@@ -2191,7 +2191,7 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 			const char *rp = boost::asio::buffer_cast<const char*>(cb);
 			int version = read_uint8(rp);
 			int method = read_uint8(rp);
-			if (version != 5)	// °æ±¾²»µÈÓÚ5, ²»Ö§³Ösocks5.
+			if (version != 5)	// ç‰ˆæœ¬ä¸ç­‰äº5, ä¸æ”¯æŒsocks5.
 			{
 				boost::system::error_code ec = make_error_code(errc::socks_unsupported_version);
 				handler(ec);
@@ -2221,10 +2221,10 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 				write_string(s.password, wp);
 				m_request.commit(bytes_to_write);
 
-				// ĞŞ¸Ä×´Ì¬.
+				// ä¿®æ”¹çŠ¶æ€.
 				m_proxy_status = socks5_send_userinfo;
 
-				// ·¢ËÍÓÃ»§ÃÜÂëĞÅÏ¢.
+				// å‘é€ç”¨æˆ·å¯†ç ä¿¡æ¯.
 				boost::asio::async_write(sock, m_request, boost::asio::transfer_exactly(bytes_to_write),
 					boost::bind(&http_stream::handle_socks_process<Stream, Handler>,
 						this, boost::ref(sock), handler,
@@ -2251,28 +2251,28 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 			int version = read_uint8(rp);
 			int status = read_uint8(rp);
 
-			if (version != 1)	// ²»Ö§³ÖµÄ°æ±¾.
+			if (version != 1)	// ä¸æ”¯æŒçš„ç‰ˆæœ¬.
 			{
 				boost::system::error_code ec = make_error_code(errc::socks_unsupported_authentication_version);
 				handler(ec);
 				return;
 			}
 
-			if (status != 0)	// ÈÏÖ¤´íÎó.
+			if (status != 0)	// è®¤è¯é”™è¯¯.
 			{
 				boost::system::error_code ec = make_error_code(errc::socks_authentication_error);
 				handler(ec);
 				return;
 			}
 
-			// ·¢ËÍÇëÇóÁ¬½ÓÃüÁî.
+			// å‘é€è¯·æ±‚è¿æ¥å‘½ä»¤.
 			m_proxy_status = socks5_connect_request;
 			handle_socks_process(sock, handler, 0, err);
 		}
 		break;
 	case socks5_result:
 		{
-			// ·ÖÎö·şÎñÆ÷·µ»Ø.
+			// åˆ†ææœåŠ¡å™¨è¿”å›.
 			boost::asio::const_buffer cb = m_response.data();
 			const char *rp = boost::asio::buffer_cast<const char*>(cb);
 			int version = read_uint8(rp);
@@ -2288,7 +2288,7 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 			if (response != 0)
 			{
 				boost::system::error_code ec = make_error_code(errc::socks_general_failure);
-				// µÃµ½¸üÏêÏ¸µÄ´íÎóĞÅÏ¢.
+				// å¾—åˆ°æ›´è¯¦ç»†çš„é”™è¯¯ä¿¡æ¯.
 				switch (response)
 				{
 				case 2: ec = boost::asio::error::no_permission; break;
@@ -2306,14 +2306,14 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 			rp++;	// skip reserved.
 			int atyp = read_uint8(rp);	// atyp.
 
-			if (atyp == 1)		// address / port ĞÎÊ½·µ»Ø.
+			if (atyp == 1)		// address / port å½¢å¼è¿”å›.
 			{
 				m_response.consume(m_response.size());
 
 #ifdef AVHTTP_ENABLE_OPENSSL
 				if (m_protocol == "https")
 				{
-					// ¿ªÊ¼ÎÕÊÖ.
+					// å¼€å§‹æ¡æ‰‹.
 					m_proxy_status = ssl_handshake;
 					ssl_socket* ssl_sock = m_sock.get<ssl_socket>();
 					ssl_sock->async_handshake(boost::bind(&http_stream::handle_socks_process<Stream, Handler>, this,
@@ -2324,14 +2324,14 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 				}
 				else
 #endif
-				// Ã»ÓĞ·¢Éú´íÎó, ¿ªÊ¼Òì²½·¢ËÍÇëÇó.
+				// æ²¡æœ‰å‘ç”Ÿé”™è¯¯, å¼€å§‹å¼‚æ­¥å‘é€è¯·æ±‚.
 				async_request(m_request_opts, handler);
 
 				return;
 			}
-			else if (atyp == 3)				// domainname ·µ»Ø.
+			else if (atyp == 3)				// domainname è¿”å›.
 			{
-				int len = read_uint8(rp);	// ¶ÁÈ¡domainname³¤¶È.
+				int len = read_uint8(rp);	// è¯»å–domainnameé•¿åº¦.
 				std::size_t bytes_to_read = len - 3;
 
 				m_proxy_status = socks5_read_domainname;
@@ -2347,7 +2347,7 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 
 				return;
 			}
-			// else if (atyp == 4)	// ipv6 ·µ»Ø, ÔİÎŞÊµÏÖ!
+			// else if (atyp == 4)	// ipv6 è¿”å›, æš‚æ— å®ç°!
 			// {
 			//	ec = boost::asio::error::address_family_not_supported;
 			//	return;
@@ -2367,7 +2367,7 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 #ifdef AVHTTP_ENABLE_OPENSSL
 			if (m_protocol == "https")
 			{
-				// ¿ªÊ¼ÎÕÊÖ.
+				// å¼€å§‹æ¡æ‰‹.
 				m_proxy_status = ssl_handshake;
 				ssl_socket *ssl_sock = m_sock.get<ssl_socket>();
 				ssl_sock->async_handshake(boost::bind(&http_stream::handle_socks_process<Stream, Handler>, this,
@@ -2378,7 +2378,7 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 			}
 			else
 #endif
-			// Ã»ÓĞ·¢Éú´íÎó, ¿ªÊ¼Òì²½·¢ËÍÇëÇó.
+			// æ²¡æœ‰å‘ç”Ÿé”™è¯¯, å¼€å§‹å¼‚æ­¥å‘é€è¯·æ±‚.
 			async_request(m_request_opts, handler);
 			return;
 		}
@@ -2386,16 +2386,16 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 	}
 }
 
-// ÊµÏÖCONNECTÖ¸Áî, ÓÃÓÚÇëÇóÄ¿±êÎªhttpsÖ÷»úÊ±Ê¹ÓÃ.
+// å®ç°CONNECTæŒ‡ä»¤, ç”¨äºè¯·æ±‚ç›®æ ‡ä¸ºhttpsä¸»æœºæ—¶ä½¿ç”¨.
 template <typename Stream, typename Handler>
 void http_stream::async_https_proxy_connect(Stream &sock, Handler handler)
 {
-	// ¹¹ÔìÒì²½²éÑ¯proxyÖ÷»úĞÅÏ¢.
+	// æ„é€ å¼‚æ­¥æŸ¥è¯¢proxyä¸»æœºä¿¡æ¯.
 	std::ostringstream port_string;
 	port_string << m_proxy.port;
 	tcp::resolver::query query(m_proxy.hostname, port_string.str());
 
-	// ¿ªÊ¼Òì²½½âÎö´úÀíµÄ¶Ë¿ÚºÍÖ÷»úÃû.
+	// å¼€å§‹å¼‚æ­¥è§£æä»£ç†çš„ç«¯å£å’Œä¸»æœºå.
 	typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
 	m_resolver.async_resolve(query,
 		boost::bind(&http_stream::async_https_proxy_resolve<Stream, HandlerWrapper>,
@@ -2416,7 +2416,7 @@ void http_stream::async_https_proxy_resolve(const boost::system::error_code &err
 		handler(err);
 		return;
 	}
-	// ¿ªÊ¼Òì²½Á¬½Ó´úÀí.
+	// å¼€å§‹å¼‚æ­¥è¿æ¥ä»£ç†.
 	boost::asio::async_connect(sock.lowest_layer(), endpoint_iterator,
 		boost::bind(&http_stream::handle_connect_https_proxy<Stream, Handler>,
 			this, boost::ref(sock), handler,
@@ -2439,7 +2439,7 @@ void http_stream::handle_connect_https_proxy(Stream &sock, Handler handler,
 			return;
 		}
 
-		// ¼ÌĞø³¢ÊÔÁ¬½ÓÏÂÒ»¸öIP.
+		// ç»§ç»­å°è¯•è¿æ¥ä¸‹ä¸€ä¸ªIP.
 		endpoint_iterator++;
 		boost::asio::async_connect(sock.lowest_layer(), endpoint_iterator,
 			boost::bind(&http_stream::handle_connect_https_proxy<Stream, Handler>,
@@ -2451,31 +2451,31 @@ void http_stream::handle_connect_https_proxy(Stream &sock, Handler handler,
 		return;
 	}
 
-	// ·¢ÆğCONNECTÇëÇó.
+	// å‘èµ·CONNECTè¯·æ±‚.
 	request_opts opts = m_request_opts;
 
-	// Ïò´úÀí·¢ÆğÇëÇó.
+	// å‘ä»£ç†å‘èµ·è¯·æ±‚.
 	std::string request_method = "CONNECT";
 
-	// ±ØĞëÊÇhttp/1.1°æ±¾.
+	// å¿…é¡»æ˜¯http/1.1ç‰ˆæœ¬.
 	std::string http_version = "HTTP/1.1";
 
-	// Ìí¼Óuser_agent.
+	// æ·»åŠ user_agent.
 	std::string user_agent = "avhttp/2.1";
 	if (opts.find(http_options::user_agent, user_agent))
-		opts.remove(http_options::user_agent);	// É¾³ı´¦Àí¹ıµÄÑ¡Ïî.
+		opts.remove(http_options::user_agent);	// åˆ é™¤å¤„ç†è¿‡çš„é€‰é¡¹.
 
-	// µÃµ½AcceptĞÅÏ¢.
+	// å¾—åˆ°Acceptä¿¡æ¯.
 	std::string accept = "text/html, application/xhtml+xml, */*";
 	if (opts.find(http_options::accept, accept))
-		opts.remove(http_options::accept);		// É¾³ı´¦Àí¹ıµÄÑ¡Ïî.
+		opts.remove(http_options::accept);		// åˆ é™¤å¤„ç†è¿‡çš„é€‰é¡¹.
 
-	// µÃµ½HostĞÅÏ¢.
+	// å¾—åˆ°Hostä¿¡æ¯.
 	std::string host = m_url.to_string(url::host_component | url::port_component);
 	if (opts.find(http_options::host, host))
-		opts.remove(http_options::host);		// É¾³ı´¦Àí¹ıµÄÑ¡Ïî.
+		opts.remove(http_options::host);		// åˆ é™¤å¤„ç†è¿‡çš„é€‰é¡¹.
 
-	// ÕûºÏ¸÷Ñ¡Ïîµ½HttpÇëÇó×Ö·û´®ÖĞ.
+	// æ•´åˆå„é€‰é¡¹åˆ°Httpè¯·æ±‚å­—ç¬¦ä¸²ä¸­.
 	std::string request_string;
 	m_request.consume(m_request.size());
 	std::ostream request_stream(&m_request);
@@ -2486,7 +2486,7 @@ void http_stream::handle_connect_https_proxy(Stream &sock, Handler handler,
 	request_stream << "Accept: " << accept << "\r\n";
 	request_stream << "User-Agent: " << user_agent << "\r\n\r\n";
 
-	// Òì²½·¢ËÍÇëÇó.
+	// å¼‚æ­¥å‘é€è¯·æ±‚.
 	typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
 	boost::asio::async_write(sock, m_request, boost::asio::transfer_exactly(m_request.size()),
 		boost::bind(&http_stream::handle_https_proxy_request<Stream, HandlerWrapper>,
@@ -2501,14 +2501,14 @@ template <typename Stream, typename Handler>
 void http_stream::handle_https_proxy_request(Stream &sock, Handler handler,
 	const boost::system::error_code &err)
 {
-	// ·¢Éú´íÎó.
+	// å‘ç”Ÿé”™è¯¯.
 	if (err)
 	{
 		handler(err);
 		return;
 	}
 
-	// Òì²½¶ÁÈ¡Http status.
+	// å¼‚æ­¥è¯»å–Http status.
 	boost::asio::async_read_until(sock, m_response, "\r\n",
 		boost::bind(&http_stream::handle_https_proxy_status<Stream, Handler>,
 			this,
@@ -2522,15 +2522,15 @@ template <typename Stream, typename Handler>
 void http_stream::handle_https_proxy_status(Stream &sock, Handler handler,
 	const boost::system::error_code &err)
 {
-	// ·¢Éú´íÎó.
+	// å‘ç”Ÿé”™è¯¯.
 	if (err)
 	{
 		handler(err);
 		return;
 	}
 
-	// ½âÎö×´Ì¬ĞĞ.
-	// ¼ì²éhttp×´Ì¬Âë, version_majorºÍversion_minorÊÇhttpĞ­ÒéµÄ°æ±¾ºÅ.
+	// è§£æçŠ¶æ€è¡Œ.
+	// æ£€æŸ¥httpçŠ¶æ€ç , version_majorå’Œversion_minoræ˜¯httpåè®®çš„ç‰ˆæœ¬å·.
 	int version_major = 0;
 	int version_minor = 0;
 	m_status_code = 0;
@@ -2543,7 +2543,7 @@ void http_stream::handle_https_proxy_status(Stream &sock, Handler handler,
 		return;
 	}
 
-	// "continue"±íÊ¾ÎÒÃÇĞèÒª¼ÌĞøµÈ´ı½ÓÊÕ×´Ì¬.
+	// "continue"è¡¨ç¤ºæˆ‘ä»¬éœ€è¦ç»§ç»­ç­‰å¾…æ¥æ”¶çŠ¶æ€.
 	if (m_status_code == avhttp::errc::continue_request)
 	{
 		boost::asio::async_read_until(sock, m_response, "\r\n",
@@ -2556,13 +2556,13 @@ void http_stream::handle_https_proxy_status(Stream &sock, Handler handler,
 	}
 	else
 	{
-		// Çå³ıÔ­ÓĞµÄ·µ»ØÑ¡Ïî.
+		// æ¸…é™¤åŸæœ‰çš„è¿”å›é€‰é¡¹.
 		m_response_opts.clear();
 
-		// Ìí¼Ó×´Ì¬Âë.
+		// æ·»åŠ çŠ¶æ€ç .
 		m_response_opts.insert("_status_code", boost::str(boost::format("%d") % m_status_code));
 
-		// Òì²½¶ÁÈ¡ËùÓĞHttp header²¿·Ö.
+		// å¼‚æ­¥è¯»å–æ‰€æœ‰Http headeréƒ¨åˆ†.
 		boost::asio::async_read_until(sock, m_response, "\r\n\r\n",
 			boost::bind(&http_stream::handle_https_proxy_header<Stream, Handler>,
 				this,
@@ -2588,7 +2588,7 @@ void http_stream::handle_https_proxy_header(Stream &sock, Handler handler,
 	header_string.resize(bytes_transferred);
 	m_response.sgetn(&header_string[0], bytes_transferred);
 
-	// ½âÎöHttp Header.
+	// è§£æHttp Header.
 	if (!detail::parse_http_headers(header_string.begin(), header_string.end(),
 		m_content_type, m_content_length, m_location, m_response_opts.option_all()))
 	{
@@ -2601,12 +2601,12 @@ void http_stream::handle_https_proxy_header(Stream &sock, Handler handler,
 	if (m_status_code != avhttp::errc::ok)
 	{
 		ec = make_error_code(static_cast<avhttp::errc::errc_t>(m_status_code));
-		// »Øµ÷Í¨Öª.
+		// å›è°ƒé€šçŸ¥.
 		handler(ec);
 		return;
 	}
 
-	// ¿ªÊ¼Òì²½ÎÕÊÖ.
+	// å¼€å§‹å¼‚æ­¥æ¡æ‰‹.
 	ssl_socket *ssl_sock = m_sock.get<ssl_socket>();
 	ssl_sock->async_handshake(
 		boost::bind(&http_stream::handle_https_proxy_handshake<Stream, Handler>,
@@ -2625,23 +2625,23 @@ void http_stream::handle_https_proxy_handshake(Stream &sock, Handler handler,
 {
 	if (err)
 	{
-		// »Øµ÷Í¨Öª.
+		// å›è°ƒé€šçŸ¥.
 		handler(err);
 		return;
 	}
 
-	// Çå¿Õ½ÓÊÕ»º³åÇø.
+	// æ¸…ç©ºæ¥æ”¶ç¼“å†²åŒº.
 	m_response.consume(m_response.size());
 
-	// ·¢ÆğÒì²½ÇëÇó.
+	// å‘èµ·å¼‚æ­¥è¯·æ±‚.
 	async_request(m_request_opts, handler);
 }
 
-// ÊµÏÖCONNECTÖ¸Áî, ÓÃÓÚÇëÇóÄ¿±êÎªhttpsÖ÷»úÊ±Ê¹ÓÃ.
+// å®ç°CONNECTæŒ‡ä»¤, ç”¨äºè¯·æ±‚ç›®æ ‡ä¸ºhttpsä¸»æœºæ—¶ä½¿ç”¨.
 template <typename Stream>
 void http_stream::https_proxy_connect(Stream &sock, boost::system::error_code &ec)
 {
-	// ¿ªÊ¼½âÎö¶Ë¿ÚºÍÖ÷»úÃû.
+	// å¼€å§‹è§£æç«¯å£å’Œä¸»æœºå.
 	tcp::resolver resolver(m_io_service);
 	std::ostringstream port_string;
 	port_string << m_proxy.port;
@@ -2649,7 +2649,7 @@ void http_stream::https_proxy_connect(Stream &sock, boost::system::error_code &e
 	tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
 	tcp::resolver::iterator end;
 
-	// ³¢ÊÔÁ¬½Ó½âÎö³öÀ´µÄ´úÀí·şÎñÆ÷µØÖ·.
+	// å°è¯•è¿æ¥è§£æå‡ºæ¥çš„ä»£ç†æœåŠ¡å™¨åœ°å€.
 	ec = boost::asio::error::host_not_found;
 	while (ec && endpoint_iterator != end)
 	{
@@ -2661,31 +2661,31 @@ void http_stream::https_proxy_connect(Stream &sock, boost::system::error_code &e
 		return;
 	}
 
-	// ·¢ÆğCONNECTÇëÇó.
+	// å‘èµ·CONNECTè¯·æ±‚.
 	request_opts opts = m_request_opts;
 
-	// Ïò´úÀí·¢ÆğÇëÇó.
+	// å‘ä»£ç†å‘èµ·è¯·æ±‚.
 	std::string request_method = "CONNECT";
 
-	// ±ØĞëÊÇhttp/1.1°æ±¾.
+	// å¿…é¡»æ˜¯http/1.1ç‰ˆæœ¬.
 	std::string http_version = "HTTP/1.1";
 
-	// Ìí¼Óuser_agent.
+	// æ·»åŠ user_agent.
 	std::string user_agent = "avhttp/2.1";
 	if (opts.find(http_options::user_agent, user_agent))
-		opts.remove(http_options::user_agent);	// É¾³ı´¦Àí¹ıµÄÑ¡Ïî.
+		opts.remove(http_options::user_agent);	// åˆ é™¤å¤„ç†è¿‡çš„é€‰é¡¹.
 
-	// µÃµ½AcceptĞÅÏ¢.
+	// å¾—åˆ°Acceptä¿¡æ¯.
 	std::string accept = "text/html, application/xhtml+xml, */*";
 	if (opts.find(http_options::accept, accept))
-		opts.remove(http_options::accept);		// É¾³ı´¦Àí¹ıµÄÑ¡Ïî.
+		opts.remove(http_options::accept);		// åˆ é™¤å¤„ç†è¿‡çš„é€‰é¡¹.
 
-	// µÃµ½HostĞÅÏ¢.
+	// å¾—åˆ°Hostä¿¡æ¯.
 	std::string host = m_url.to_string(url::host_component | url::port_component);
 	if (opts.find(http_options::host, host))
-		opts.remove(http_options::host);		// É¾³ı´¦Àí¹ıµÄÑ¡Ïî.
+		opts.remove(http_options::host);		// åˆ é™¤å¤„ç†è¿‡çš„é€‰é¡¹.
 
-	// ÕûºÏ¸÷Ñ¡Ïîµ½HttpÇëÇó×Ö·û´®ÖĞ.
+	// æ•´åˆå„é€‰é¡¹åˆ°Httpè¯·æ±‚å­—ç¬¦ä¸²ä¸­.
 	std::string request_string;
 	m_request.consume(m_request.size());
 	std::ostream request_stream(&m_request);
@@ -2696,14 +2696,14 @@ void http_stream::https_proxy_connect(Stream &sock, boost::system::error_code &e
 	request_stream << "Accept: " << accept << "\r\n";
 	request_stream << "User-Agent: " << user_agent << "\r\n\r\n";
 
-	// ·¢ËÍÇëÇó.
+	// å‘é€è¯·æ±‚.
 	boost::asio::write(sock, m_request, ec);
 	if (ec)
 	{
 		return;
 	}
 
-	// Ñ­»·¶ÁÈ¡.
+	// å¾ªç¯è¯»å–.
 	for (;;)
 	{
 		boost::asio::read_until(sock, m_response, "\r\n", ec);
@@ -2712,7 +2712,7 @@ void http_stream::https_proxy_connect(Stream &sock, boost::system::error_code &e
 			return;
 		}
 
-		// ¼ì²éhttp×´Ì¬Âë, version_majorºÍversion_minorÊÇhttpĞ­ÒéµÄ°æ±¾ºÅ.
+		// æ£€æŸ¥httpçŠ¶æ€ç , version_majorå’Œversion_minoræ˜¯httpåè®®çš„ç‰ˆæœ¬å·.
 		int version_major = 0;
 		int version_minor = 0;
 		m_status_code = 0;
@@ -2725,29 +2725,29 @@ void http_stream::https_proxy_connect(Stream &sock, boost::system::error_code &e
 			return;
 		}
 
-		// Èç¹ûhttp×´Ì¬´úÂë²»ÊÇokÔò±íÊ¾³ö´í.
+		// å¦‚æœhttpçŠ¶æ€ä»£ç ä¸æ˜¯okåˆ™è¡¨ç¤ºå‡ºé”™.
 		if (m_status_code != avhttp::errc::ok)
 		{
 			ec = make_error_code(static_cast<avhttp::errc::errc_t>(m_status_code));
 		}
 
-		// "continue"±íÊ¾ÎÒÃÇĞèÒª¼ÌĞøµÈ´ı½ÓÊÕ×´Ì¬.
+		// "continue"è¡¨ç¤ºæˆ‘ä»¬éœ€è¦ç»§ç»­ç­‰å¾…æ¥æ”¶çŠ¶æ€.
 		if (m_status_code != avhttp::errc::continue_request)
 			break;
 	} // end for.
 
-	// Çå³ıÔ­ÓĞµÄ·µ»ØÑ¡Ïî.
+	// æ¸…é™¤åŸæœ‰çš„è¿”å›é€‰é¡¹.
 	m_response_opts.clear();
 
-	// Ìí¼Ó×´Ì¬Âë.
+	// æ·»åŠ çŠ¶æ€ç .
 	m_response_opts.insert("_status_code", boost::str(boost::format("%d") % m_status_code));
 
-	// ½ÓÊÕµôËùÓĞHttp Header.
+	// æ¥æ”¶æ‰æ‰€æœ‰Http Header.
 	boost::system::error_code read_err;
 	std::size_t bytes_transferred = boost::asio::read_until(sock, m_response, "\r\n\r\n", read_err);
 	if (read_err)
 	{
-		// ËµÃ÷¶Áµ½ÁË½áÊø»¹Ã»ÓĞµÃµ½Http header, ·µ»Ø´íÎóµÄÎÄ¼şÍ·ĞÅÏ¢¶ø²»·µ»Øeof.
+		// è¯´æ˜è¯»åˆ°äº†ç»“æŸè¿˜æ²¡æœ‰å¾—åˆ°Http header, è¿”å›é”™è¯¯çš„æ–‡ä»¶å¤´ä¿¡æ¯è€Œä¸è¿”å›eof.
 		if (read_err == boost::asio::error::eof)
 			ec = avhttp::errc::malformed_response_headers;
 		else
@@ -2759,7 +2759,7 @@ void http_stream::https_proxy_connect(Stream &sock, boost::system::error_code &e
 	header_string.resize(bytes_transferred);
 	m_response.sgetn(&header_string[0], bytes_transferred);
 
-	// ½âÎöHttp Header.
+	// è§£æHttp Header.
 	if (!detail::parse_http_headers(header_string.begin(), header_string.end(),
 		m_content_type, m_content_length, m_location, m_response_opts.option_all()))
 	{
@@ -2775,72 +2775,72 @@ void http_stream::https_proxy_connect(Stream &sock, boost::system::error_code &e
 template <typename Stream>
 void http_stream::request_impl(Stream &sock, request_opts &opt, boost::system::error_code &ec)
 {
-	// ÅĞ¶ÏsocketÊÇ·ñ´ò¿ª.
+	// åˆ¤æ–­socketæ˜¯å¦æ‰“å¼€.
 	if (!sock.is_open())
 	{
 		ec = boost::asio::error::network_reset;
 		return;
 	}
 
-	// ±£´æµ½Ò»¸öĞÂµÄoptsÖĞ²Ù×÷.
+	// ä¿å­˜åˆ°ä¸€ä¸ªæ–°çš„optsä¸­æ“ä½œ.
 	request_opts opts = opt;
 
-	// µÃµ½urlÑ¡Ïî.
+	// å¾—åˆ°urlé€‰é¡¹.
 	std::string new_url;
 	if (opts.find(http_options::url, new_url))
-		opts.remove(http_options::url);		// É¾³ı´¦Àí¹ıµÄÑ¡Ïî.
+		opts.remove(http_options::url);		// åˆ é™¤å¤„ç†è¿‡çš„é€‰é¡¹.
 
 	if (!new_url.empty())
 	{
-		BOOST_ASSERT(url::from_string(new_url).host() == m_url.host());	// ±ØĞëÊÇÍ¬Ò»Ö÷»ú.
+		BOOST_ASSERT(url::from_string(new_url).host() == m_url.host());	// å¿…é¡»æ˜¯åŒä¸€ä¸»æœº.
 		m_url = new_url;
 	}
 
-	// µÃµ½request_method.
+	// å¾—åˆ°request_method.
 	std::string request_method = "GET";
 	if (opts.find(http_options::request_method, request_method))
-		opts.remove(http_options::request_method);	// É¾³ı´¦Àí¹ıµÄÑ¡Ïî.
+		opts.remove(http_options::request_method);	// åˆ é™¤å¤„ç†è¿‡çš„é€‰é¡¹.
 
-	// µÃµ½http°æ±¾ĞÅÏ¢.
+	// å¾—åˆ°httpç‰ˆæœ¬ä¿¡æ¯.
 	std::string http_version = "HTTP/1.1";
 	if (opts.find(http_options::http_version, http_version))
-		opts.remove(http_options::http_version);	// É¾³ı´¦Àí¹ıµÄÑ¡Ïî.
+		opts.remove(http_options::http_version);	// åˆ é™¤å¤„ç†è¿‡çš„é€‰é¡¹.
 
-	// µÃµ½HostĞÅÏ¢.
+	// å¾—åˆ°Hostä¿¡æ¯.
 	std::string host = m_url.to_string(url::host_component | url::port_component);
 	if (opts.find(http_options::host, host))
-		opts.remove(http_options::host);	// É¾³ı´¦Àí¹ıµÄÑ¡Ïî.
+		opts.remove(http_options::host);	// åˆ é™¤å¤„ç†è¿‡çš„é€‰é¡¹.
 
-	// µÃµ½AcceptĞÅÏ¢.
+	// å¾—åˆ°Acceptä¿¡æ¯.
 	std::string accept = "text/html, application/xhtml+xml, */*";
 	if (opts.find(http_options::accept, accept))
-		opts.remove(http_options::accept);	// É¾³ı´¦Àí¹ıµÄÑ¡Ïî.
+		opts.remove(http_options::accept);	// åˆ é™¤å¤„ç†è¿‡çš„é€‰é¡¹.
 
-	// Ìí¼Óuser_agent.
+	// æ·»åŠ user_agent.
 	std::string user_agent = "avhttp/2.1";
 	if (opts.find(http_options::user_agent, user_agent))
-		opts.remove(http_options::user_agent);	// É¾³ı´¦Àí¹ıµÄÑ¡Ïî.
+		opts.remove(http_options::user_agent);	// åˆ é™¤å¤„ç†è¿‡çš„é€‰é¡¹.
 
-	// Ä¬ÈÏÌí¼Óclose.
+	// é»˜è®¤æ·»åŠ close.
 	std::string connection = "close";
 	if ((m_proxy.type == proxy_settings::http_pw || m_proxy.type == proxy_settings::http)
 		&& m_protocol != "https")
 	{
 		if (opts.find(http_options::proxy_connection, connection))
-			opts.remove(http_options::proxy_connection);		// É¾³ı´¦Àí¹ıµÄÑ¡Ïî.
+			opts.remove(http_options::proxy_connection);		// åˆ é™¤å¤„ç†è¿‡çš„é€‰é¡¹.
 	}
 	else
 	{
 		if (opts.find(http_options::connection, connection))
-			opts.remove(http_options::connection);		// É¾³ı´¦Àí¹ıµÄÑ¡Ïî.
+			opts.remove(http_options::connection);		// åˆ é™¤å¤„ç†è¿‡çš„é€‰é¡¹.
 	}
 
-	// ÊÇ·ñ´øÓĞbodyÑ¡Ïî.
+	// æ˜¯å¦å¸¦æœ‰bodyé€‰é¡¹.
 	std::string body;
 	if (opts.find(http_options::request_body, body))
-		opts.remove(http_options::request_body);	// É¾³ı´¦Àí¹ıµÄÑ¡Ïî.
+		opts.remove(http_options::request_body);	// åˆ é™¤å¤„ç†è¿‡çš„é€‰é¡¹.
 
-	// Ñ­»·¹¹ÔìÆäËüÑ¡Ïî.
+	// å¾ªç¯æ„é€ å…¶å®ƒé€‰é¡¹.
 	std::string other_option_string;
 	request_opts::option_item_list &list = opts.option_all();
 	for (request_opts::option_item_list::iterator val = list.begin(); val != list.end(); val++)
@@ -2848,7 +2848,7 @@ void http_stream::request_impl(Stream &sock, request_opts &opt, boost::system::e
 		other_option_string += (val->first + ": " + val->second + "\r\n");
 	}
 
-	// ÕûºÏ¸÷Ñ¡Ïîµ½HttpÇëÇó×Ö·û´®ÖĞ.
+	// æ•´åˆå„é€‰é¡¹åˆ°Httpè¯·æ±‚å­—ç¬¦ä¸²ä¸­.
 	std::string request_string;
 	m_request.consume(m_request.size());
 	std::ostream request_stream(&m_request);
@@ -2873,14 +2873,14 @@ void http_stream::request_impl(Stream &sock, request_opts &opt, boost::system::e
 		request_stream << body;
 	}
 
-	// ·¢ËÍÇëÇó.
+	// å‘é€è¯·æ±‚.
 	boost::asio::write(sock, m_request, ec);
 	if (ec)
 	{
 		return;
 	}
 
-	// Ñ­»·¶ÁÈ¡.
+	// å¾ªç¯è¯»å–.
 	for (;;)
 	{
 		boost::asio::read_until(sock, m_response, "\r\n", ec);
@@ -2889,9 +2889,9 @@ void http_stream::request_impl(Stream &sock, request_opts &opt, boost::system::e
 			return;
 		}
 
-		// ¸´ÖÆµ½ĞÂµÄstreambufÖĞ´¦ÀíÊ×ĞĞhttp×´Ì¬, Èç¹û²»ÊÇhttp×´Ì¬ĞĞ, ÄÇÃ´½«±£³Öm_responseÖĞµÄÄÚÈİ,
-		// ÕâÖ÷ÒªÊÇÎªÁË¼æÈİ·Ç±ê×¼http·şÎñÆ÷Ö±½ÓÏò¿Í»§¶Ë·¢ËÍÎÄ¼şµÄĞèÒª, µ«ÊÇÒÀÈ»ĞèÒªÒÔmalformed_status_line
-		// Í¨ÖªÓÃ»§, ¹ØÓÚm_responseÖĞµÄÊı¾İÈçºÎ´¦Àí, ÓÉÓÃ»§×Ô¼º¾ö¶¨ÊÇ·ñ¶ÁÈ¡.
+		// å¤åˆ¶åˆ°æ–°çš„streambufä¸­å¤„ç†é¦–è¡ŒhttpçŠ¶æ€, å¦‚æœä¸æ˜¯httpçŠ¶æ€è¡Œ, é‚£ä¹ˆå°†ä¿æŒm_responseä¸­çš„å†…å®¹,
+		// è¿™ä¸»è¦æ˜¯ä¸ºäº†å…¼å®¹éæ ‡å‡†httpæœåŠ¡å™¨ç›´æ¥å‘å®¢æˆ·ç«¯å‘é€æ–‡ä»¶çš„éœ€è¦, ä½†æ˜¯ä¾ç„¶éœ€è¦ä»¥malformed_status_line
+		// é€šçŸ¥ç”¨æˆ·, å…³äºm_responseä¸­çš„æ•°æ®å¦‚ä½•å¤„ç†, ç”±ç”¨æˆ·è‡ªå·±å†³å®šæ˜¯å¦è¯»å–.
 		boost::asio::streambuf tempbuf;
 		int response_size = m_response.size();
 		boost::asio::streambuf::const_buffers_type::const_iterator begin(m_response.data().begin());
@@ -2899,7 +2899,7 @@ void http_stream::request_impl(Stream &sock, request_opts &opt, boost::system::e
 		std::ostream tempbuf_stream(&tempbuf);
 		tempbuf_stream.write(ptr, response_size);
 
-		// ¼ì²éhttp×´Ì¬Âë, version_majorºÍversion_minorÊÇhttpĞ­ÒéµÄ°æ±¾ºÅ.
+		// æ£€æŸ¥httpçŠ¶æ€ç , version_majorå’Œversion_minoræ˜¯httpåè®®çš„ç‰ˆæœ¬å·.
 		int version_major = 0;
 		int version_minor = 0;
 		m_status_code = 0;
@@ -2912,34 +2912,34 @@ void http_stream::request_impl(Stream &sock, request_opts &opt, boost::system::e
 			return;
 		}
 
-		// ´¦Àíµô×´Ì¬ÂëËùÕ¼ÓÃµÄ×Ö½ÚÊı.
+		// å¤„ç†æ‰çŠ¶æ€ç æ‰€å ç”¨çš„å­—èŠ‚æ•°.
 		m_response.consume(response_size - tempbuf.size());
 
-		// Èç¹ûhttp×´Ì¬´úÂë²»ÊÇok»òpartial_content, ¸ù¾İstatus_code¹¹ÔìÒ»¸öhttp_code, ºóÃæ
-		// ĞèÒªÅĞ¶Ïhttp_codeÊÇ²»ÊÇ302µÈÌø×ª, Èç¹ûÊÇ, Ôò½«½øÈëÌø×ªÂß¼­; Èç¹ûÊÇhttp·¢ÉúÁË´íÎó
-		// , ÔòÖ±½Ó·µ»ØÕâ¸ö×´Ì¬¹¹ÔìµÄ.
+		// å¦‚æœhttpçŠ¶æ€ä»£ç ä¸æ˜¯okæˆ–partial_content, æ ¹æ®status_codeæ„é€ ä¸€ä¸ªhttp_code, åé¢
+		// éœ€è¦åˆ¤æ–­http_codeæ˜¯ä¸æ˜¯302ç­‰è·³è½¬, å¦‚æœæ˜¯, åˆ™å°†è¿›å…¥è·³è½¬é€»è¾‘; å¦‚æœæ˜¯httpå‘ç”Ÿäº†é”™è¯¯
+		// , åˆ™ç›´æ¥è¿”å›è¿™ä¸ªçŠ¶æ€æ„é€ çš„.
 		if (m_status_code != avhttp::errc::ok &&
 			m_status_code != avhttp::errc::partial_content)
 		{
 			ec = make_error_code(static_cast<avhttp::errc::errc_t>(m_status_code));
 		}
 
-		// "continue"±íÊ¾ÎÒÃÇĞèÒª¼ÌĞøµÈ´ı½ÓÊÕ×´Ì¬.
+		// "continue"è¡¨ç¤ºæˆ‘ä»¬éœ€è¦ç»§ç»­ç­‰å¾…æ¥æ”¶çŠ¶æ€.
 		if (m_status_code != avhttp::errc::continue_request)
 			break;
 	} // end for.
 
-	// Çå³ıÔ­ÓĞµÄ·µ»ØÑ¡Ïî.
+	// æ¸…é™¤åŸæœ‰çš„è¿”å›é€‰é¡¹.
 	m_response_opts.clear();
-	// Ìí¼Ó×´Ì¬Âë.
+	// æ·»åŠ çŠ¶æ€ç .
 	m_response_opts.insert("_status_code", boost::str(boost::format("%d") % m_status_code));
 
-	// ½ÓÊÕµôËùÓĞHttp Header.
+	// æ¥æ”¶æ‰æ‰€æœ‰Http Header.
 	boost::system::error_code read_err;
 	std::size_t bytes_transferred = boost::asio::read_until(sock, m_response, "\r\n\r\n", read_err);
 	if (read_err)
 	{
-		// ËµÃ÷¶Áµ½ÁË½áÊø»¹Ã»ÓĞµÃµ½Http header, ·µ»Ø´íÎóµÄÎÄ¼şÍ·ĞÅÏ¢¶ø²»·µ»Øeof.
+		// è¯´æ˜è¯»åˆ°äº†ç»“æŸè¿˜æ²¡æœ‰å¾—åˆ°Http header, è¿”å›é”™è¯¯çš„æ–‡ä»¶å¤´ä¿¡æ¯è€Œä¸è¿”å›eof.
 		if (read_err == boost::asio::error::eof)
 			ec = avhttp::errc::malformed_response_headers;
 		else
@@ -2951,7 +2951,7 @@ void http_stream::request_impl(Stream &sock, request_opts &opt, boost::system::e
 	header_string.resize(bytes_transferred);
 	m_response.sgetn(&header_string[0], bytes_transferred);
 
-	// ½âÎöHttp Header.
+	// è§£æHttp Header.
 	if (!detail::parse_http_headers(header_string.begin(), header_string.end(),
 		m_content_type, m_content_length, m_location, m_response_opts.option_all()))
 	{
@@ -2959,7 +2959,7 @@ void http_stream::request_impl(Stream &sock, request_opts &opt, boost::system::e
 		return;
 	}
 
-	// ½âÎöÊÇ·ñÆôÓÃÁËgzÑ¹Ëõ.
+	// è§£ææ˜¯å¦å¯ç”¨äº†gzå‹ç¼©.
 	std::string encoding = m_response_opts.find(http_options::content_encoding);
 #ifdef AVHTTP_ENABLE_ZLIB
 	if (encoding == "gzip" || encoding == "x-gzip")
