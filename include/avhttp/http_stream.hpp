@@ -16,6 +16,7 @@
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 #include <vector>
+#include <cstring>	// for std::strcmp/std::strlen
 
 #include <boost/lexical_cast.hpp>
 #include <boost/shared_array.hpp>
@@ -3351,6 +3352,59 @@ protected:
 
 #ifdef AVHTTP_ENABLE_OPENSSL
 
+	// Return true is STRING (case-insensitively) matches PATTERN, false
+	// otherwise.  The recognized wildcard character is "*", which matches
+	// any character in STRING except ".".  Any number of the "*" wildcard
+	// may be present in the pattern.
+	//
+	// This is used to match of hosts as indicated in rfc2818: "Names may
+	// contain the wildcard character * which is considered to match any
+	// single domain name component or component fragment. E.g., *.a.com
+	// matches foo.a.com but not bar.foo.a.com. f*.com matches foo.com but
+	// not bar.com [or foo.bar.com]."
+	//
+	// If the pattern contain no wildcards, pattern_match(a, b) is
+	// equivalent to !strcasecmp(a, b).
+
+#define ASTERISK_EXCLUDES_DOT   /* mandated by rfc2818 */
+
+	inline bool pattern_match(const char *pattern, const char *string)
+	{
+		const char *p = pattern, *n = string;
+		char c;
+		for (; (c = std::tolower(*p++)) != '\0'; n++)
+		{
+			if (c == '*')
+			{
+				for (c = tolower(*p); c == '*' || c == '.'; c = std::tolower(*++p))
+					;
+				for (; *n != '\0'; n++)
+				{
+					if (std::tolower(*n) == c && pattern_match(p, n))
+						return true;
+#ifdef ASTERISK_EXCLUDES_DOT			/* mandated by rfc2818 */
+					else if (*n == '.')
+					{
+						if (std::strcmp(n + 1, p) == 0)
+							return true;
+						else
+							return false;
+					}
+#endif
+				}
+				return c == '\0';
+			}
+			else
+			{
+				if (c != std::tolower(*n))
+					return false;
+			}
+		}
+		return *n == '\0';
+	}
+
+#undef ASTERISK_EXCLUDES_DOT
+
 	inline bool certificate_matches_host(X509 *cert, const std::string &host)
 	{
 		// Try converting host name to an address. If it is an address then we need
@@ -3373,13 +3427,18 @@ protected:
 				if (domain->type == V_ASN1_IA5STRING
 					&& domain->data && domain->length)
 				{
-					const char* cert_host = reinterpret_cast<const char*>(domain->data);
-					int j;
-					for (j = 0; host[j] && cert_host[j]; ++j)
-						if (std::tolower(host[j]) != std::tolower(cert_host[j]))
+					unsigned char *name_in_utf8 = NULL;
+					if (0 <= ASN1_STRING_to_UTF8 (&name_in_utf8, gen->d.dNSName))
+					{
+						if (pattern_match(reinterpret_cast<const char*>(name_in_utf8), host.c_str())
+							&& std::strlen(reinterpret_cast<const char*>(name_in_utf8))
+								== ASN1_STRING_length(gen->d.dNSName))
+						{
+							OPENSSL_free(name_in_utf8);
 							break;
-					if (host[j] == 0 && cert_host[j] == 0)
-						return true;
+						}
+						OPENSSL_free(name_in_utf8);
+					}
 				}
 			}
 			else if (gen->type == GEN_IPADD && is_address)
@@ -3415,11 +3474,7 @@ protected:
 			if (domain->data && domain->length)
 			{
 				const char* cert_host = reinterpret_cast<const char*>(domain->data);
-				int j;
-				for (j = 0; host[j] && cert_host[j]; ++j)
-					if (std::tolower(host[j]) != std::tolower(cert_host[j]))
-						break;
-				if (host[j] == 0 && cert_host[j] == 0)
+				if (pattern_match(cert_host, host.c_str()))
 					return true;
 			}
 		}
