@@ -20,6 +20,7 @@
 
 #include <boost/lexical_cast.hpp>
 #include <boost/shared_array.hpp>
+#include <boost/asio/detail/config.hpp>
 
 #include "avhttp/url.hpp"
 #include "avhttp/settings.hpp"
@@ -149,10 +150,10 @@ class http_stream : public boost::noncopyable
 public:
 
 	/// Constructor.
-	http_stream(boost::asio::io_service &io);
+	BOOST_ASIO_DECL http_stream(boost::asio::io_service &io);
 
 	/// Destructor.
-	virtual ~http_stream();
+	BOOST_ASIO_DECL virtual ~http_stream();
 
 	///打开一个指定的url.
 	// 失败将抛出一个boost::system::system_error异常.
@@ -168,7 +169,7 @@ public:
 	//     std::cerr << e.waht() << std::endl;
 	//   }
 	// @end example
-	void open(const url &u);
+	BOOST_ASIO_DECL void open(const url &u);
 
 	///打开一个指定的url.
 	// @param u 将要打开的URL.
@@ -182,7 +183,7 @@ public:
 	//     std::cerr << e.waht() << std::endl;
 	//   }
 	// @end example
-	void open(const url &u, boost::system::error_code &ec);
+	BOOST_ASIO_DECL void open(const url &u, boost::system::error_code &ec);
 
 	///异步打开一个指定的URL.
 	// @param u 将要打开的URL.
@@ -351,7 +352,7 @@ public:
 	//  ...
 	//  h.request(opt);
 	// @end example
-	void request(request_opts &opt);
+	BOOST_ASIO_DECL void request(request_opts &opt);
 
 	///向http服务器发起一个请求.
 	// @param opt是向服务器发起请求的选项信息.
@@ -366,7 +367,7 @@ public:
 	//  h.request(opt, ec);
 	//  ...
 	// @end example
-	void request(request_opts &opt, boost::system::error_code &ec);
+	BOOST_ASIO_DECL void request(request_opts &opt, boost::system::error_code &ec);
 
 	///向http服务器发起一个异步请求.
 	// @param opt指定的http请求选项.
@@ -396,30 +397,30 @@ public:
 
 	///清除读写缓冲区数据.
 	// @备注: 非线程安全! 不应在正在进行读写操作时进行该操作!
-	void clear();
+	BOOST_ASIO_DECL void clear();
 
 	///关闭http_stream.
 	// @失败抛出asio::system_error异常.
 	// @备注: 停止所有正在进行的读写操作, 正在进行的异步调用将回调
 	// boost::asio::error::operation_aborted错误.
-	void close();
+	BOOST_ASIO_DECL void close();
 
 	///关闭http_stream.
 	// @param ec保存失败信息.
 	// @备注: 停止所有正在进行的读写操作, 正在进行的异步调用将回调
 	// boost::asio::error::operation_aborted错误.
-	void close(boost::system::error_code &ec);
+	BOOST_ASIO_DECL void close(boost::system::error_code &ec);
 
 	///判断是否打开.
 	// @返回是否打开.
-	bool is_open() const;
+	BOOST_ASIO_DECL bool is_open() const;
 
 	///反回当前http_stream所使用的io_service的引用.
-	boost::asio::io_service& get_io_service();
+	BOOST_ASIO_DECL boost::asio::io_service& get_io_service();
 
 	///设置最大重定向次数.
 	// @param n 指定最大重定向次数, 为0表示禁用重定向.
-	void max_redirects(int n);
+	BOOST_ASIO_DECL void max_redirects(int n);
 
 	///设置代理, 通过设置代理访问http服务器.
 	// @param s 指定了代理参数.
@@ -432,7 +433,7 @@ public:
 	//  h.proxy(s);
 	//  ...
 	// @end example
-	void proxy(const proxy_settings &s);
+	BOOST_ASIO_DECL void proxy(const proxy_settings &s);
 
 	///设置请求时的http选项.
 	// @param options 为http的选项. 目前有以下几项特定选项:
@@ -446,7 +447,7 @@ public:
 	//  h.request_options(options);
 	//  ...
 	// @end example
-	void request_options(const request_opts &options);
+	BOOST_ASIO_DECL void request_options(const request_opts &options);
 
 	///返回请求时的http选项.
 	// @begin example
@@ -455,32 +456,32 @@ public:
 	//  options = h.request_options();
 	//  ...
 	// @end example
-	request_opts request_options(void) const;
+	BOOST_ASIO_DECL request_opts request_options(void) const;
 
 	///http服务器回复选项.
 	// @返回服务器回复的所有选项信息, key/value形式.
-	response_opts response_options(void) const;
+	BOOST_ASIO_DECL response_opts response_options(void) const;
 
 	///返回location.
 	// @返回location信息, 如果没有则返回空串.
-	const std::string& location() const;
+	BOOST_ASIO_DECL const std::string& location() const;
 
 	///返回content_length.
 	// @content_length信息, 如果没有则为0.
-	boost::int64_t content_length();
+	BOOST_ASIO_DECL boost::int64_t content_length();
 
 	///设置是否认证服务器证书.
 	// @param is_check 如果为true表示认证服务器证书, 如果为false表示不认证服务器证书.
 	// 默认为认证服务器证书.
-	void check_certificate(bool is_check);
+	BOOST_ASIO_DECL void check_certificate(bool is_check);
 
 	///添加证书路径.
 	// @param path证书路径.
-	void add_verify_path(const std::string &path);
+	BOOST_ASIO_DECL void add_verify_path(const std::string &path);
 
 	///加载证书文件.
 	// @param filename指定的证书文件名.
-	void load_verify_file(const std::string &filename);
+	BOOST_ASIO_DECL void load_verify_file(const std::string &filename);
 
 
 protected:
@@ -584,9 +585,9 @@ protected:
 
 #ifdef AVHTTP_ENABLE_OPENSSL
 
-	inline bool pattern_match(const char *pattern, const char *string);
+	BOOST_ASIO_DECL bool pattern_match(const char *pattern, const char *string);
 
-	inline bool certificate_matches_host(X509 *cert, const std::string &host);
+	BOOST_ASIO_DECL bool certificate_matches_host(X509 *cert, const std::string &host);
 
 #endif // AVHTTP_ENABLE_OPENSSL
 

@@ -2989,7 +2989,7 @@ void http_stream::request_impl(Stream &sock, request_opts &opt, boost::system::e
 
 #define ASTERISK_EXCLUDES_DOT   /* mandated by rfc2818 */
 
-inline bool http_stream::pattern_match(const char *pattern, const char *string)
+bool http_stream::pattern_match(const char *pattern, const char *string)
 {
 	const char *p = pattern, *n = string;
 	char c;
@@ -3026,7 +3026,7 @@ inline bool http_stream::pattern_match(const char *pattern, const char *string)
 
 #undef ASTERISK_EXCLUDES_DOT
 
-inline bool http_stream::certificate_matches_host(X509 *cert, const std::string &host)
+bool http_stream::certificate_matches_host(X509 *cert, const std::string &host)
 {
 	// Try converting host name to an address. If it is an address then we need
 	// to look for an IP address in the certificate rather than a host name.
