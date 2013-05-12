@@ -416,7 +416,8 @@ public:
 					ssl_socket *ssl_sock =  m_sock.get<ssl_socket>();
 					if (X509* cert = SSL_get_peer_certificate(ssl_sock->impl()->ssl))
 					{
-						if (SSL_get_verify_result(ssl_sock->impl()->ssl) == X509_V_OK)
+						long result = SSL_get_verify_result(ssl_sock->impl()->ssl);
+						if (result == X509_V_OK)
 						{
 							if (certificate_matches_host(cert, m_url.host()))
 								ec = boost::system::error_code();
@@ -426,6 +427,10 @@ public:
 						else
 							ec = make_error_code(boost::system::errc::permission_denied);
 						X509_free(cert);
+					}
+					else
+					{
+						ec = make_error_code(boost::asio::error::invalid_argument);
 					}
 				}
 			}
