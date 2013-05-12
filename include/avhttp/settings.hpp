@@ -22,7 +22,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/date_time.hpp>
 
-#include "storage_interface.hpp"
+#include "avhttp/storage_interface.hpp"
 
 namespace avhttp {
 

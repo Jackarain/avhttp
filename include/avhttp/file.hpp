@@ -18,7 +18,7 @@
 #include <boost/noncopyable.hpp>
 #include <boost/filesystem/fstream.hpp>
 
-#include "storage_interface.hpp"
+#include "avhttp/storage_interface.hpp"
 
 namespace avhttp {
 

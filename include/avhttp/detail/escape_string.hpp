@@ -20,7 +20,7 @@
 #include <cstdlib>
 #include <string>
 
-#include "utf8.hpp"
+#include "avhttp/detail/utf8.hpp"
 
 namespace avhttp {
 namespace detail {

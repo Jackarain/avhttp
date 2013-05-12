@@ -23,7 +23,7 @@
 #include <boost/system/error_code.hpp>
 #include <boost/system/system_error.hpp>
 
-#include "detail/escape_string.hpp"
+#include "avhttp/detail/escape_string.hpp"
 
 namespace avhttp {
 

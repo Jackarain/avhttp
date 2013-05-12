@@ -30,11 +30,11 @@
 #include <boost/format.hpp>
 #include <boost/filesystem/fstream.hpp>
 
-#include "file.hpp"
-#include "http_stream.hpp"
-#include "rangefield.hpp"
-#include "entry.hpp"
-#include "settings.hpp"
+#include "avhttp/file.hpp"
+#include "avhttp/http_stream.hpp"
+#include "avhttp/rangefield.hpp"
+#include "avhttp/entry.hpp"
+#include "avhttp/settings.hpp"
 
 #if defined(_MSC_VER)
 #ifdef min

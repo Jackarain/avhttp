@@ -19,8 +19,9 @@
 #include <stdlib.h>
 #include <cstdlib>
 #include <boost/static_assert.hpp>
-#include "entry.hpp"
-#include "detail/escape_string.hpp"
+
+#include "avhttp/entry.hpp"
+#include "avhttp/detail/escape_string.hpp"
 
 namespace avhttp {
 

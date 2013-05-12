@@ -16,8 +16,8 @@
 # pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include "detail/error_codec.hpp"
-#include "detail/escape_string.hpp"
+#include "avhttp/detail/error_codec.hpp"
+#include "avhttp/detail/escape_string.hpp"
 
 namespace avhttp {
 
