@@ -583,14 +583,6 @@ protected:
 	template <typename Stream>
 	void request_impl(Stream &sock, request_opts &opt, boost::system::error_code &ec);
 
-#ifdef AVHTTP_ENABLE_OPENSSL
-
-	BOOST_ASIO_DECL bool pattern_match(const char *pattern, const char *string);
-
-	BOOST_ASIO_DECL bool certificate_matches_host(X509 *cert, const std::string &host);
-
-#endif // AVHTTP_ENABLE_OPENSSL
-
 
 protected:
 
