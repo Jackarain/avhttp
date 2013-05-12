@@ -413,8 +413,8 @@ public:
 				// 认证证书.
 				if (m_check_certificate)
 				{
-					ssl_socket *ssl_sock =  m_sock.get<ssl_socket>();
-					if (X509* cert = SSL_get_peer_certificate(ssl_sock->impl()->ssl))
+					ssl_socket *ssl_sock = m_sock.get<ssl_socket>();
+					if (X509 *cert = SSL_get_peer_certificate(ssl_sock->impl()->ssl))
 					{
 						long result = SSL_get_verify_result(ssl_sock->impl()->ssl);
 						if (result == X509_V_OK)
@@ -431,6 +431,11 @@ public:
 					else
 					{
 						ec = make_error_code(boost::asio::error::invalid_argument);
+					}
+
+					if (ec)
+					{
+						return;
 					}
 				}
 			}
@@ -1481,13 +1486,14 @@ protected:
 			if (m_protocol == "https")
 			{
 				// 认证证书.
+				boost::system::error_code ec;
 				if (m_check_certificate)
 				{
-					boost::system::error_code ec;
-					ssl_socket *ssl_sock =  m_sock.get<ssl_socket>();
-					if (X509* cert = SSL_get_peer_certificate(ssl_sock->impl()->ssl))
+					ssl_socket *ssl_sock = m_sock.get<ssl_socket>();
+					if (X509 *cert = SSL_get_peer_certificate(ssl_sock->impl()->ssl))
 					{
-						if (SSL_get_verify_result(ssl_sock->impl()->ssl) == X509_V_OK)
+						long result = SSL_get_verify_result(ssl_sock->impl()->ssl);
+						if (result == X509_V_OK)
 						{
 							if (certificate_matches_host(cert, m_url.host()))
 								ec = boost::system::error_code();
@@ -1498,12 +1504,16 @@ protected:
 							ec = make_error_code(boost::system::errc::permission_denied);
 						X509_free(cert);
 					}
-					
-					if (ec)
+					else
 					{
-						handler(ec);
-						return;
+						ec = make_error_code(boost::asio::error::invalid_argument);
 					}
+				}
+
+				if (ec)
+				{
+					handler(ec);
+					return;
 				}
 			}
 #endif
