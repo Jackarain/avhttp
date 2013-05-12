@@ -36,7 +36,6 @@ public:
 	{
 		boost::system::error_code ec;
 		m_context.set_default_verify_paths(ec);
-		// SSL_CTX_load_verify_locations(m_context.impl(), NULL, NULL);
 		m_context.set_verify_mode(boost::asio::ssl::context::verify_none, ec);
 	}
 
@@ -47,7 +46,6 @@ public:
 	{
 		boost::system::error_code ec;
 		m_context.set_default_verify_paths(ec);
-		// SSL_CTX_load_verify_locations(m_context.impl(), NULL, NULL);
 		m_context.set_verify_mode(boost::asio::ssl::context::verify_none, ec);
 	}
 
