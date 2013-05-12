@@ -648,8 +648,13 @@ public:
 		typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
 		HandlerWrapper h = handler;
 		m_resolver.async_resolve(query,
-			boost::bind(&http_stream::handle_resolve<HandlerWrapper>, this,
-			boost::asio::placeholders::error, boost::asio::placeholders::iterator, h));
+			boost::bind(&http_stream::handle_resolve<HandlerWrapper>,
+				this,
+				boost::asio::placeholders::error,
+				boost::asio::placeholders::iterator,
+				h
+			)
+		);
 	}
 
 	///从这个http_stream中读取一些数据.
@@ -1305,8 +1310,11 @@ public:
 		// 异步发送请求.
 		typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
 		boost::asio::async_write(m_sock, m_request, boost::asio::transfer_exactly(m_request.size()),
-			boost::bind(&http_stream::handle_request<HandlerWrapper>, this,
-			HandlerWrapper(handler), boost::asio::placeholders::error));
+			boost::bind(&http_stream::handle_request<HandlerWrapper>,
+				this, HandlerWrapper(handler),
+				boost::asio::placeholders::error
+			)
+		);
 	}
 
 	///清除读写缓冲区数据.
@@ -1507,8 +1515,11 @@ protected:
 			// 了, 所以, 如果需要使用boost::asio::async_connect的话, 需要在http_stream
 			// 中实现握手操作, 否则将会得到一个错误.
 			m_sock.async_connect(tcp::endpoint(*endpoint_iterator),
-				boost::bind(&http_stream::handle_connect<Handler>, this,
-				handler, endpoint_iterator, boost::asio::placeholders::error));
+				boost::bind(&http_stream::handle_connect<Handler>,
+					this, handler, endpoint_iterator,
+					boost::asio::placeholders::error
+				)
+			);
 		}
 		else
 		{
@@ -1573,8 +1584,11 @@ protected:
 				// 了, 所以, 如果需要使用boost::asio::async_connect的话, 需要在http_stream
 				// 中实现握手操作, 否则将会得到一个错误.
 				m_sock.async_connect(tcp::endpoint(*endpoint_iterator),
-					boost::bind(&http_stream::handle_connect<Handler>, this,
-					handler, endpoint_iterator, boost::asio::placeholders::error));
+					boost::bind(&http_stream::handle_connect<Handler>,
+						this, handler, endpoint_iterator,
+						boost::asio::placeholders::error
+					)
+				);
 			}
 		}
 	}
@@ -1591,7 +1605,11 @@ protected:
 
 		// 异步读取Http status.
 		boost::asio::async_read_until(m_sock, m_response, "\r\n",
-			boost::bind(&http_stream::handle_status<Handler>, this, handler, boost::asio::placeholders::error));
+			boost::bind(&http_stream::handle_status<Handler>,
+				this, handler,
+				boost::asio::placeholders::error
+			)
+		);
 	}
 
 	template <typename Handler>
@@ -1634,7 +1652,11 @@ protected:
 		if (m_status_code == avhttp::errc::continue_request)
 		{
 			boost::asio::async_read_until(m_sock, m_response, "\r\n",
-				boost::bind(&http_stream::handle_status<Handler>, this, handler, boost::asio::placeholders::error));
+				boost::bind(&http_stream::handle_status<Handler>,
+					this, handler,
+					boost::asio::placeholders::error
+				)
+			);
 		}
 		else
 		{
@@ -1645,8 +1667,12 @@ protected:
 
 			// 异步读取所有Http header部分.
 			boost::asio::async_read_until(m_sock, m_response, "\r\n\r\n",
-				boost::bind(&http_stream::handle_header<Handler>, this, handler,
-					boost::asio::placeholders::bytes_transferred, boost::asio::placeholders::error));
+				boost::bind(&http_stream::handle_header<Handler>,
+					this, handler,
+					boost::asio::placeholders::bytes_transferred,
+					boost::asio::placeholders::error
+				)
+			);
 		}
 	}
 
@@ -2252,9 +2278,13 @@ protected:
 		// 开始异步解析代理的端口和主机名.
 		typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
 		m_resolver.async_resolve(query,
-			boost::bind(&http_stream::async_socks_proxy_resolve<Stream, HandlerWrapper>, this,
-			boost::asio::placeholders::error, boost::asio::placeholders::iterator,
-			boost::ref(sock), HandlerWrapper(handler)));
+			boost::bind(&http_stream::async_socks_proxy_resolve<Stream, HandlerWrapper>,
+				this,
+				boost::asio::placeholders::error,
+				boost::asio::placeholders::iterator,
+				boost::ref(sock), HandlerWrapper(handler)
+			)
+		);
 	}
 
 	// 异步代理查询回调.
@@ -2274,8 +2304,10 @@ protected:
 			// 开始异步连接代理.
 			boost::asio::async_connect(sock.lowest_layer(), endpoint_iterator,
 				boost::bind(&http_stream::handle_connect_socks<Stream, Handler>,
-				this, boost::ref(sock), handler,
-				endpoint_iterator, boost::asio::placeholders::error));
+					this, boost::ref(sock), handler,
+					endpoint_iterator, boost::asio::placeholders::error
+				)
+			);
 
 			return;
 		}
@@ -2310,8 +2342,10 @@ protected:
 			endpoint_iterator++;
 			boost::asio::async_connect(sock.lowest_layer(), endpoint_iterator,
 				boost::bind(&http_stream::handle_connect_socks<Stream, Handler>,
-				this, boost::ref(sock), handler,
-				endpoint_iterator, boost::asio::placeholders::error));
+					this, boost::ref(sock), handler,
+					endpoint_iterator, boost::asio::placeholders::error
+				)
+			);
 
 			return;
 		}
@@ -2344,9 +2378,11 @@ protected:
 
 			typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
 			boost::asio::async_write(sock, m_request, boost::asio::transfer_exactly(bytes_to_write),
-				boost::bind(&http_stream::handle_socks_process<Stream, HandlerWrapper>, this,
-				boost::ref(sock), HandlerWrapper(handler),
-				boost::asio::placeholders::bytes_transferred, boost::asio::placeholders::error)
+				boost::bind(&http_stream::handle_socks_process<Stream, HandlerWrapper>,
+					this, boost::ref(sock), HandlerWrapper(handler),
+					boost::asio::placeholders::bytes_transferred,
+					boost::asio::placeholders::error
+				)
 			);
 
 			return;
@@ -2364,9 +2400,12 @@ protected:
 			// 开始异步解析代理的端口和主机名.
 			typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
 			m_resolver.async_resolve(query,
-				boost::bind(&http_stream::async_socks_proxy_resolve<Stream, HandlerWrapper>, this,
-				boost::asio::placeholders::error, boost::asio::placeholders::iterator,
-				boost::ref(sock), HandlerWrapper(handler)));
+				boost::bind(&http_stream::async_socks_proxy_resolve<Stream, HandlerWrapper>,
+					this,
+					boost::asio::placeholders::error, boost::asio::placeholders::iterator,
+					boost::ref(sock), HandlerWrapper(handler)
+				)
+			);
 		}
 	}
 
@@ -2399,10 +2438,12 @@ protected:
 
 					m_response.consume(m_response.size());
 					boost::asio::async_read(sock, m_response, boost::asio::transfer_exactly(bytes_to_read),
-						boost::bind(&http_stream::handle_socks_process<Stream, Handler>, this,
-						boost::ref(sock), handler,
-						boost::asio::placeholders::bytes_transferred,
-						boost::asio::placeholders::error));
+						boost::bind(&http_stream::handle_socks_process<Stream, Handler>,
+							this, boost::ref(sock), handler,
+							boost::asio::placeholders::bytes_transferred,
+							boost::asio::placeholders::error
+						)
+					);
 
 					return;
 				}
@@ -2414,10 +2455,12 @@ protected:
 					// 读取版本信息.
 					m_response.consume(m_response.size());
 					boost::asio::async_read(sock, m_response, boost::asio::transfer_exactly(2),
-						boost::bind(&http_stream::handle_socks_process<Stream, Handler>, this,
-						boost::ref(sock), handler,
-						boost::asio::placeholders::bytes_transferred,
-						boost::asio::placeholders::error));
+						boost::bind(&http_stream::handle_socks_process<Stream, Handler>,
+							this, boost::ref(sock), handler,
+							boost::asio::placeholders::bytes_transferred,
+							boost::asio::placeholders::error
+						)
+					);
 
 					return;
 				}
@@ -2452,10 +2495,11 @@ protected:
 				m_request.commit(bytes_to_write);
 
 				boost::asio::async_write(sock, m_request, boost::asio::transfer_exactly(bytes_to_write),
-					boost::bind(&http_stream::handle_socks_process<Stream, Handler>, this,
-					boost::ref(sock), handler,
-					boost::asio::placeholders::bytes_transferred, boost::asio::placeholders::error)
-					);
+					boost::bind(&http_stream::handle_socks_process<Stream, Handler>,
+						this, boost::ref(sock), handler,
+						boost::asio::placeholders::bytes_transferred, boost::asio::placeholders::error
+					)
+				);
 
 				return;
 			}
@@ -2466,10 +2510,12 @@ protected:
 				// 读取认证状态.
 				m_response.consume(m_response.size());
 				boost::asio::async_read(sock, m_response, boost::asio::transfer_exactly(2),
-					boost::bind(&http_stream::handle_socks_process<Stream, Handler>, this,
-					boost::ref(sock), handler,
-					boost::asio::placeholders::bytes_transferred,
-					boost::asio::placeholders::error));
+					boost::bind(&http_stream::handle_socks_process<Stream, Handler>,
+						this, boost::ref(sock), handler,
+						boost::asio::placeholders::bytes_transferred,
+						boost::asio::placeholders::error
+					)
+				);
 				return;
 			}
 			break;
@@ -2495,10 +2541,11 @@ protected:
 				write_uint16(m_url.port(), wp);				// port.
 				m_request.commit(bytes_to_write);
 				boost::asio::async_write(sock, m_request, boost::asio::transfer_exactly(bytes_to_write),
-					boost::bind(&http_stream::handle_socks_process<Stream, Handler>, this,
-					boost::ref(sock), handler,
-					boost::asio::placeholders::bytes_transferred, boost::asio::placeholders::error)
-					);
+					boost::bind(&http_stream::handle_socks_process<Stream, Handler>,
+						this, boost::ref(sock), handler,
+						boost::asio::placeholders::bytes_transferred, boost::asio::placeholders::error
+					)
+				);
 
 				return;
 			}
@@ -2509,10 +2556,12 @@ protected:
 				std::size_t bytes_to_read = 10;
 				m_response.consume(m_response.size());
 				boost::asio::async_read(sock, m_response, boost::asio::transfer_exactly(bytes_to_read),
-					boost::bind(&http_stream::handle_socks_process<Stream, Handler>, this,
-					boost::ref(sock), handler,
-					boost::asio::placeholders::bytes_transferred,
-					boost::asio::placeholders::error));
+					boost::bind(&http_stream::handle_socks_process<Stream, Handler>,
+						this, boost::ref(sock), handler,
+						boost::asio::placeholders::bytes_transferred,
+						boost::asio::placeholders::error
+					)
+				);
 			}
 			break;
 		case socks4_response:	// socks4服务器返回请求.
@@ -2610,9 +2659,11 @@ protected:
 
 					// 发送用户密码信息.
 					boost::asio::async_write(sock, m_request, boost::asio::transfer_exactly(bytes_to_write),
-						boost::bind(&http_stream::handle_socks_process<Stream, Handler>, this,
-						boost::ref(sock), handler,
-						boost::asio::placeholders::bytes_transferred, boost::asio::placeholders::error));
+						boost::bind(&http_stream::handle_socks_process<Stream, Handler>,
+							this, boost::ref(sock), handler,
+							boost::asio::placeholders::bytes_transferred, boost::asio::placeholders::error
+						)
+					);
 
 					return;
 				}
@@ -2720,10 +2771,12 @@ protected:
 
 					m_response.consume(m_response.size());
 					boost::asio::async_read(sock, m_response, boost::asio::transfer_exactly(bytes_to_read),
-						boost::bind(&http_stream::handle_socks_process<Stream, Handler>, this,
-						boost::ref(sock), handler,
-						boost::asio::placeholders::bytes_transferred,
-						boost::asio::placeholders::error));
+						boost::bind(&http_stream::handle_socks_process<Stream, Handler>,
+							this, boost::ref(sock), handler,
+							boost::asio::placeholders::bytes_transferred,
+							boost::asio::placeholders::error
+						)
+					);
 
 					return;
 				}
@@ -2869,7 +2922,7 @@ protected:
 		// 异步发送请求.
 		typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
 		boost::asio::async_write(sock, m_request, boost::asio::transfer_exactly(m_request.size()),
-				boost::bind(&http_stream::handle_https_proxy_request<Stream, HandlerWrapper>,
+			boost::bind(&http_stream::handle_https_proxy_request<Stream, HandlerWrapper>,
 				this,
 				boost::ref(sock), HandlerWrapper(handler),
 				boost::asio::placeholders::error
