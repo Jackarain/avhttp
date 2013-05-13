@@ -950,9 +950,10 @@ void http_stream::async_request(const request_opts &opt, Handler handler)
 	}
 	else
 	{
-		request_stream << m_url.to_string(url::path_component | url::query_component);
-		m_request_opts.insert(
-			http_options::path, m_url.to_string(url::path_component | url::query_component));
+		request_stream << m_url.to_string(url::path_component |
+			url::query_component | avhttp::url::fragment_component);
+		m_request_opts.insert(http_options::path, m_url.to_string(
+			url::path_component | url::query_component | avhttp::url::fragment_component));
 	}
 	request_stream << " " << http_version << "\r\n";
 	request_stream << "Host: " << host << "\r\n";
@@ -2864,9 +2865,10 @@ void http_stream::request_impl(Stream &sock, request_opts &opt, boost::system::e
 	}
 	else
 	{
-		request_stream << m_url.to_string(url::path_component | url::query_component);
-		m_request_opts.insert(
-			http_options::path, m_url.to_string(url::path_component | url::query_component));
+		request_stream << m_url.to_string(url::path_component |
+			url::query_component | url::fragment_component);
+		m_request_opts.insert(http_options::path, m_url.to_string(
+			url::path_component | url::query_component | url::fragment_component));
 	}
 	request_stream << " " << http_version << "\r\n";
 	request_stream << "Host: " << host << "\r\n";
