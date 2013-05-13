@@ -13,8 +13,8 @@ before_script:
   cmake .
 
 script:
-  make
-  ./avhttp https://travis-ci.org/avplayer/avhttp/
+    - make
+    - ./avhttp https://travis-ci.org/avplayer/avhttp/
 
 branches:
   only:
