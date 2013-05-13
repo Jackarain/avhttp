@@ -25,6 +25,7 @@
 #include <boost/function.hpp>
 #include <boost/noncopyable.hpp>
 
+#include "avhttp/logging.hpp"
 #include "avhttp/detail/error_codec.hpp"
 #include "avhttp/entry.hpp"
 #include "avhttp/bencode.hpp"
