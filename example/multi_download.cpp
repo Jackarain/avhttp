@@ -120,5 +120,7 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 
+	UNINIT_LOGGER();
+
 	return 0;
 }
