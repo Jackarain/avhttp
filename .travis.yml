@@ -14,7 +14,9 @@ before_script:
 
 script:
     - make
-    - ./avhttp https://travis-ci.org/avplayer/avhttp/
+    - ./avhttp http://www.boost.org/LICENSE_1_0.txt
+    - ./avhttp https://github.com/blog
+    - ./avhttp https://github.com/avplayer/avplayer/archive/master.zip
 
 branches:
   only:
