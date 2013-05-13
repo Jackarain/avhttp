@@ -17,6 +17,7 @@ script:
     - ./avhttp http://www.boost.org/LICENSE_1_0.txt
     - ./avhttp https://github.com/blog
     - ./avhttp https://github.com/avplayer/avplayer/archive/master.zip
+    - ./cat multi_download.log
 
 branches:
   only:
