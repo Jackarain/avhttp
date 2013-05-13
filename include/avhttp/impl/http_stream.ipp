@@ -15,6 +15,7 @@
 # pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
+#include "avhttp/logging.hpp"
 #include "avhttp/http_stream.hpp"
 #include "avhttp/detail/handler_type_requirements.hpp"
 

@@ -17,6 +17,7 @@
 
 #include <iostream>
 #include <string>
+#include <fstream>
 
 #include <boost/thread/mutex.hpp>
 #include <boost/shared_ptr.hpp>
