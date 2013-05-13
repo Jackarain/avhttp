@@ -10,7 +10,7 @@ before_install:
   - sudo apt-get install zlib1g-dev
 
 before_script:
-  cmake .
+  cmake . -DDEBUG=1
 
 script:
     - make
