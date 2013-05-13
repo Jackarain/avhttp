@@ -2655,7 +2655,7 @@ void http_stream::https_proxy_connect(Stream &sock, boost::system::error_code &e
 	std::string http_version = "HTTP/1.1";
 
 	// 添加user_agent.
-	std::string user_agent = "avhttp/2.1";
+	std::string user_agent = "avhttp/2.4";
 	if (opts.find(http_options::user_agent, user_agent))
 		opts.remove(http_options::user_agent);	// 删除处理过的选项.
 
