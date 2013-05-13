@@ -66,6 +66,9 @@ int main(int argc, char* argv[])
 		std::cerr << "usage: " << argv[0] << " <url>\n";
 		return -1;
 	}
+
+	INIT_LOGGER(".", "multi_download.log");
+
 	try {
 		boost::asio::io_service io;
 		avhttp::multi_download d(io);

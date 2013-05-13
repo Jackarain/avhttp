@@ -18,6 +18,10 @@ if (ENABLE_OPENSSL)
 	add_definitions(-DAVHTTP_ENABLE_OPENSSL)
 endif()
 
+if (UNIX AND NOT APPLE AND DEBUG)
+	add_definitions(-DDEBUG)
+endif()
+
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(include)
 
