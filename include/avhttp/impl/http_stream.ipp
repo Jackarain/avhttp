@@ -16,6 +16,7 @@
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 #include "avhttp/http_stream.hpp"
+#include "avhttp/detail/handler_type_requirements.hpp"
 
 namespace avhttp {
 
@@ -299,6 +300,8 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 template <typename Handler>
 void http_stream::async_open(const url &u, Handler handler)
 {
+	BOOST_ASIO_OPEN_HANDLER_CHECK(Handler, handler) type_check;
+
 	const std::string protocol = u.protocol();
 
 	// 保存url.
@@ -815,7 +818,7 @@ std::size_t http_stream::write_some(const ConstBufferSequence &buffers,
 template <typename ConstBufferSequence, typename Handler>
 void http_stream::async_write_some(const ConstBufferSequence &buffers, Handler handler)
 {
-	BOOST_ASIO_WAIT_HANDLER_CHECK(Handler, handler) type_check;
+	BOOST_ASIO_WRITE_HANDLER_CHECK(Handler, handler) type_check;
 
 	m_sock.async_write_some(buffers, handler);
 }
@@ -838,6 +841,8 @@ void http_stream::request(request_opts &opt, boost::system::error_code &ec)
 template <typename Handler>
 void http_stream::async_request(const request_opts &opt, Handler handler)
 {
+	BOOST_ASIO_REQUEST_HANDLER_CHECK(Handler, handler) type_check;
+
 	boost::system::error_code ec;
 
 	// 判断socket是否打开.
