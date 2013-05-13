@@ -39,6 +39,7 @@ namespace http_options {
 	static const std::string http_version("_http_version");
 	static const std::string request_body("_request_body");
 	static const std::string status_code("_status_code");
+	static const std::string path("_path");
 	static const std::string url("_url");
 	static const std::string host("Host");
 	static const std::string accept("Accept");
@@ -155,6 +156,12 @@ public:
 	option_item_list& option_all()
 	{
 		return m_opts;
+	}
+
+	// 返回当前option个数.
+	int size() const
+	{
+		return m_opts.size();
 	}
 
 protected:

@@ -630,6 +630,7 @@ private:
 	std::string m_ca_directory;						// 证书路径.
 	std::string m_ca_cert;							// CA证书文件.
 	request_opts m_request_opts;					// 向http服务器请求的头信息.
+	request_opts m_request_opts_priv;				// 向http服务器请求的头信息.
 	response_opts m_response_opts;					// http服务器返回的http头信息.
 	proxy_settings m_proxy;							// 代理设置.
 	int m_proxy_status;								// 异步中代理状态.

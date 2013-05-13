@@ -272,7 +272,7 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 	boost::system::error_code http_code;
 
 	// 发出请求.
-	request(m_request_opts, http_code);
+	request(m_request_opts_priv, http_code);
 
 	// 判断是否需要跳转.
 	if (http_code == avhttp::errc::moved_permanently || http_code == avhttp::errc::found)
@@ -854,6 +854,8 @@ void http_stream::async_request(const request_opts &opt, Handler handler)
 
 	// 保存到一个新的opts中操作.
 	request_opts opts = opt;
+	// 清空.
+	m_request_opts.clear();
 
 	// 得到url选项.
 	std::string new_url;
@@ -864,32 +866,38 @@ void http_stream::async_request(const request_opts &opt, Handler handler)
 	{
 		BOOST_ASSERT(url::from_string(new_url).host() == m_url.host());	// 必须是同一主机.
 		m_url = new_url;
+		m_request_opts.insert(http_options::url, new_url);
 	}
 
 	// 得到request_method.
 	std::string request_method = "GET";
 	if (opts.find(http_options::request_method, request_method))
 		opts.remove(http_options::request_method);	// 删除处理过的选项.
+	m_request_opts.insert(http_options::request_method, request_method);
 
 	// 得到http的版本信息.
 	std::string http_version = "HTTP/1.1";
 	if (opts.find(http_options::http_version, http_version))
 		opts.remove(http_options::http_version);	// 删除处理过的选项.
+	m_request_opts.insert(http_options::http_version, http_version);
 
 	// 得到Host信息.
 	std::string host = m_url.to_string(url::host_component | url::port_component);
 	if (opts.find(http_options::host, host))
 		opts.remove(http_options::host);	// 删除处理过的选项.
+	m_request_opts.insert(http_options::host, host);
 
 	// 得到Accept信息.
 	std::string accept = "text/html, application/xhtml+xml, */*";
 	if (opts.find(http_options::accept, accept))
 		opts.remove(http_options::accept);	// 删除处理过的选项.
+	m_request_opts.insert(http_options::accept, accept);
 
 	// 添加user_agent.
-	std::string user_agent = "avhttp/2.1";
+	std::string user_agent = "avhttp/2.4";
 	if (opts.find(http_options::user_agent, user_agent))
 		opts.remove(http_options::user_agent);	// 删除处理过的选项.
+	m_request_opts.insert(http_options::user_agent, user_agent);
 
 	// 默认添加close.
 	std::string connection = "close";
@@ -898,24 +906,35 @@ void http_stream::async_request(const request_opts &opt, Handler handler)
 	{
 		if (opts.find(http_options::proxy_connection, connection))
 			opts.remove(http_options::proxy_connection);		// 删除处理过的选项.
+		m_request_opts.insert(http_options::proxy_connection, connection);
 	}
 	else
 	{
 		if (opts.find(http_options::connection, connection))
 			opts.remove(http_options::connection);		// 删除处理过的选项.
+		m_request_opts.insert(http_options::connection, connection);
 	}
 
 	// 是否带有body选项.
 	std::string body;
 	if (opts.find(http_options::request_body, body))
 		opts.remove(http_options::request_body);	// 删除处理过的选项.
+	m_request_opts.insert(http_options::request_body, body);
 
 	// 循环构造其它选项.
 	std::string other_option_string;
 	request_opts::option_item_list &list = opts.option_all();
 	for (request_opts::option_item_list::iterator val = list.begin(); val != list.end(); val++)
 	{
+		if (val->first == http_options::path ||
+			val->first == http_options::url ||
+			val->first == http_options::request_method ||
+			val->first == http_options::http_version ||
+			val->first == http_options::request_body ||
+			val->first == http_options::status_code)
+			continue;
 		other_option_string += (val->first + ": " + val->second + "\r\n");
+		m_request_opts.insert(val->first, val->second);
 	}
 
 	// 整合各选项到Http请求字符串中.
@@ -925,9 +944,16 @@ void http_stream::async_request(const request_opts &opt, Handler handler)
 	request_stream << request_method << " ";
 	if ((m_proxy.type == proxy_settings::http_pw || m_proxy.type == proxy_settings::http)
 		&& m_protocol != "https")
-		request_stream << m_url.to_string().c_str();
+	{
+		request_stream << m_url.to_string();
+		m_request_opts.insert(http_options::path, m_url.to_string());
+	}
 	else
+	{
 		request_stream << m_url.to_string(url::path_component | url::query_component);
+		m_request_opts.insert(
+			http_options::path, m_url.to_string(url::path_component | url::query_component));
+	}
 	request_stream << " " << http_version << "\r\n";
 	request_stream << "Host: " << host << "\r\n";
 	request_stream << "Accept: " << accept << "\r\n";
@@ -1009,11 +1035,13 @@ void http_stream::proxy(const proxy_settings &s)
 
 void http_stream::request_options(const request_opts &options)
 {
-	m_request_opts = options;
+	m_request_opts_priv = options;
 }
 
 request_opts http_stream::request_options(void) const
 {
+	if (m_request_opts.size() == 0)
+		return m_request_opts_priv;
 	return m_request_opts;
 }
 
@@ -1116,7 +1144,7 @@ void http_stream::handle_connect(Handler handler,
 	if (!err)
 	{
 		// 发起异步请求.
-		async_request(m_request_opts, handler);
+		async_request(m_request_opts_priv, handler);
 	}
 	else
 	{
@@ -2059,7 +2087,7 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 			write_uint8(3, wp); // address type.
 			BOOST_ASSERT(host.size() <= 255);
 			write_uint8(host.size(), wp);				// domainname size.
-			std::copy(host.begin(), host.end(),wp);		// domainname.
+			std::copy(host.begin(), host.end(), wp);	// domainname.
 			wp += host.size();
 			write_uint16(m_url.port(), wp);				// port.
 			m_request.commit(bytes_to_write);
@@ -2117,7 +2145,7 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 				}
 				else
 #endif
-				async_request(m_request_opts, handler);
+				async_request(m_request_opts_priv, handler);
 				return;
 			}
 			else
@@ -2137,7 +2165,7 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 #ifdef AVHTTP_ENABLE_OPENSSL
 	case ssl_handshake:
 		{
-			async_request(m_request_opts, handler);
+			async_request(m_request_opts_priv, handler);
 		}
 		break;
 #endif
@@ -2281,7 +2309,7 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 				else
 #endif
 				// 没有发生错误, 开始异步发送请求.
-				async_request(m_request_opts, handler);
+				async_request(m_request_opts_priv, handler);
 
 				return;
 			}
@@ -2335,7 +2363,7 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 			else
 #endif
 			// 没有发生错误, 开始异步发送请求.
-			async_request(m_request_opts, handler);
+			async_request(m_request_opts_priv, handler);
 			return;
 		}
 		break;
@@ -2417,7 +2445,7 @@ void http_stream::handle_connect_https_proxy(Stream &sock, Handler handler,
 	std::string http_version = "HTTP/1.1";
 
 	// 添加user_agent.
-	std::string user_agent = "avhttp/2.1";
+	std::string user_agent = "avhttp/2.4";
 	if (opts.find(http_options::user_agent, user_agent))
 		opts.remove(http_options::user_agent);	// 删除处理过的选项.
 
@@ -2590,7 +2618,7 @@ void http_stream::handle_https_proxy_handshake(Stream &sock, Handler handler,
 	m_response.consume(m_response.size());
 
 	// 发起异步请求.
-	async_request(m_request_opts, handler);
+	async_request(m_request_opts_priv, handler);
 }
 
 // 实现CONNECT指令, 用于请求目标为https主机时使用.
@@ -2740,6 +2768,8 @@ void http_stream::request_impl(Stream &sock, request_opts &opt, boost::system::e
 
 	// 保存到一个新的opts中操作.
 	request_opts opts = opt;
+	// 清空.
+	m_request_opts.clear();
 
 	// 得到url选项.
 	std::string new_url;
@@ -2750,32 +2780,38 @@ void http_stream::request_impl(Stream &sock, request_opts &opt, boost::system::e
 	{
 		BOOST_ASSERT(url::from_string(new_url).host() == m_url.host());	// 必须是同一主机.
 		m_url = new_url;
+		m_request_opts.insert(http_options::url, new_url);
 	}
 
 	// 得到request_method.
 	std::string request_method = "GET";
 	if (opts.find(http_options::request_method, request_method))
 		opts.remove(http_options::request_method);	// 删除处理过的选项.
+	m_request_opts.insert(http_options::request_method, request_method);
 
 	// 得到http版本信息.
 	std::string http_version = "HTTP/1.1";
 	if (opts.find(http_options::http_version, http_version))
 		opts.remove(http_options::http_version);	// 删除处理过的选项.
+	m_request_opts.insert(http_options::http_version, http_version);
 
 	// 得到Host信息.
 	std::string host = m_url.to_string(url::host_component | url::port_component);
 	if (opts.find(http_options::host, host))
 		opts.remove(http_options::host);	// 删除处理过的选项.
+	m_request_opts.insert(http_options::host, host);
 
 	// 得到Accept信息.
 	std::string accept = "text/html, application/xhtml+xml, */*";
 	if (opts.find(http_options::accept, accept))
 		opts.remove(http_options::accept);	// 删除处理过的选项.
+	m_request_opts.insert(http_options::accept, accept);
 
 	// 添加user_agent.
 	std::string user_agent = "avhttp/2.1";
 	if (opts.find(http_options::user_agent, user_agent))
 		opts.remove(http_options::user_agent);	// 删除处理过的选项.
+	m_request_opts.insert(http_options::user_agent, user_agent);
 
 	// 默认添加close.
 	std::string connection = "close";
@@ -2784,24 +2820,35 @@ void http_stream::request_impl(Stream &sock, request_opts &opt, boost::system::e
 	{
 		if (opts.find(http_options::proxy_connection, connection))
 			opts.remove(http_options::proxy_connection);		// 删除处理过的选项.
+		m_request_opts.insert(http_options::proxy_connection, connection);
 	}
 	else
 	{
 		if (opts.find(http_options::connection, connection))
 			opts.remove(http_options::connection);		// 删除处理过的选项.
+		m_request_opts.insert(http_options::connection, connection);
 	}
 
 	// 是否带有body选项.
 	std::string body;
 	if (opts.find(http_options::request_body, body))
 		opts.remove(http_options::request_body);	// 删除处理过的选项.
+	m_request_opts.insert(http_options::request_body, body);
 
 	// 循环构造其它选项.
 	std::string other_option_string;
 	request_opts::option_item_list &list = opts.option_all();
 	for (request_opts::option_item_list::iterator val = list.begin(); val != list.end(); val++)
 	{
+		if (val->first == http_options::path ||
+			val->first == http_options::url ||
+			val->first == http_options::request_method ||
+			val->first == http_options::http_version ||
+			val->first == http_options::request_body ||
+			val->first == http_options::status_code)
+			continue;
 		other_option_string += (val->first + ": " + val->second + "\r\n");
+		m_request_opts.insert(val->first, val->second);
 	}
 
 	// 整合各选项到Http请求字符串中.
@@ -2811,9 +2858,16 @@ void http_stream::request_impl(Stream &sock, request_opts &opt, boost::system::e
 	request_stream << request_method << " ";
 	if ((m_proxy.type == proxy_settings::http_pw || m_proxy.type == proxy_settings::http)
 		&& m_protocol != "https")
-		request_stream << m_url.to_string().c_str();
+	{
+		request_stream << m_url.to_string();
+		m_request_opts.insert(http_options::path, m_url.to_string());
+	}
 	else
+	{
 		request_stream << m_url.to_string(url::path_component | url::query_component);
+		m_request_opts.insert(
+			http_options::path, m_url.to_string(url::path_component | url::query_component));
+	}
 	request_stream << " " << http_version << "\r\n";
 	request_stream << "Host: " << host << "\r\n";
 	request_stream << "Accept: " << accept << "\r\n";
