@@ -143,13 +143,13 @@ Logger_ptr& logger_single(std::string path = ".",
 #ifdef LOGGER_THREAD_SAFE
 #define _LOCKS_() boost::mutex::scoped_lock lock(avhttp::aux::lock_single<boost::mutex>())
 #else
-#define _LOCKS_() do {} while (0)
+#define _LOCKS_() ((void)0)
 #endif // LOGGER_THREAD_SAFE
 
 #if defined(WIN32) && defined(LOGGER_DBG_VIEW)
 #define _DBG_VIEW_() do { OutputDebugStringA(_LOGS_.dbg_view().c_str()); _LOGS_.clear_dbg_view(); } while (0)
 #else
-#define _DBG_VIEW_() do {} while (0)
+#define _DBG_VIEW_() ((void)0)
 #endif // WIN32 && LOGGER_DEBUG_VIEW
 
 //////////////////////////////////////////////////////////////////////////
@@ -171,9 +171,6 @@ Logger_ptr& logger_single(std::string path = ".",
 	_LOGS_ << avhttp::time_now_string() << "[DEBUG]: " << message << "\n"; \
 	_DBG_VIEW_(); \
 } while (0)
-#else
-#define LOG_DEBUG(message) do {} while (0)
-#endif
 
 #define LOG_INFO(message) do { \
 	_LOCKS_(); \
@@ -192,6 +189,13 @@ Logger_ptr& logger_single(std::string path = ".",
 	_LOGS_ << time_now_string() << "[ERROR]: " << message << "\n"; \
 	_DBG_VIEW_(); \
 } while (0)
+
+#else
+#define LOG_DEBUG(message) ((void)0)
+#define LOG_INFO(message) ((void)0)
+#define LOG_WARNING(message) ((void)0)
+#define LOG_ERROR(message) ((void)0)
+#endif
 
 }
 
