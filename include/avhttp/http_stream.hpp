@@ -654,6 +654,7 @@ private:
 #endif
 	bool m_is_chunked;								// 是否使用chunked编码.
 	bool m_skip_crlf;								// 跳过crlf.
+	bool m_is_chunked_end;							// 跳过chunked footer.
 	std::size_t m_chunked_size;						// chunked大小.
 };
 

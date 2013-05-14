@@ -27,7 +27,7 @@ http_stream::http_stream(boost::asio::io_service &io)
 	, m_sock(io)
 	, m_nossl_socket(io)
 	, m_check_certificate(true)
-	, m_keep_alive(false)
+	, m_keep_alive(true)
 	, m_status_code(-1)
 	, m_redirects(0)
 	, m_max_redirects(AVHTTP_MAX_REDIRECTS)
@@ -542,7 +542,18 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 					bytes_transferred += read_some_impl(
 						boost::asio::buffer(&crlf[bytes_transferred], 2 - bytes_transferred), ec);
 				if (ec)
+				{
 					return 0;
+				}
+
+				if (m_is_chunked_end)
+				{
+					if (!m_keep_alive)
+						ec = boost::asio::error::eof;
+					return 0;
+				}
+
+				BOOST_ASSERT(crlf[0] == '\r' && crlf[1] == '\n');
 			}
 			std::string hex_chunked_size;
 			// 读取.
@@ -562,7 +573,9 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 				}
 			}
 			if (ec)
+			{
 				return 0;
+			}
 
 			// 得到chunked size.
 			std::stringstream ss;
@@ -588,7 +601,8 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 		{
 			if (m_stream.avail_in == 0)
 			{
-				ec = boost::asio::error::eof;
+				if (!m_keep_alive)
+					ec = boost::asio::error::eof;
 				return 0;
 			}
 		}
@@ -665,7 +679,12 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 		}
 
 		if (m_chunked_size == 0)
+		{
+			m_is_chunked_end = true;
+			if (!m_keep_alive)
+				ec = boost::asio::error::eof;
 			return 0;
+		}
 	}
 
 	// 如果没有启用chunked.
@@ -726,6 +745,7 @@ template <typename MutableBufferSequence, typename Handler>
 void http_stream::async_read_some(const MutableBufferSequence &buffers, Handler handler)
 {
 	BOOST_ASIO_READ_HANDLER_CHECK(Handler, handler) type_check;
+	boost::system::error_code ec;
 
 	if (m_is_chunked)	// 如果启用了分块传输模式, 则解析块大小, 并读取小于块大小的数据.
 	{
@@ -767,6 +787,14 @@ void http_stream::async_read_some(const MutableBufferSequence &buffers, Handler 
 					}
 					else
 					{
+						if (m_is_chunked_end)
+						{
+							if (!m_keep_alive)
+								ec = boost::asio::error::eof;
+							m_io_service.post(
+								boost::asio::detail::bind_handler(handler, ec, 0));
+							return;
+						}
 						// 读取到CRLF, so, 这里只能是2!!! 然后开始处理chunked size.
 						BOOST_ASSERT(bytes_transferred == 2);
 						BOOST_ASSERT(crlf.get()[0] == '\r' && crlf.get()[1] == '\n');
@@ -837,7 +865,6 @@ void http_stream::async_read_some(const MutableBufferSequence &buffers, Handler 
 		}
 	}
 
-	boost::system::error_code ec;
 	if (m_response.size() > 0)
 	{
 		std::size_t bytes_transferred = read_some(buffers, ec);
@@ -914,6 +941,8 @@ void http_stream::async_request(const request_opts &opt, Handler handler)
 	request_opts opts = opt;
 	// 清空.
 	m_request_opts.clear();
+	m_is_chunked_end = false;
+	m_keep_alive = true;
 
 	// 得到url选项.
 	std::string new_url;
@@ -1379,14 +1408,22 @@ void http_stream::handle_header(Handler handler, int bytes_transferred, const bo
 		ec = make_error_code(static_cast<avhttp::errc::errc_t>(m_status_code));
 
 	// 解析是否启用了gz压缩.
-	std::string encoding = m_response_opts.find(http_options::content_encoding);
+	std::string opt_str = m_response_opts.find(http_options::content_encoding);
 #ifdef AVHTTP_ENABLE_ZLIB
-	if (encoding == "gzip" || encoding == "x-gzip")
+	if (opt_str == "gzip" || opt_str == "x-gzip")
 		m_is_gzip = true;
 #endif
-	encoding = m_response_opts.find(http_options::transfer_encoding);
-	if (encoding == "chunked")
+	// 是否启用了chunked.
+	opt_str = m_response_opts.find(http_options::transfer_encoding);
+	if (opt_str == "chunked")
 		m_is_chunked = true;
+	// 是否在请求完成后关闭socket.
+	opt_str = m_request_opts.find(http_options::connection);
+	if (opt_str == "close")
+		m_keep_alive = false;
+	opt_str = m_response_opts.find(http_options::connection);
+	if (opt_str == "close")
+		m_keep_alive = false;
 
 	// 回调通知.
 	handler(ec);
@@ -1399,6 +1436,15 @@ void http_stream::handle_skip_crlf(const MutableBufferSequence &buffers,
 {
 	if (!ec)
 	{
+		if (m_is_chunked_end)
+		{
+			boost::system::error_code err;
+			if (!m_keep_alive)
+				err = boost::asio::error::eof;
+			handler(err, bytes_transferred);
+			return;
+		}
+
 		BOOST_ASSERT(crlf.get()[0] == '\r' && crlf.get()[1] == '\n');
 		// 跳过CRLF, 开始读取chunked size.
 		typedef boost::function<void (boost::system::error_code, std::size_t)> HandlerWrapper;
@@ -1527,7 +1573,20 @@ void http_stream::handle_chunked_size(const MutableBufferSequence &buffers,
 		{
 			if (inflateInit2(&m_stream, 32+15 ) != Z_OK)
 			{
-				handler(make_error_code(boost::asio::error::operation_not_supported), 0);
+				boost::system::error_code err = boost::asio::error::operation_not_supported;
+				handler(err, 0);
+				return;
+			}
+		}
+
+		if (m_chunked_size == 0 && m_is_gzip)
+		{
+			if (m_stream.avail_in == 0)
+			{
+				boost::system::error_code err;
+				if (!m_keep_alive)
+					err = boost::asio::error::eof;
+				handler(err, 0);
 				return;
 			}
 		}
@@ -1572,7 +1631,10 @@ void http_stream::handle_chunked_size(const MutableBufferSequence &buffers,
 
 		if (m_chunked_size == 0)
 		{
-			boost::system::error_code err = make_error_code(boost::asio::error::eof);
+			boost::system::error_code err;
+			m_is_chunked_end = true;
+			if (!m_keep_alive)
+				err = boost::asio::error::eof;
 			handler(err, 0);
 			return;
 		}
@@ -2941,6 +3003,8 @@ void http_stream::request_impl(Stream &sock, request_opts &opt, boost::system::e
 	request_opts opts = opt;
 	// 清空.
 	m_request_opts.clear();
+	m_is_chunked_end = false;
+	m_keep_alive = true;
 
 	// 得到url选项.
 	std::string new_url;
@@ -3159,14 +3223,22 @@ void http_stream::request_impl(Stream &sock, request_opts &opt, boost::system::e
 	}
 
 	// 解析是否启用了gz压缩.
-	std::string encoding = m_response_opts.find(http_options::content_encoding);
+	std::string opt_str = m_response_opts.find(http_options::content_encoding);
 #ifdef AVHTTP_ENABLE_ZLIB
-	if (encoding == "gzip" || encoding == "x-gzip")
+	if (opt_str == "gzip" || opt_str == "x-gzip")
 		m_is_gzip = true;
 #endif
-	encoding = m_response_opts.find(http_options::transfer_encoding);
-	if (encoding == "chunked")
+	// 是否启用了chunked.
+	opt_str = m_response_opts.find(http_options::transfer_encoding);
+	if (opt_str == "chunked")
 		m_is_chunked = true;
+	// 是否在请求完成后关闭socket.
+	opt_str = m_request_opts.find(http_options::connection);
+	if (opt_str == "close")
+		m_keep_alive = false;
+	opt_str = m_response_opts.find(http_options::connection);
+	if (opt_str == "close")
+		m_keep_alive = false;
 }
 
 }
