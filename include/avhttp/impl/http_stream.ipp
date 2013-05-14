@@ -994,6 +994,8 @@ void http_stream::async_request(const request_opts &opt, Handler handler)
 		if (opts.find(http_options::proxy_connection, connection))
 			opts.remove(http_options::proxy_connection);		// 删除处理过的选项.
 		m_request_opts.insert(http_options::proxy_connection, connection);
+		if (connection == "close")
+			m_keep_alive = false;
 	}
 	else
 	{
@@ -3233,8 +3235,7 @@ void http_stream::request_impl(Stream &sock, request_opts &opt, boost::system::e
 	if (opt_str == "chunked")
 		m_is_chunked = true;
 	// 是否在请求完成后关闭socket.
-	opt_str = m_request_opts.find(http_options::connection);
-	if (opt_str == "close")
+	if (connection == "close")
 		m_keep_alive = false;
 	opt_str = m_response_opts.find(http_options::connection);
 	if (opt_str == "close")
