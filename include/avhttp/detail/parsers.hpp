@@ -26,8 +26,8 @@
 
 #include <boost/algorithm/string.hpp>
 
-#include "../settings.hpp"
-#include "escape_string.hpp"
+#include "avhttp/settings.hpp"
+#include "avhttp/detail/escape_string.hpp"
 
 namespace avhttp {
 namespace detail {

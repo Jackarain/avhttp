@@ -22,7 +22,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/date_time.hpp>
 
-#include "storage_interface.hpp"
+#include "avhttp/storage_interface.hpp"
 
 namespace avhttp {
 
@@ -39,6 +39,7 @@ namespace http_options {
 	static const std::string http_version("_http_version");
 	static const std::string request_body("_request_body");
 	static const std::string status_code("_status_code");
+	static const std::string path("_path");
 	static const std::string url("_url");
 	static const std::string host("Host");
 	static const std::string accept("Accept");
@@ -48,6 +49,7 @@ namespace http_options {
 	static const std::string content_type("Content-Type");
 	static const std::string content_length("Content-Length");
 	static const std::string connection("Connection");
+	static const std::string proxy_connection("Proxy-Connection");
 	static const std::string accept_encoding("Accept-Encoding");
 	static const std::string transfer_encoding("Transfer-Encoding");
 	static const std::string content_encoding("Content-Encoding");
@@ -156,6 +158,12 @@ public:
 		return m_opts;
 	}
 
+	// 返回当前option个数.
+	int size() const
+	{
+		return m_opts.size();
+	}
+
 protected:
 	option_item_list m_opts;
 };
@@ -203,7 +211,7 @@ struct proxy_settings
 		socks5,
 		// 需要用户密码认证的socks5代理.
 		socks5_pw,
-		// TODO: http代理, 不需要认证.
+		// http代理, 不需要认证.
 		http,
 		// TODO: http代理, 需要认证.
 		http_pw,

@@ -35,6 +35,7 @@ public:
 		, m_sock(io_service, m_context)
 	{
 		boost::system::error_code ec;
+		m_context.set_default_verify_paths(ec);
 		m_context.set_verify_mode(boost::asio::ssl::context::verify_none, ec);
 	}
 
@@ -44,6 +45,7 @@ public:
 		, m_sock(arg, m_context)
 	{
 		boost::system::error_code ec;
+		m_context.set_default_verify_paths(ec);
 		m_context.set_verify_mode(boost::asio::ssl::context::verify_none, ec);
 	}
 
@@ -57,6 +59,22 @@ public:
 	typedef typename boost::asio::ssl::stream<Stream>::impl_type impl_type;
 
 	typedef boost::function<void(boost::system::error_code const&)> handler_type;
+
+	void add_verify_path(const std::string &path, boost::system::error_code &ec)
+	{
+		m_context.add_verify_path(path, ec);
+	}
+
+	void load_verify_file(const std::string &filename, boost::system::error_code &ec)
+	{
+		m_context.load_verify_file(filename, ec);
+	}
+
+	template <typename VerifyCallback>
+	void set_verify_callback(VerifyCallback callback, boost::system::error_code &ec)
+	{
+		m_sock.set_verify_callback(callback, ec);
+	}
 
 #ifndef BOOST_NO_EXCEPTIONS
 	void connect(endpoint_type const &endpoint)
