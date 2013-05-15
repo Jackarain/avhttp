@@ -23,7 +23,7 @@
 #include <boost/assert.hpp>
 #include <boost/thread/mutex.hpp>
 
-#include "bitfield.hpp"
+#include "avhttp/bitfield.hpp"
 
 #if defined(_MSC_VER)
 #ifdef min

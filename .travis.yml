@@ -10,10 +10,14 @@ before_install:
   - sudo apt-get install zlib1g-dev
 
 before_script:
-  cmake .
+  cmake . -DDEBUG=1
 
 script:
-  make
+    - make
+    - ./avhttp http://www.boost.org/LICENSE_1_0.txt
+    - ./avhttp https://github.com/blog
+    - ./avhttp https://github.com/avplayer/avplayer/archive/master.zip
+    - cat ./multi_download.log
 
 branches:
   only:

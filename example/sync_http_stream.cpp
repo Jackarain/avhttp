@@ -32,6 +32,7 @@ int main(int argc, char* argv[])
 			file_size += bytes_transferred;
 			std::cout.write(buf.data(), bytes_transferred);
 		}
+		std::cout.flush();
 
 		h.close(ec);
 
