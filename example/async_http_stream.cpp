@@ -102,7 +102,7 @@ int main(int argc, char* argv[])
 		if (boost::filesystem::extension(filename) == ".txt")
 		{
 			urllist = true;
-			file.open(filename);
+			file.open(filename.c_str());
 		}
 	}
 
