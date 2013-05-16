@@ -159,10 +159,10 @@ public:
 	// 失败将抛出一个boost::system::system_error异常.
 	// @param u 将要打开的URL.
 	// @begin example
-	//   avhttp::http_stream h_stream(io_service);
+	//   avhttp::http_stream h(io_service);
 	//   try
 	//   {
-	//     h_stream.open("http://www.boost.org");
+	//     h.open("http://www.boost.org");
 	//   }
 	//   catch (boost::system::system_error &e)
 	//   {
@@ -175,9 +175,9 @@ public:
 	// @param u 将要打开的URL.
 	// 通过ec引用获得执行状态.
 	// @begin example
-	//   avhttp::http_stream h_stream(io_service);
+	//   avhttp::http_stream h(io_service);
 	//   boost::system::error_code ec;
-	//   h_stream.open("http://www.boost.org", ec);
+	//   h.open("http://www.boost.org", ec);
 	//   if (ec)
 	//   {
 	//     std::cerr << e.waht() << std::endl;
@@ -202,8 +202,8 @@ public:
 	//    }
 	//  }
 	//  ...
-	//  avhttp::http_stream h_stream(io_service);
-	//  h_stream.async_open("http://www.boost.org", open_handler);
+	//  avhttp::http_stream h(io_service);
+	//  h.async_open("http://www.boost.org", open_handler);
 	// @end example
 	// @备注: handler也可以使用boost.bind来绑定一个符合规定的函数作
 	// 为async_open的参数handler.
