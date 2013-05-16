@@ -466,6 +466,9 @@ public:
 	// @返回location信息, 如果没有则返回空串.
 	BOOST_ASIO_DECL const std::string& location() const;
 
+	///返回最终请求的url信息.
+	BOOST_ASIO_DECL const std::string final_url() const;
+
 	///返回content_length.
 	// @content_length信息, 如果没有则为0.
 	BOOST_ASIO_DECL boost::int64_t content_length();
