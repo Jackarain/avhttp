@@ -226,18 +226,19 @@ public:
 		// 创建一个http_stream对象.
 		http_object_ptr obj(new http_stream_object);
 
-		request_opts req_opt;
+		request_opts req_opt = m_settings.opts;
 		req_opt.insert("Range", "bytes=0-");
 		req_opt.insert("Connection", "keep-alive");
 
 		// 创建http_stream并同步打开, 检查返回状态码是否为206, 如果非206则表示该http服务器不支持多点下载.
 		obj->stream.reset(new http_stream(m_io_service));
 		http_stream &h = *obj->stream;
+		// 添加代理设置.
+		h.proxy(m_settings.proxy);
+		// 添加请求设置.
 		h.request_options(req_opt);
 		// 如果是ssl连接, 默认为检查证书.
 		h.check_certificate(m_settings.check_certificate);
-		// 添加代理设置.
-		h.proxy(m_settings.proxy);
 		// 打开http_stream.
 		h.open(m_final_url, ec);
 		// 打开失败则退出.
@@ -349,7 +350,7 @@ public:
 		}
 
 		// 根据第1个连接返回的信息, 重新设置请求选项.
-		req_opt.clear();
+		req_opt = m_settings.opts;
 		if (m_keep_alive)
 			req_opt.insert("Connection", "keep-alive");
 		else
@@ -439,9 +440,6 @@ public:
 				req_opt.remove("Range");
 				req_opt.insert("Range",
 					boost::str(boost::format("bytes=%lld-%lld") % req_range.left % req_range.right));
-
-				// 设置请求选项.
-				h.request_options(req_opt);
 			}
 
 			// 保存最后请求时间, 方便检查超时重置.
@@ -449,14 +447,14 @@ public:
 
 			m_number_of_connections++;
 
-			// 如果是ssl连接, 默认为检查证书.
-			h.check_certificate(m_settings.check_certificate);
-
-			// 禁用重定向.
-			h.max_redirects(0);
-
 			// 添加代理设置.
 			h.proxy(m_settings.proxy);
+			// 设置请求选项.
+			h.request_options(req_opt);
+			// 如果是ssl连接, 默认为检查证书.
+			h.check_certificate(m_settings.check_certificate);
+			// 禁用重定向.
+			h.max_redirects(0);
 
 			// 开始异步打开.
 			h.async_open(m_final_url,
@@ -564,7 +562,7 @@ public:
 		// 创建一个http_stream对象.
 		http_object_ptr obj(new http_stream_object);
 
-		request_opts req_opt;
+		request_opts req_opt = m_settings.opts;
 		req_opt.insert("Range", "bytes=0-");
 		req_opt.insert("Connection", "keep-alive");
 
@@ -574,12 +572,10 @@ public:
 
 		// 设置请求选项.
 		h.request_options(req_opt);
-
-		// 如果是ssl连接, 默认为检查证书.
-		h.check_certificate(m_settings.check_certificate);
-
 		// 添加代理设置.
 		h.proxy(m_settings.proxy);
+		// 如果是ssl连接, 默认为检查证书.
+		h.check_certificate(m_settings.check_certificate);
 
 		typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
 		h.async_open(m_final_url, boost::bind(&multi_download::handle_start<HandlerWrapper>, this,
@@ -1035,11 +1031,6 @@ protected:
 
 		// 关闭stream.
 		h.close(ignore);
-		if (ignore)
-		{
-			handler(ignore);
-			return;
-		}
 
 		{
 #ifndef AVHTTP_DISABLE_THREAD
@@ -1049,7 +1040,7 @@ protected:
 		}
 
 		// 根据第1个连接返回的信息, 设置请求选项.
-		request_opts req_opt;
+		request_opts req_opt = m_settings.opts;
 		if (m_keep_alive)
 			req_opt.insert("Connection", "keep-alive");
 		else
@@ -1088,15 +1079,12 @@ protected:
 
 				// 设置请求选项.
 				ptr->request_options(req_opt);
-
-				// 如果是ssl连接, 默认为检查证书.
-				ptr->check_certificate(m_settings.check_certificate);
-
-				// 禁用重定向.
-				ptr->max_redirects(0);
-
 				// 添加代理设置.
 				ptr->proxy(m_settings.proxy);
+				// 如果是ssl连接, 默认为检查证书.
+				ptr->check_certificate(m_settings.check_certificate);
+				// 禁用重定向.
+				ptr->max_redirects(0);
 
 				// 将连接添加到容器中.
 				p->stream = ptr;
@@ -1142,9 +1130,6 @@ protected:
 				req_opt.remove("Range");
 				req_opt.insert("Range",
 					boost::str(boost::format("bytes=%lld-%lld") % req_range.left % req_range.right));
-
-				// 设置请求选项.
-				h.request_options(req_opt);
 			}
 
 			// 保存最后请求时间, 方便检查超时重置.
@@ -1154,10 +1139,10 @@ protected:
 
 			// 添加代理设置.
 			h.proxy(m_settings.proxy);
-
+			// 设置请求选项.
+			h.request_options(req_opt);
 			// 如果是ssl连接, 默认为检查证书.
 			h.check_certificate(m_settings.check_certificate);
-
 			// 禁用重定向.
 			h.max_redirects(0);
 
@@ -1228,7 +1213,7 @@ protected:
 			boost::posix_time::time_duration duration =
 				boost::posix_time::microsec_clock::local_time() - object_item_ptr->last_request_time;
 
-			if (!object_item_ptr->done &&	(duration > boost::posix_time::seconds(m_settings.time_out)
+			if (!object_item_ptr->done && (duration > boost::posix_time::seconds(m_settings.time_out)
 				|| object_item_ptr->direct_reconnect))
 			{
 				// 超时, 关闭并重新创建连接.
@@ -1257,7 +1242,7 @@ protected:
 				http_stream &stream = *object.stream;
 
 				// 配置请求选项.
-				request_opts req_opt;
+				request_opts req_opt = m_settings.opts;
 
 				// 设置是否为长连接.
 				if (m_keep_alive)
@@ -1288,17 +1273,14 @@ protected:
 						boost::str(boost::format("bytes=%lld-%lld") % begin % end));
 				}
 
-				// 设置到请求选项中.
-				stream.request_options(req_opt);
-
-				// 如果是ssl连接, 默认为检查证书.
-				stream.check_certificate(m_settings.check_certificate);
-
-				// 禁用重定向.
-				stream.max_redirects(0);
-
 				// 添加代理设置.
 				stream.proxy(m_settings.proxy);
+				// 设置到请求选项中.
+				stream.request_options(req_opt);
+				// 如果是ssl连接, 默认为检查证书.
+				stream.check_certificate(m_settings.check_certificate);
+				// 禁用重定向.
+				stream.max_redirects(0);
 
 				// 保存最后请求时间, 方便检查超时重置.
 				object.last_request_time = boost::posix_time::microsec_clock::local_time();

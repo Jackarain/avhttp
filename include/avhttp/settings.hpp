@@ -288,6 +288,9 @@ struct settings
 	// 存储接口创建函数指针, 默认为multi_download提供的file.hpp实现.
 	storage_constructor_type storage;
 
+	// 请求选项.
+	request_opts opts;
+
 	// 代理设置.
 	proxy_settings proxy;
 };
