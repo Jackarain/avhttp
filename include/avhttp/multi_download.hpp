@@ -126,7 +126,7 @@ class multi_download : public boost::noncopyable
 	};
 
 public:
-	multi_download(boost::asio::io_service &io)
+	BOOST_ASIO_DECL multi_download(boost::asio::io_service &io)
 		: m_io_service(io)
 		, m_accept_multi(false)
 		, m_keep_alive(false)
@@ -137,7 +137,7 @@ public:
 		, m_drop_size(-1)
 		, m_abort(false)
 	{}
-	~multi_download()
+	BOOST_ASIO_DECL ~multi_download()
 	{}
 
 public:
@@ -147,7 +147,7 @@ public:
 	// @param ec当发生错误时, 包含详细的错误信息.
 	// @备注: 直接使用内部的file.hpp下载数据到文件, 若想自己指定数据下载到指定的地方
 	// 可以通过调用另一个open来完成, 具体见另一个open的详细说明.
-	void start(const std::string &u, boost::system::error_code &ec)
+	BOOST_ASIO_DECL void start(const std::string &u, boost::system::error_code &ec)
 	{
 		settings s;
 		start(u, s, ec);
@@ -157,7 +157,7 @@ public:
 	// @param u指定的url.
 	// @备注: 直接使用内部的file.hpp下载数据到文件, 若想自己指定数据下载到指定的地方
 	// 可以通过调用另一个open来完成, 具体见另一个open的详细说明.
-	void start(const std::string &u)
+	BOOST_ASIO_DECL void start(const std::string &u)
 	{
 		settings s;
 		boost::system::error_code ec;
@@ -172,7 +172,7 @@ public:
 	// @param u指定的url.
 	// @param s指定的设置信息.
 	// @失败抛出一个boost::system::system_error异常, 包含详细的错误信息.
-	void start(const std::string &u, const settings &s)
+	BOOST_ASIO_DECL void start(const std::string &u, const settings &s)
 	{
 		boost::system::error_code ec;
 		start(u, s, ec);
@@ -186,7 +186,7 @@ public:
 	// @param u指定的url.
 	// @param s指定的设置信息.
 	// @返回error_code, 包含详细的错误信息.
-	void start(const std::string &u, const settings &s, boost::system::error_code &ec)
+	BOOST_ASIO_DECL void start(const std::string &u, const settings &s, boost::system::error_code &ec)
 	{
 		// 清空所有连接.
 		{
@@ -585,7 +585,7 @@ public:
 	}
 
 	// stop当前所有连接, 停止工作.
-	void stop()
+	BOOST_ASIO_DECL void stop()
 	{
 		m_abort = true;
 
@@ -604,28 +604,28 @@ public:
 	}
 
 	///返回当前设置信息.
-	const settings& set() const
+	BOOST_ASIO_DECL const settings& set() const
 	{
 		return m_settings;
 	}
 
 	///设置是否检查证书, 默认检查证书.
 	// @param check指定是否检查ssl证书.
-	void check_certificate(bool check)
+	BOOST_ASIO_DECL void check_certificate(bool check)
 	{
 		m_settings.check_certificate = check;
 	}
 
 	///返回当前下载的文件大小.
 	// @如果服务器不支持多点下载, 则可能文件大小为-1.
-	boost::int64_t file_size() const
+	BOOST_ASIO_DECL boost::int64_t file_size() const
 	{
 		return m_file_size;
 	}
 
 	///得到当前下载的文件名.
 	// @如果请求的url不太规则, 则可能返回错误的文件名.
-	std::string file_name() const
+	BOOST_ASIO_DECL std::string file_name() const
 	{
 		if (m_file_name.empty())
 		{
@@ -652,7 +652,7 @@ public:
 	}
 
 	///当前已经下载的字节总数.
-	boost::int64_t bytes_download() const
+	BOOST_ASIO_DECL boost::int64_t bytes_download() const
 	{
 		if (m_file_size != -1)
 			return m_downlaoded_field.range_size();
@@ -673,19 +673,19 @@ public:
 	}
 
 	///当前下载速率, 单位byte/s.
-	int download_rate() const
+	BOOST_ASIO_DECL int download_rate() const
 	{
 		return m_byte_rate.current_byte_rate;
 	}
 
 	///设置下载速率, -1为无限制, 单位byte/s.
-	void download_rate_limit(int rate)
+	BOOST_ASIO_DECL void download_rate_limit(int rate)
 	{
 		m_settings.download_rate_limit = rate;
 	}
 
 	///返回当前限速.
-	int download_rate_limit() const
+	BOOST_ASIO_DECL int download_rate_limit() const
 	{
 		return m_settings.download_rate_limit;
 	}
