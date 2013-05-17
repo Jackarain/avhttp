@@ -34,13 +34,14 @@ namespace avhttp {
 // 常用有以下http选项.
 namespace http_options {
 
-	// 定义一些常用的　http 选项为 const string , 这样就不用记忆那些单词了，呵呵.
-	static const std::string request_method("_request_method");
-	static const std::string http_version("_http_version");
-	static const std::string request_body("_request_body");
-	static const std::string status_code("_status_code");
-	static const std::string path("_path");
-	static const std::string url("_url");
+	// 下面为avhttp内定的一些选项.
+	static const std::string request_method("_request_method"); // 请求方式(GET/POST)
+	static const std::string http_version("_http_version");		// HTTP/1.0|HTTP/1.1
+	static const std::string request_body("_request_body");		// 一般用于POST一些数据如表单之类时使用.
+	static const std::string status_code("_status_code");	// HTTP状态码.
+	static const std::string path("_path");		// 请求的path, 如http://abc.ed/v2/cma.txt中的/v2/cma.txt.
+	static const std::string url("_url");		// 在启用keep-alive的时候, 请求host上不同的url时使用.
+	// 以下是常用的标准http head选项.
 	static const std::string host("Host");
 	static const std::string accept("Accept");
 	static const std::string range("Range");
