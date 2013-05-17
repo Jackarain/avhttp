@@ -43,11 +43,13 @@ namespace http_options {
 	static const std::string url("_url");
 	static const std::string host("Host");
 	static const std::string accept("Accept");
+	static const std::string range("Range");
 	static const std::string cookie("cookie");
 	static const std::string referer("Referer");
 	static const std::string user_agent("User-Agent");
 	static const std::string content_type("Content-Type");
 	static const std::string content_length("Content-Length");
+	static const std::string content_range("Content-Range");
 	static const std::string connection("Connection");
 	static const std::string proxy_connection("Proxy-Connection");
 	static const std::string accept_encoding("Accept-Encoding");
