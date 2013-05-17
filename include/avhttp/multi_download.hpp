@@ -227,8 +227,8 @@ public:
 		http_object_ptr obj(new http_stream_object);
 
 		request_opts req_opt = m_settings.opts;
-		req_opt.insert("Range", "bytes=0-");
-		req_opt.insert("Connection", "keep-alive");
+		req_opt.insert(http_options::range, "bytes=0-");
+		req_opt.insert(http_options::connection, "keep-alive");
 
 		// 创建http_stream并同步打开, 检查返回状态码是否为206, 如果非206则表示该http服务器不支持多点下载.
 		obj->stream.reset(new http_stream(m_io_service));
@@ -254,7 +254,7 @@ public:
 
 		// 判断是否支持多点下载.
 		std::string status_code;
-		h.response_options().find("_status_code", status_code);
+		h.response_options().find(http_options::status_code, status_code);
 		if (status_code != "206")
 			m_accept_multi = false;
 		else
@@ -262,10 +262,10 @@ public:
 
 		// 得到文件大小.
 		std::string length;
-		h.response_options().find("Content-Length", length);
+		h.response_options().find(http_options::content_length, length);
 		if (length.empty())
 		{
-			h.response_options().find("Content-Range", length);
+			h.response_options().find(http_options::content_length, length);
 			std::string::size_type f = length.find('/');
 			if (f++ != std::string::npos)
 				length = length.substr(f);
@@ -304,7 +304,7 @@ public:
 		if (m_accept_multi)
 		{
 			std::string keep_alive;
-			h.response_options().find("Connection", keep_alive);
+			h.response_options().find(http_options::connection, keep_alive);
 			boost::to_lower(keep_alive);
 			if (keep_alive == "keep-alive")
 				m_keep_alive = true;
@@ -352,9 +352,9 @@ public:
 		// 根据第1个连接返回的信息, 重新设置请求选项.
 		req_opt = m_settings.opts;
 		if (m_keep_alive)
-			req_opt.insert("Connection", "keep-alive");
+			req_opt.insert(http_options::connection, "keep-alive");
 		else
-			req_opt.insert("Connection", "close");
+			req_opt.insert(http_options::connection, "close");
 
 		// 修改终止状态.
 		m_abort = false;
@@ -383,8 +383,8 @@ public:
 				p->request_range = req_range;
 
 				// 设置请求区间到请求选项中.
-				req_opt.remove("Range");
-				req_opt.insert("Range",
+				req_opt.remove(http_options::range);
+				req_opt.insert(http_options::range,
 					boost::str(boost::format("bytes=%lld-%lld") % req_range.left % req_range.right));
 
 				// 设置请求选项.
@@ -437,8 +437,8 @@ public:
 				obj->request_range = req_range;
 
 				// 设置请求区间到请求选项中.
-				req_opt.remove("Range");
-				req_opt.insert("Range",
+				req_opt.remove(http_options::range);
+				req_opt.insert(http_options::range,
 					boost::str(boost::format("bytes=%lld-%lld") % req_range.left % req_range.right));
 			}
 
@@ -563,8 +563,8 @@ public:
 		http_object_ptr obj(new http_stream_object);
 
 		request_opts req_opt = m_settings.opts;
-		req_opt.insert("Range", "bytes=0-");
-		req_opt.insert("Connection", "keep-alive");
+		req_opt.insert(http_options::range, "bytes=0-");
+		req_opt.insert(http_options::connection, "keep-alive");
 
 		// 创建http_stream并同步打开, 检查返回状态码是否为206, 如果非206则表示该http服务器不支持多点下载.
 		obj->stream.reset(new http_stream(m_io_service));
@@ -807,7 +807,7 @@ protected:
 
 			// 设置是否为长连接.
 			if (m_keep_alive)
-				req_opt.insert("Connection", "keep-alive");
+				req_opt.insert(http_options::connection, "keep-alive");
 
 			// 如果分配空闲空间失败, 则跳过这个socket, 并立即尝试连接这个socket.
 			if (!allocate_range(object.request_range))
@@ -820,7 +820,7 @@ protected:
 			object.bytes_transferred = 0;
 
 			// 插入新的区间请求.
-			req_opt.insert("Range",
+			req_opt.insert(http_options::range,
 				boost::str(boost::format("bytes=%lld-%lld")
 				% object.request_range.left % object.request_range.right));
 
@@ -949,7 +949,7 @@ protected:
 
 		// 判断是否支持多点下载.
 		std::string status_code;
-		h.response_options().find("_status_code", status_code);
+		h.response_options().find(http_options::status_code, status_code);
 		if (status_code != "206")
 			m_accept_multi = false;
 		else
@@ -958,10 +958,10 @@ protected:
 		// 得到文件大小.
 		std::string length;
 		boost::int64_t file_size = -1;
-		h.response_options().find("Content-Length", length);
+		h.response_options().find(http_options::content_length, length);
 		if (length.empty())
 		{
-			h.response_options().find("Content-Range", length);
+			h.response_options().find(http_options::content_range, length);
 			std::string::size_type f = length.find('/');
 			if (f++ != std::string::npos)
 				length = length.substr(f);
@@ -999,7 +999,7 @@ protected:
 		if (m_accept_multi)
 		{
 			std::string keep_alive;
-			h.response_options().find("Connection", keep_alive);
+			h.response_options().find(http_options::connection, keep_alive);
 			boost::to_lower(keep_alive);
 			if (keep_alive == "keep-alive")
 				m_keep_alive = true;
@@ -1042,9 +1042,9 @@ protected:
 		// 根据第1个连接返回的信息, 设置请求选项.
 		request_opts req_opt = m_settings.opts;
 		if (m_keep_alive)
-			req_opt.insert("Connection", "keep-alive");
+			req_opt.insert(http_options::connection, "keep-alive");
 		else
-			req_opt.insert("Connection", "close");
+			req_opt.insert(http_options::connection, "close");
 
 		// 修改终止状态.
 		m_abort = false;
@@ -1073,8 +1073,8 @@ protected:
 				p->request_range = req_range;
 
 				// 设置请求区间到请求选项中.
-				req_opt.remove("Range");
-				req_opt.insert("Range",
+				req_opt.remove(http_options::range);
+				req_opt.insert(http_options::range,
 					boost::str(boost::format("bytes=%lld-%lld") % req_range.left % req_range.right));
 
 				// 设置请求选项.
@@ -1127,8 +1127,8 @@ protected:
 				object.request_range = req_range;
 
 				// 设置请求区间到请求选项中.
-				req_opt.remove("Range");
-				req_opt.insert("Range",
+				req_opt.remove(http_options::range);
+				req_opt.insert(http_options::range,
 					boost::str(boost::format("bytes=%lld-%lld") % req_range.left % req_range.right));
 			}
 
@@ -1246,7 +1246,7 @@ protected:
 
 				// 设置是否为长连接.
 				if (m_keep_alive)
-					req_opt.insert("Connection", "keep-alive");
+					req_opt.insert(http_options::connection, "keep-alive");
 
 				// 继续从上次未完成的位置开始请求.
 				if (m_accept_multi)
@@ -1269,7 +1269,7 @@ protected:
 						end = object.request_range.right;
 					}
 
-					req_opt.insert("Range",
+					req_opt.insert(http_options::range,
 						boost::str(boost::format("bytes=%lld-%lld") % begin % end));
 				}
 
