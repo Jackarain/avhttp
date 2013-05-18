@@ -1070,7 +1070,6 @@ protected:
 
 		// 得到文件大小.
 		std::string length;
-		boost::int64_t file_size = -1;
 		h.response_options().find(http_options::content_length, length);
 		if (length.empty())
 		{
@@ -1087,6 +1086,7 @@ protected:
 			}
 		}
 
+		boost::int64_t file_size = -1;
 		if (!length.empty())
 		{
 			try
@@ -1101,7 +1101,7 @@ protected:
 		}
 
 		// 按文件大小分配rangefield.
-		if (file_size == -1 && file_size != m_file_size)
+		if (file_size != -1 && file_size != m_file_size)
 		{
 			m_file_size = file_size;
 			m_rangefield.reset(m_file_size);
