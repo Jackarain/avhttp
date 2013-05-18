@@ -137,9 +137,9 @@ public:
 	// @param r区间, 不包含右边界处.
 	// @返回这个range这个区间是否完整的被包含在range中.
 	// @备注: 检查的区间是一个半开区间[left, right), 即不包含右边界.
-	inline bool in_range(const range &r)
+	inline bool check_range(const range &r)
 	{
-		return in_range(r.left, r.right);
+		return check_range(r.left, r.right);
 	}
 
 	///是否在区间里.
@@ -147,7 +147,7 @@ public:
 	// @param right右边边界, 不包含边界处.
 	// @返回这个[left, right)这个区间是否完整的被包含在range中.
 	// @备注: 检查的区间是一个半开区间[left, right), 即不包含右边界.
-	inline bool in_range(const boost::int64_t &left, const boost::int64_t &right)
+	inline bool check_range(const boost::int64_t &left, const boost::int64_t &right)
 	{
 		BOOST_ASSERT((left >= 0 && left < right) && right <= m_size);
 
@@ -297,7 +297,7 @@ public:
 			r = (i + 1) * piece_size;
 			r = r > m_size ? m_size : r;
 
-			if (in_range(l, r))
+			if (check_range(l, r))
 				bf.set_bit(i);
 		}
 	}
