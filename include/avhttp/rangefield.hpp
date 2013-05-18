@@ -133,7 +133,7 @@ public:
 		return true;
 	}
 
-	///是否在区间里.
+	///检查是否在区间里.
 	// @param r区间, 不包含右边界处.
 	// @返回这个range这个区间是否完整的被包含在range中.
 	// @备注: 检查的区间是一个半开区间[left, right), 即不包含右边界.
@@ -142,7 +142,7 @@ public:
 		return check_range(r.left, r.right);
 	}
 
-	///是否在区间里.
+	///检查是否在区间里.
 	// @param left左边边界.
 	// @param right右边边界, 不包含边界处.
 	// @返回这个[left, right)这个区间是否完整的被包含在range中.
