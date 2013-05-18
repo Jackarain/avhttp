@@ -661,7 +661,7 @@ public:
 				char* buffer_ptr = boost::asio::buffer_cast<char*>(buffer);
 				std::size_t buffer_size = boost::asio::buffer_size(buffer);
 
-				if (available_length - buffer_size < 0)
+				if ((boost::int64_t)available_length - (boost::int64_t)buffer_size < 0)
 					buffer_size = available_length;
 
 				std::size_t length = m_storage->read(buffer_ptr, offset_for_read, buffer_size);
