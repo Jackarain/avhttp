@@ -696,8 +696,16 @@ public:
 	///是否停止下载.
 	BOOST_ASIO_DECL bool stopped() const
 	{
-		if (m_abort && m_outstanding == 0)
-			return true;
+		if (m_abort)
+		{
+#ifndef AVHTTP_DISABLE_THREAD
+			boost::mutex::scoped_lock lock(m_outstanding_mutex);
+#endif
+			if (m_outstanding == 0)
+			{
+				return true;
+			}
+		}
 		return false;
 	}
 
@@ -1641,7 +1649,7 @@ private:
 	int m_outstanding;
 
 #ifndef AVHTTP_DISABLE_THREAD
-	boost::mutex m_outstanding_mutex;
+	mutable boost::mutex m_outstanding_mutex;
 #endif
 
 	// 是否中止工作.
