@@ -1495,6 +1495,7 @@ protected:
 			size = 0;
 
 		// 打开文件.
+		m_file_meta.close();
 		m_file_meta.open(file_path, ec);
 		if (ec)
 			return false;
