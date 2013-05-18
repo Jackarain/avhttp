@@ -78,7 +78,7 @@ class rangefield
 public:
 	// @param size表示区间的总大小.
 	rangefield(boost::int64_t size = 0)
-		: m_need_gc(false)
+		: m_need_clean(false)
 		, m_size(size)
 	{}
 
@@ -95,7 +95,7 @@ public:
 		boost::mutex::scoped_lock lock(m_mutex);
 #endif
 		m_size = size;
-		m_need_gc = false;
+		m_need_clean = false;
 		m_ranges.clear();
 	}
 
@@ -129,7 +129,7 @@ public:
 		if ((left < 0 || right > m_size) || (right <= left))
 			return false;
 		m_ranges[left] = right;
-		m_need_gc = true;
+		m_need_clean = true;
 		return true;
 	}
 
@@ -152,8 +152,8 @@ public:
 		BOOST_ASSERT((left >= 0 && left < right) && right <= m_size);
 
 		// 先整理.
-		if (m_need_gc)
-			gc();
+		if (m_need_clean)
+			clean();
 
 #ifndef AVHTTP_DISABLE_THREAD
 		boost::mutex::scoped_lock lock(m_mutex);
@@ -186,8 +186,8 @@ public:
 	inline bool out_space(boost::int64_t &left, boost::int64_t &right)
 	{
 		// 先整理.
-		if (m_need_gc)
-			gc();
+		if (m_need_clean)
+			clean();
 
 #ifndef AVHTTP_DISABLE_THREAD
 		boost::mutex::scoped_lock lock(m_mutex);
@@ -242,8 +242,8 @@ public:
 	bool is_full()
 	{
 		// 先整理.
-		if (m_need_gc)
-			gc();
+		if (m_need_clean)
+			clean();
 
 #ifndef AVHTTP_DISABLE_THREAD
 		boost::mutex::scoped_lock lock(m_mutex);
@@ -281,8 +281,8 @@ public:
 	inline void range_to_bitfield(bitfield &bf, int piece_size)
 	{
 		// 先整理.
-		if (m_need_gc)
-			gc();
+		if (m_need_clean)
+			clean();
 
 		int piece_num = (m_size / piece_size) + (m_size % piece_size == 0 ? 0 : 1);
 
@@ -351,7 +351,7 @@ public:
 			left_record = false;
 		}
 
-		m_need_gc = true;
+		m_need_clean = true;
 	}
 
 	///输出range内容, 调试使用.
@@ -369,7 +369,7 @@ public:
 
 protected:
 	///整理回收range中的重叠部分.
-	inline void gc()
+	inline void clean()
 	{
 
 #ifndef AVHTTP_DISABLE_THREAD
@@ -423,11 +423,11 @@ protected:
 		}
 		result.insert(max_value);
 		m_ranges = result;
-		m_need_gc = false;
+		m_need_clean = false;
 	}
 
 private:
-	bool m_need_gc;
+	bool m_need_clean;
 	boost::int64_t m_size;
 	std::map<boost::int64_t, boost::int64_t> m_ranges;
 #ifndef AVHTTP_DISABLE_THREAD
