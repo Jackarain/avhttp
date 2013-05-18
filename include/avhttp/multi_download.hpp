@@ -89,6 +89,9 @@ class multi_download : public boost::noncopyable
 		// 最后请求的时间.
 		boost::posix_time::ptime last_request_time;
 
+		// 最后的错误信息.
+		boost::system::error_code error_code;
+
 		// 是否操作功能完成.
 		bool done;
 
@@ -697,6 +700,9 @@ protected:
 		http_stream_object &object = *object_ptr;
 		if (ec || m_abort)
 		{
+			// 保存最后的错误信息, 避免一些过期无效或没有允可的链接不断的尝试.
+			object.error_code = ec;
+
 			// 单连接模式, 表示下载停止, 终止下载.
 			if (!m_accept_multi)
 			{
@@ -824,17 +830,14 @@ protected:
 				boost::str(boost::format("bytes=%lld-%lld")
 				% object.request_range.left % object.request_range.right));
 
-			// 设置到请求选项中.
-			stream.request_options(req_opt);
-
-			// 如果是ssl连接, 默认为检查证书.
-			stream.check_certificate(m_settings.check_certificate);
-
-			// 禁用重定向.
-			stream.max_redirects(0);
-
 			// 添加代理设置.
 			stream.proxy(m_settings.proxy);
+			// 设置到请求选项中.
+			stream.request_options(req_opt);
+			// 如果是ssl连接, 默认为检查证书.
+			stream.check_certificate(m_settings.check_certificate);
+			// 禁用重定向.
+			stream.max_redirects(0);
 
 			// 保存最后请求时间, 方便检查超时重置.
 			object.last_request_time = boost::posix_time::microsec_clock::local_time();
@@ -891,6 +894,9 @@ protected:
 		object.request_count++;
 		if (ec || m_abort)
 		{
+			// 保存最后的错误信息, 避免一些过期无效或没有允可的链接不断的尝试.
+			object.error_code = ec;
+
 			// 单连接模式, 表示下载停止, 终止下载.
 			if (!m_accept_multi)
 			{
@@ -1216,9 +1222,17 @@ protected:
 			if (!object_item_ptr->done && (duration > boost::posix_time::seconds(m_settings.time_out)
 				|| object_item_ptr->direct_reconnect))
 			{
-				// 超时, 关闭并重新创建连接.
+				// 超时或出错, 关闭并重新创建连接.
 				boost::system::error_code ec;
 				object_item_ptr->stream->close(ec);
+
+				// 出现下列之一的错误, 将不再尝试连接服务器, 因为重试也是没有意义的.
+				if (object_item_ptr->error_code == avhttp::errc::forbidden
+					|| object_item_ptr->error_code == avhttp::errc::not_found
+					|| object_item_ptr->error_code == avhttp::errc::method_not_allowed)
+				{
+					continue;
+				}
 
 				// 单连接模式, 表示下载停止, 终止下载.
 				if (!m_accept_multi)
