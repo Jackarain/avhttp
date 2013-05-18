@@ -90,7 +90,7 @@ class multi_download : public boost::noncopyable
 		boost::posix_time::ptime last_request_time;
 
 		// 最后的错误信息.
-		boost::system::error_code error_code;
+		boost::system::error_code ec;
 
 		// 是否操作功能完成.
 		bool done;
@@ -701,7 +701,7 @@ protected:
 		if (ec || m_abort)
 		{
 			// 保存最后的错误信息, 避免一些过期无效或没有允可的链接不断的尝试.
-			object.error_code = ec;
+			object.ec = ec;
 
 			// 单连接模式, 表示下载停止, 终止下载.
 			if (!m_accept_multi)
@@ -895,7 +895,7 @@ protected:
 		if (ec || m_abort)
 		{
 			// 保存最后的错误信息, 避免一些过期无效或没有允可的链接不断的尝试.
-			object.error_code = ec;
+			object.ec = ec;
 
 			// 单连接模式, 表示下载停止, 终止下载.
 			if (!m_accept_multi)
@@ -1227,9 +1227,9 @@ protected:
 				object_item_ptr->stream->close(ec);
 
 				// 出现下列之一的错误, 将不再尝试连接服务器, 因为重试也是没有意义的.
-				if (object_item_ptr->error_code == avhttp::errc::forbidden
-					|| object_item_ptr->error_code == avhttp::errc::not_found
-					|| object_item_ptr->error_code == avhttp::errc::method_not_allowed)
+				if (object_item_ptr->ec == avhttp::errc::forbidden
+					|| object_item_ptr->ec == avhttp::errc::not_found
+					|| object_item_ptr->ec == avhttp::errc::method_not_allowed)
 				{
 					object_item_ptr->done = true;
 					continue;
