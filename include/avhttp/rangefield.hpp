@@ -169,6 +169,41 @@ public:
 		return false;
 	}
 
+	///获取在[left, right)区间的最大段.
+	// @param left左边边界, 也是输出参数.
+	// @param right右边边界, 不包含边界处, 同为输出参数.
+	// @返回false表示所请求的空间是空的.
+	// @备注: 请求的区间是一个半开区间[left, right), 即不包含右边界.
+	inline bool get_range(boost::int64_t &left, boost::int64_t &right)
+	{
+		BOOST_ASSERT((left >= 0 && left < right) && right <= m_size);
+
+		// 先整理.
+		if (m_need_clean)
+			clean();
+
+#ifndef AVHTTP_DISABLE_THREAD
+		boost::mutex::scoped_lock lock(m_mutex);
+#endif
+
+		for (std::map<boost::int64_t, boost::int64_t>::iterator i = m_ranges.begin();
+			i != m_ranges.end(); i++)
+		{
+			if (left >= i->first)
+			{
+				if (right <= i->second)
+					return true;
+				if (right > i->first && i->second > left)
+				{
+					right = i->second;
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+
 	///输出空隙空间.
 	// @param r区间, 不包含右边界处.
 	// @返回false表示没有空间或失败.
