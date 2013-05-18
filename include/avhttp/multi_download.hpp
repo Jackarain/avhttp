@@ -911,7 +911,7 @@ protected:
 			http_stream &stream = *object.stream;
 
 			// 配置请求选项.
-			request_opts req_opt;
+			request_opts req_opt = m_settings.opts;
 
 			// 设置是否为长连接.
 			if (m_keep_alive)
