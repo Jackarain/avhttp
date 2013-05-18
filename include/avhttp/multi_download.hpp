@@ -139,6 +139,7 @@ public:
 		, m_time_total(0)
 		, m_download_point(0)
 		, m_drop_size(-1)
+		, m_outstanding(0)
 		, m_abort(false)
 	{}
 	BOOST_ASIO_DECL ~multi_download()
@@ -414,6 +415,7 @@ public:
 				p->last_request_time = boost::posix_time::microsec_clock::local_time();
 
 				m_number_of_connections++;
+				change_outstranding(true);
 
 				// 开始异步打开, 传入指针http_object_ptr, 以确保多线程安全.
 				p->stream->async_open(m_final_url,
@@ -460,6 +462,7 @@ public:
 			// 禁用重定向.
 			h.max_redirects(0);
 
+			change_outstranding(true);
 			// 开始异步打开.
 			h.async_open(m_final_url,
 				boost::bind(&multi_download::handle_open, this,
@@ -467,6 +470,7 @@ public:
 
 		} while (0);
 
+		change_outstranding(true);
 		// 开启定时器, 执行任务.
 		m_timer.expires_from_now(boost::posix_time::seconds(1));
 		m_timer.async_wait(boost::bind(&multi_download::on_tick, this, boost::asio::placeholders::error));
@@ -581,6 +585,7 @@ public:
 		// 如果是ssl连接, 默认为检查证书.
 		h.check_certificate(m_settings.check_certificate);
 
+		change_outstranding(true);
 		typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
 		h.async_open(m_final_url, boost::bind(&multi_download::handle_start<HandlerWrapper>, this,
 			HandlerWrapper(handler), obj, boost::asio::placeholders::error));
@@ -770,6 +775,7 @@ protected:
 	void handle_open(const int index,
 		http_object_ptr object_ptr, const boost::system::error_code &ec)
 	{
+		change_outstranding(false);
 		http_stream_object &object = *object_ptr;
 		if (ec || m_abort)
 		{
@@ -818,6 +824,7 @@ protected:
 		// 发起数据读取请求.
 		http_stream_ptr &stream_ptr = object.stream;
 
+		change_outstranding(true);
 		// 传入指针http_object_ptr, 以确保多线程安全.
 		stream_ptr->async_read_some(boost::asio::buffer(object.buffer, available_bytes),
 			boost::bind(&multi_download::handle_read, this,
@@ -829,6 +836,7 @@ protected:
 	void handle_read(const int index,
 		http_object_ptr object_ptr, int bytes_transferred, const boost::system::error_code &ec)
 	{
+		change_outstranding(false);
 		http_stream_object &object = *object_ptr;
 
 		// 保存数据, 当远程服务器断开时, ec为eof, 保证数据全部写入.
@@ -915,6 +923,8 @@ protected:
 			// 保存最后请求时间, 方便检查超时重置.
 			object.last_request_time = boost::posix_time::microsec_clock::local_time();
 
+			change_outstranding(true);
+
 			// 发起异步http数据请求, 传入指针http_object_ptr, 以确保多线程安全.
 			if (!m_keep_alive)
 				stream.async_open(m_final_url, boost::bind(&multi_download::handle_open, this,
@@ -951,6 +961,7 @@ protected:
 				}
 			}
 
+			change_outstranding(true);
 			// 继续读取数据, 传入指针http_object_ptr, 以确保多线程安全.
 			object.stream->async_read_some(boost::asio::buffer(object.buffer, available_bytes),
 				boost::bind(&multi_download::handle_read, this,
@@ -963,6 +974,7 @@ protected:
 	void handle_request(const int index,
 		http_object_ptr object_ptr, const boost::system::error_code &ec)
 	{
+		change_outstranding(false);
 		http_stream_object &object = *object_ptr;
 		object.request_count++;
 		if (ec || m_abort)
@@ -997,6 +1009,7 @@ protected:
 			}
 		}
 
+		change_outstranding(true);
 		// 发起数据读取请求, 传入指针http_object_ptr, 以确保多线程安全.
 		object_ptr->stream->async_read_some(boost::asio::buffer(object.buffer, available_bytes),
 			boost::bind(&multi_download::handle_read, this,
@@ -1008,6 +1021,8 @@ protected:
 	template <typename Handler>
 	void handle_start(Handler handler, http_object_ptr object_ptr, const boost::system::error_code &ec)
 	{
+		change_outstranding(false);
+
 		// 打开失败则退出.
 		if (ec)
 		{
@@ -1179,6 +1194,7 @@ protected:
 				p->last_request_time = boost::posix_time::microsec_clock::local_time();
 
 				m_number_of_connections++;
+				change_outstranding(true);
 
 				// 开始异步打开, 传入指针http_object_ptr, 以确保多线程安全.
 				p->stream->async_open(m_final_url,
@@ -1225,12 +1241,16 @@ protected:
 			// 禁用重定向.
 			h.max_redirects(0);
 
+			change_outstranding(true);
+
 			// 开始异步打开.
 			h.async_open(m_final_url,
 				boost::bind(&multi_download::handle_open, this,
 				0, object_ptr, boost::asio::placeholders::error));
 
 		} while (0);
+
+		change_outstranding(true);
 
 		// 开启定时器, 执行任务.
 		m_timer.expires_from_now(boost::posix_time::seconds(1));
@@ -1244,6 +1264,7 @@ protected:
 
 	void on_tick(const boost::system::error_code &e)
 	{
+		change_outstranding(false);
 		m_time_total++;
 
 		// 在这里更新位图.
@@ -1255,8 +1276,10 @@ protected:
 		// 每隔1秒进行一次on_tick.
 		if (!m_abort && !e)
 		{
+			change_outstranding(true);
 			m_timer.expires_from_now(boost::posix_time::seconds(1));
-			m_timer.async_wait(boost::bind(&multi_download::on_tick, this, boost::asio::placeholders::error));
+			m_timer.async_wait(boost::bind(&multi_download::on_tick,
+				this, boost::asio::placeholders::error));
 		}
 		else
 		{
@@ -1373,6 +1396,7 @@ protected:
 				// 保存最后请求时间, 方便检查超时重置.
 				object.last_request_time = boost::posix_time::microsec_clock::local_time();
 
+				change_outstranding(true);
 				// 重新发起异步请求, 传入object_item_ptr指针, 以确保线程安全.
 				stream.async_open(m_final_url, boost::bind(&multi_download::handle_open, this,
 					i, object_item_ptr, boost::asio::placeholders::error));
@@ -1521,6 +1545,19 @@ protected:
 	}
 
 private:
+
+	inline void change_outstranding(bool addref = true)
+	{
+#ifndef AVHTTP_DISABLE_THREAD
+		boost::mutex::scoped_lock lock(m_outstanding_mutex);
+#endif
+		if (addref)
+			m_outstanding++;
+		else
+			m_outstanding--;
+	}
+
+private:
 	// io_service引用.
 	boost::asio::io_service &m_io_service;
 
@@ -1588,6 +1625,13 @@ private:
 
 	// 用于限速.
 	int m_drop_size;
+
+	// 用于异步工作计数.
+	int m_outstanding;
+
+#ifndef AVHTTP_DISABLE_THREAD
+	boost::mutex m_outstanding_mutex;
+#endif
 
 	// 是否中止工作.
 	bool m_abort;
