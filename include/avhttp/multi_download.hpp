@@ -624,12 +624,59 @@ public:
 		// 更新下载点位置.
 		m_download_point = offset;
 
-		// 得到offset后面可读取的数据大小.
+		// 得到用户缓冲大小, 以确定最大读取字节数.
+		std::size_t buffer_length = 0;
+		{
+			typename MutableBufferSequence::const_iterator iter = buffers.begin();
+			typename MutableBufferSequence::const_iterator end = buffers.end();
+			// 计算得到用户buffers的总大小.
+			for (; iter != end; ++iter)
+			{
+				boost::asio::mutable_buffer buffer(*iter);
+				buffer_length += boost::asio::buffer_size(buffer);
+			}
+		}
 
+		// 得到offset后面可读取的数据大小, 使用折半法来获得可读空间大小.
+		while (buffer_length != 0)
+		{
+			if (m_downlaoded_field.check_range(offset, buffer_length))
+				break;
+			buffer_length /= 2;
+		}
 
-		// m_downlaoded_field;
+		// 读取数据.
+		if (buffer_length != 0)
+		{
+			std::size_t available_length = buffer_length;
+			boost::int64_t offset_for_read = offset;
 
-		return 0;
+			typename MutableBufferSequence::const_iterator iter = buffers.begin();
+			typename MutableBufferSequence::const_iterator end = buffers.end();
+			// 计算得到用户buffers的总大小.
+			for (; iter != end; ++iter)
+			{
+				boost::asio::mutable_buffer buffer(*iter);
+
+				char* buffer_ptr = boost::asio::buffer_cast<char*>(buffer);
+				std::size_t buffer_size = boost::asio::buffer_size(buffer);
+
+				if (available_length - buffer_size < 0)
+					buffer_size = available_length;
+
+				std::size_t length = m_storage->read(buffer_ptr, offset_for_read, buffer_size);
+				BOOST_ASSERT(length == buffer_size);
+				offset_for_read += length;
+				available_length -= length;
+
+				if (available_length == 0)
+					break;
+			}
+			// 计算实际读取的字节数.
+			buffer_length = offset_for_read - offset;
+		}
+
+		return buffer_length;
 	}
 
 	///返回当前设置信息.
