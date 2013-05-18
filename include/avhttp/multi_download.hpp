@@ -606,6 +606,24 @@ public:
 		}
 	}
 
+	///获取指定的数据, 并改变下载点的位置.
+	// @param buffers 指定的数据缓冲. 这个类型必须满足MutableBufferSequence的定义,
+	//          MutableBufferSequence的定义在boost.asio文档中.
+	// @param offset 读取数据的指定偏移位置, 注意: offset影响内部下载位置从offset开始下载.
+	// 返回读取数据的大小.
+	template <typename MutableBufferSequence>
+	std::size_t fetch_data(const MutableBufferSequence &buffers,
+		boost::int64_t offset)
+	{
+		if (!m_storage)
+		{
+			return 0;
+		}
+
+
+		return 0;
+	}
+
 	///返回当前设置信息.
 	BOOST_ASIO_DECL const settings& set() const
 	{
