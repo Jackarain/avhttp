@@ -140,7 +140,7 @@ public:
 		, m_download_point(0)
 		, m_drop_size(-1)
 		, m_outstanding(0)
-		, m_abort(false)
+		, m_abort(true)
 	{}
 	BOOST_ASIO_DECL ~multi_download()
 	{}
@@ -551,6 +551,9 @@ public:
 		m_final_url = utf8;
 		m_settings = s;
 
+		// 设置状态.
+		m_abort = false;
+
 		// 解析meta文件.
 		if (!m_settings.meta_file.empty())
 		{
@@ -688,6 +691,14 @@ public:
 	BOOST_ASIO_DECL const settings& set() const
 	{
 		return m_settings;
+	}
+
+	///是否停止下载.
+	BOOST_ASIO_DECL bool stopped() const
+	{
+		if (m_abort && m_outstanding == 0)
+			return true;
+		return false;
 	}
 
 	///设置是否检查证书, 默认检查证书.
