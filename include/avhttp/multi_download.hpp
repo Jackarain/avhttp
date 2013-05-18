@@ -1231,6 +1231,7 @@ protected:
 					|| object_item_ptr->error_code == avhttp::errc::not_found
 					|| object_item_ptr->error_code == avhttp::errc::method_not_allowed)
 				{
+					object_item_ptr->done = true;
 					continue;
 				}
 
