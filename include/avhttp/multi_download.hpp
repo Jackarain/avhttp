@@ -137,6 +137,7 @@ public:
 		, m_timer(io)
 		, m_number_of_connections(0)
 		, m_time_total(0)
+		, m_download_point(0)
 		, m_drop_size(-1)
 		, m_abort(false)
 	{}
@@ -615,11 +616,18 @@ public:
 	std::size_t fetch_data(const MutableBufferSequence &buffers,
 		boost::int64_t offset)
 	{
-		if (!m_storage)
+		if (!m_storage) // 没有存储设备, 无法获得数据.
 		{
 			return 0;
 		}
 
+		// 更新下载点位置.
+		m_download_point = offset;
+
+		// 得到offset后面可读取的数据大小.
+
+
+		// m_downlaoded_field;
 
 		return 0;
 	}
@@ -1345,12 +1353,19 @@ protected:
 
 	bool allocate_range(range &r)
 	{
+#ifndef AVHTTP_DISABLE_THREAD
+		// 在多线程运行io_service时, 必须加锁, 避免重入时多次重复分配相同区域.
+		// 单线程执行io_service(并启用了AVHTTP_DISABLE_THREAD)无需考虑加
+		// 锁, 因为所有操作都是异步串行的动作.
 		boost::mutex::scoped_lock lock(m_rangefield_mutex);
+#endif
+
 		range temp(-1, -1);
+
 		do
 		{
-			// 从文件间区中得到一段空间.
-			if (!m_rangefield.out_space(temp))
+			// 从指定位置m_download_point开始文件间区中得到一段空间.
+			if (!m_rangefield.out_space(m_download_point, temp.left, temp.right))
 				return false;
 
 			// 用于调试.
@@ -1510,6 +1525,9 @@ private:
 	// meta文件, 用于续传.
 	file m_file_meta;
 
+	// 下载点位置.
+	boost::int64_t m_download_point;
+
 	// 文件区间图, 每次请求将由m_rangefield来分配空间区间.
 	rangefield m_rangefield;
 
@@ -1517,7 +1535,9 @@ private:
 	rangefield m_downlaoded_field;
 
 	// 保证分配空闲区间的唯一性.
+#ifndef AVHTTP_DISABLE_THREAD
 	boost::mutex m_rangefield_mutex;
+#endif
 
 	// 用于限速.
 	int m_drop_size;
