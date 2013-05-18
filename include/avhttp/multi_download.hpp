@@ -555,7 +555,7 @@ public:
 		m_abort = false;
 
 		// 解析meta文件.
-		if (!m_settings.meta_file.empty())
+		if (m_settings.meta_file.empty())
 		{
 			// filename + ".meta".
 			m_settings.meta_file = file_name() + ".meta";
