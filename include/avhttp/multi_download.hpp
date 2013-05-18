@@ -211,6 +211,7 @@ public:
 		std::string utf8 = detail::ansi_utf8(u);
 		utf8 = detail::escape_path(utf8);
 		m_final_url = utf8;
+		m_file_name = "";
 
 		// 解析meta文件.
 		if (m_settings.meta_file.empty())
@@ -549,6 +550,7 @@ public:
 		std::string utf8 = detail::ansi_utf8(u);
 		utf8 = detail::escape_path(utf8);
 		m_final_url = utf8;
+		m_file_name = "";
 		m_settings = s;
 
 		// 设置状态.
@@ -557,7 +559,7 @@ public:
 		// 解析meta文件.
 		if (m_settings.meta_file.empty())
 		{
-			// filename + ".meta".
+			// 修正meta文件名(filename + ".meta").
 			m_settings.meta_file = file_name() + ".meta";
 		}
 
