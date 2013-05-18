@@ -169,7 +169,7 @@ public:
 		return false;
 	}
 
-	///输出空隙.
+	///输出空隙空间.
 	// @param r区间, 不包含右边界处.
 	// @返回false表示没有空间或失败.
 	// @备注: 输出的区间是一个半开区间[left, right), 即不包含右边界.
@@ -178,7 +178,7 @@ public:
 		return out_space(r.left, r.right);
 	}
 
-	///输出空隙.
+	///输出空隙空间.
 	// @param left 表示从左开始起始边界.
 	// @param right 表示右边的边界, 不包括边界处.
 	// @返回false表示没有空间或失败.
