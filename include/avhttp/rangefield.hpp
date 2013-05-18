@@ -40,11 +40,11 @@ namespace avhttp {
 // 定义请求数据范围类型.
 struct range
 {
-	range(boost::int64_t l, boost::int64_t r)
+	inline range(boost::int64_t l, boost::int64_t r)
 		: left(l)
 		, right(r)
 	{}
-	range()
+	inline range()
 		: left(0)
 		, right(0)
 	{}
@@ -75,15 +75,35 @@ struct range
 // 一个按区域来划分的位图实现, 该类对象线程访问安全.
 class rangefield
 {
+	typedef std::map<boost::int64_t, boost::int64_t> range_map;
+
 public:
 	// @param size表示区间的总大小.
-	rangefield(boost::int64_t size = 0)
+	inline rangefield(boost::int64_t size = 0)
 		: m_need_clean(false)
 		, m_size(size)
+		, m_mutex(new boost::mutex())
 	{}
 
-	~rangefield()
+	inline ~rangefield()
 	{}
+
+	rangefield(const rangefield& rhs)
+	{
+		m_need_clean = rhs.m_need_clean;
+		m_ranges = rhs.m_ranges;
+		m_size = rhs.m_size;
+		m_mutex.reset(new boost::mutex());
+	}
+
+	const rangefield& operator=(const rangefield& rhs)
+	{
+		m_need_clean = rhs.m_need_clean;
+		m_ranges = rhs.m_ranges;
+		m_size = rhs.m_size;
+		m_mutex.reset(new boost::mutex());
+		return *this;
+	}
 
 public:
 
@@ -92,7 +112,7 @@ public:
 	void reset(boost::int64_t size = 0)
 	{
 #ifndef AVHTTP_DISABLE_THREAD
-		boost::mutex::scoped_lock lock(m_mutex);
+		boost::mutex::scoped_lock lock(*m_mutex);
 #endif
 		m_size = size;
 		m_need_clean = false;
@@ -123,7 +143,7 @@ public:
 		BOOST_ASSERT((left >= 0 && left < right) && right <= m_size);
 
 #ifndef AVHTTP_DISABLE_THREAD
-		boost::mutex::scoped_lock lock(m_mutex);
+		boost::mutex::scoped_lock lock(*m_mutex);
 #endif
 
 		if ((left < 0 || right > m_size) || (right <= left))
@@ -156,10 +176,10 @@ public:
 			clean();
 
 #ifndef AVHTTP_DISABLE_THREAD
-		boost::mutex::scoped_lock lock(m_mutex);
+		boost::mutex::scoped_lock lock(*m_mutex);
 #endif
 
-		for (std::map<boost::int64_t, boost::int64_t>::iterator i = m_ranges.begin();
+		for (range_map::iterator i = m_ranges.begin();
 			i != m_ranges.end(); i++)
 		{
 			if (left >= i->first && right <= i->second)
@@ -183,10 +203,10 @@ public:
 			clean();
 
 #ifndef AVHTTP_DISABLE_THREAD
-		boost::mutex::scoped_lock lock(m_mutex);
+		boost::mutex::scoped_lock lock(*m_mutex);
 #endif
 
-		for (std::map<boost::int64_t, boost::int64_t>::iterator i = m_ranges.begin();
+		for (range_map::iterator i = m_ranges.begin();
 			i != m_ranges.end(); i++)
 		{
 			if (left >= i->first)
@@ -223,71 +243,75 @@ public:
 		// 先整理.
 		if (m_need_clean)
 			clean();
-
-#ifndef AVHTTP_DISABLE_THREAD
-		boost::mutex::scoped_lock lock(m_mutex);
-#endif
-
-		if (m_ranges.size() == 0)
-		{
-			left = 0;
-			right = m_size;
-			return true;
-		}
-
-		left = -1;
-		right = -1;
-		bool record = false;
-		for (std::map<boost::int64_t, boost::int64_t>::iterator i = m_ranges.begin();
-			i != m_ranges.end(); i++)
-		{
-			if (i == m_ranges.begin())
-			{
-				if (i->first != 0)
-				{
-					record = true;
-					left = 0;
-					right = i->first;
-					return true;
-				}
-			}
-
-			if (record)
-			{
-				right = i->first;
-				break;
-			}
-			else
-			{
-				left = i->second;
-				record = true;
-				continue;
-			}
-		}
-
-		if ((left != -1 && right == -1 && left != m_size) && m_ranges.size() == 1)
-			right = m_size;
-		if (left == -1 || right == -1)
-			return false;
-
-		return true;
+		return out_space(0, left, right);
 	}
 
-	///检查位图是否已经满了.
-	bool is_full()
+	///从指定位置开始, 输出空隙空间.
+	// @param offset 表示输出空间在offset后面开始.
+	// @param left 表示从左开始起始边界.
+	// @param right 表示右边的边界, 不包括边界处.
+	// @返回false表示没有空间或失败.
+	// @备注: 输出的区间是一个半开区间[left, right), 即不包含右边界.
+	inline bool out_space(boost::int64_t offset, boost::int64_t &left, boost::int64_t &right)
 	{
 		// 先整理.
 		if (m_need_clean)
 			clean();
 
 #ifndef AVHTTP_DISABLE_THREAD
-		boost::mutex::scoped_lock lock(m_mutex);
+		boost::mutex::scoped_lock lock(*m_mutex);
+#endif
+
+		// inv里的每一个元素都是空间, 从元素中返回区间.
+		range_map inv = inverse_impl();
+
+		// 没有空间.
+		if (inv.size() == 0)
+			return false;
+		for (range_map::iterator i = inv.begin();
+			i != inv.end(); i++)
+		{
+			// 偏移位置在空间里, 就返回这段空间.
+			if (offset >= i->first)
+			{
+				if (offset < i->second)
+				{
+					left = offset;
+					right = i->second;
+					return true;
+				}
+			}
+			else // offset不在区间内, 直接返回第一个空间.
+			{
+				left = i->first;
+				right = i->second;
+				return true;
+			}
+		}
+
+		// 走到这, 还没找到有效的空间, 则直接返回第一块空间.
+		range_map::iterator i = inv.begin();
+		left = i->first;
+		right = i->second;
+
+		return true;
+	}
+
+	///检查位图是否已经满了.
+	inline bool is_full()
+	{
+		// 先整理.
+		if (m_need_clean)
+			clean();
+
+#ifndef AVHTTP_DISABLE_THREAD
+		boost::mutex::scoped_lock lock(*m_mutex);
 #endif
 
 		// 直接判断区间边界.
 		if (m_ranges.size() == 1)
 		{
-			std::map<boost::int64_t, boost::int64_t>::iterator i = m_ranges.begin();
+			range_map::iterator i = m_ranges.begin();
 			if (i->first == 0 && i->second == m_size)
 				return true;
 		}
@@ -295,13 +319,13 @@ public:
 	}
 
 	///得到区间所有大小.
-	boost::int64_t range_size() const
+	inline boost::int64_t range_size() const
 	{
 #ifndef AVHTTP_DISABLE_THREAD
-		boost::mutex::scoped_lock lock(m_mutex);
+		boost::mutex::scoped_lock lock(*m_mutex);
 #endif
 		boost::int64_t size = 0;
-		for (std::map<boost::int64_t, boost::int64_t>::const_iterator i = m_ranges.begin();
+		for (range_map::const_iterator i = m_ranges.begin();
 			i != m_ranges.end(); i++)
 		{
 			size += i->second - i->first;
@@ -343,7 +367,7 @@ public:
 	inline void bitfield_to_range(const bitfield &bf, int piece_size)
 	{
 #ifndef AVHTTP_DISABLE_THREAD
-		boost::mutex::scoped_lock lock(m_mutex);
+		boost::mutex::scoped_lock lock(*m_mutex);
 #endif
 		m_ranges.clear();
 
@@ -393,28 +417,87 @@ public:
 	inline void print()
 	{
 #ifndef AVHTTP_DISABLE_THREAD
-		boost::mutex::scoped_lock lock(m_mutex);
+		boost::mutex::scoped_lock lock(*m_mutex);
 #endif
-		for (std::map<boost::int64_t, boost::int64_t>::iterator i = m_ranges.begin();
+		for (range_map::iterator i = m_ranges.begin();
 			i != m_ranges.end(); i++)
 		{
 			std::cout << i->first << "   ---    " << i->second << "\n";
 		}
 	}
 
+	///翻转rangefield.
+	inline rangefield inverse()
+	{
+#ifndef AVHTTP_DISABLE_THREAD
+		boost::mutex::scoped_lock lock(*m_mutex);
+#endif
+
+		range_map m = inverse_impl();
+		rangefield f(m_size);
+
+		f.m_need_clean = m_need_clean;
+		f.m_ranges = m;
+
+		return f;
+	}
+
 protected:
+
+	///返回翻转的range_item.
+	inline range_map inverse_impl()
+	{
+		// 先整理.
+		if (m_need_clean)
+			clean();
+
+		range_map reverse_map;
+		boost::int64_t point = 0;
+
+		// 将空隙添加到reverse_map中.
+		for (range_map::iterator i = m_ranges.begin();
+			i != m_ranges.end(); i++)
+		{
+			if (i == m_ranges.begin())
+			{
+				if (i->first != 0)
+				{
+					point = 0;
+					reverse_map.insert(std::make_pair(point, i->first));
+					point = i->second;
+					continue;
+				}
+				else
+				{
+					point = i->second;
+					continue;
+				}
+			}
+
+			reverse_map.insert(std::make_pair(point, i->first));
+			point = i->second;
+		}
+
+		// 尾部判断.
+		if (point != m_size || m_ranges.size() == 0)
+		{
+			reverse_map.insert(std::make_pair(point, m_size));
+		}
+
+		return reverse_map;
+	}
+
 	///整理回收range中的重叠部分.
 	inline void clean()
 	{
-
 #ifndef AVHTTP_DISABLE_THREAD
-		boost::mutex::scoped_lock lock(m_mutex);
+		boost::mutex::scoped_lock lock(*m_mutex);
 #endif
 		std::map<boost::int64_t, boost::int64_t> result;
 		std::pair<boost::int64_t, boost::int64_t> max_value;
 		max_value.first = 0;
 		max_value.second = 0;
-		for (std::map<boost::int64_t, boost::int64_t>::iterator i = m_ranges.begin();
+		for (range_map::iterator i = m_ranges.begin();
 			i != m_ranges.end(); i++)
 		{
 			// i 在max_value 之间, 忽略之.
@@ -464,9 +547,10 @@ protected:
 private:
 	bool m_need_clean;
 	boost::int64_t m_size;
-	std::map<boost::int64_t, boost::int64_t> m_ranges;
+	range_map m_ranges;
 #ifndef AVHTTP_DISABLE_THREAD
-	mutable boost::mutex m_mutex;
+	typedef boost::shared_ptr<boost::mutex> mutex_ptr;
+	mutex_ptr m_mutex;
 #endif
 };
 
