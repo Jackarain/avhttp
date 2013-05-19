@@ -23,10 +23,10 @@
 namespace avhttp {
 namespace detail {
 
-// Ä¬ÈÏ×Ö·û¼¯±àÂë.
+// é»˜è®¤å­—ç¬¦é›†ç¼–ç .
 const static std::string default_characters = "GBK";
 
-// ×Ö·û¼¯±àÂë×ª»»½Ó¿ÚÉùÃ÷.
+// å­—ç¬¦é›†ç¼–ç è½¬æ¢æ¥å£å£°æ˜.
 inline std::string wide_utf8(const std::wstring &source);
 
 inline std::wstring utf8_wide(std::string const &source);
@@ -43,7 +43,7 @@ inline std::string wide_ansi(
 inline std::wstring ansi_wide(
 	const std::string &source, const std::string &characters = default_characters);
 
-// ×Ö·û¼¯±àÂë×ª»»½Ó¿ÚÊµÏÖ, Ê¹ÓÃboostÊµÏÖ.
+// å­—ç¬¦é›†ç¼–ç è½¬æ¢æ¥å£å®ç°, ä½¿ç”¨boostå®ç°.
 inline std::wstring ansi_wide(
 	const std::string &source, const std::string &characters/* = default_characters*/)
 {
