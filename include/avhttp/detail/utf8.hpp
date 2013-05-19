@@ -25,12 +25,12 @@ namespace detail {
 
 inline std::string wide_utf8(const std::wstring &source);
 inline std::wstring utf8_wide(std::string const &source);
-inline std::string ansi_utf8(std::string const &source, const std::string &characters = "GB2312");
-inline std::string utf8_ansi(std::string const &source, const std::string &characters = "GB2312");
-inline std::string wide_ansi(std::wstring const &source, const std::string &characters = "GB2312");
-inline std::wstring ansi_wide(const std::string &source, const std::string &characters = "GB2312");
+inline std::string ansi_utf8(std::string const &source, const std::string &characters = "GB18030");
+inline std::string utf8_ansi(std::string const &source, const std::string &characters = "GB18030");
+inline std::string wide_ansi(std::wstring const &source, const std::string &characters = "GB18030");
+inline std::wstring ansi_wide(const std::string &source, const std::string &characters = "GB18030");
 
-inline std::wstring ansi_wide(const std::string &source, const std::string &characters/* = "GB2312"*/)
+inline std::wstring ansi_wide(const std::string &source, const std::string &characters/* = "GB18030"*/)
 {
 	std::wstring destination;
 
@@ -40,7 +40,7 @@ inline std::wstring ansi_wide(const std::string &source, const std::string &char
 	return destination;
 }
 
-inline std::string ansi_utf8(std::string const &source, const std::string &characters/* = "GB2312"*/)
+inline std::string ansi_utf8(std::string const &source, const std::string &characters/* = "GB18030"*/)
 {
 	std::string destination;
 
@@ -67,7 +67,7 @@ inline std::wstring utf8_wide(std::string const &source)
 	return destination;
 }
 
-inline std::string utf8_ansi(std::string const &source, const std::string &characters/* = "GB2312"*/)
+inline std::string utf8_ansi(std::string const &source, const std::string &characters/* = "GB18030"*/)
 {
 	std::string destination;
 
@@ -76,7 +76,7 @@ inline std::string utf8_ansi(std::string const &source, const std::string &chara
 	return destination;
 }
 
-inline std::string wide_ansi(std::wstring const &source, const std::string &characters/* = "GB2312"*/)
+inline std::string wide_ansi(std::wstring const &source, const std::string &characters/* = "GB18030"*/)
 {
 	std::string destination;
 
