@@ -82,7 +82,9 @@ public:
 	inline rangefield(boost::int64_t size = 0)
 		: m_need_clean(false)
 		, m_size(size)
+#ifndef AVHTTP_DISABLE_THREAD
 		, m_mutex(new boost::mutex())
+#endif
 	{}
 
 	inline ~rangefield()
@@ -93,7 +95,9 @@ public:
 		m_need_clean = rhs.m_need_clean;
 		m_ranges = rhs.m_ranges;
 		m_size = rhs.m_size;
+#ifndef AVHTTP_DISABLE_THREAD
 		m_mutex.reset(new boost::mutex());
+#endif
 	}
 
 	const rangefield& operator=(const rangefield& rhs)
@@ -101,7 +105,9 @@ public:
 		m_need_clean = rhs.m_need_clean;
 		m_ranges = rhs.m_ranges;
 		m_size = rhs.m_size;
+#ifndef AVHTTP_DISABLE_THREAD
 		m_mutex.reset(new boost::mutex());
+#endif
 		return *this;
 	}
 
