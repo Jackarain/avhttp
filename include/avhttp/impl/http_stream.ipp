@@ -1154,6 +1154,11 @@ const std::string& http_stream::location() const
 	return m_location;
 }
 
+const std::string http_stream::final_url() const
+{
+	return m_url.to_string();
+}
+
 boost::int64_t http_stream::content_length()
 {
 	return m_content_length;

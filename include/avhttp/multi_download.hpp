@@ -89,6 +89,9 @@ class multi_download : public boost::noncopyable
 		// 最后请求的时间.
 		boost::posix_time::ptime last_request_time;
 
+		// 最后的错误信息.
+		boost::system::error_code ec;
+
 		// 是否操作功能完成.
 		bool done;
 
@@ -126,7 +129,7 @@ class multi_download : public boost::noncopyable
 	};
 
 public:
-	multi_download(boost::asio::io_service &io)
+	BOOST_ASIO_DECL multi_download(boost::asio::io_service &io)
 		: m_io_service(io)
 		, m_accept_multi(false)
 		, m_keep_alive(false)
@@ -134,10 +137,12 @@ public:
 		, m_timer(io)
 		, m_number_of_connections(0)
 		, m_time_total(0)
+		, m_download_point(0)
 		, m_drop_size(-1)
-		, m_abort(false)
+		, m_outstanding(0)
+		, m_abort(true)
 	{}
-	~multi_download()
+	BOOST_ASIO_DECL ~multi_download()
 	{}
 
 public:
@@ -147,7 +152,7 @@ public:
 	// @param ec当发生错误时, 包含详细的错误信息.
 	// @备注: 直接使用内部的file.hpp下载数据到文件, 若想自己指定数据下载到指定的地方
 	// 可以通过调用另一个open来完成, 具体见另一个open的详细说明.
-	void start(const std::string &u, boost::system::error_code &ec)
+	BOOST_ASIO_DECL void start(const std::string &u, boost::system::error_code &ec)
 	{
 		settings s;
 		start(u, s, ec);
@@ -157,7 +162,7 @@ public:
 	// @param u指定的url.
 	// @备注: 直接使用内部的file.hpp下载数据到文件, 若想自己指定数据下载到指定的地方
 	// 可以通过调用另一个open来完成, 具体见另一个open的详细说明.
-	void start(const std::string &u)
+	BOOST_ASIO_DECL void start(const std::string &u)
 	{
 		settings s;
 		boost::system::error_code ec;
@@ -172,7 +177,7 @@ public:
 	// @param u指定的url.
 	// @param s指定的设置信息.
 	// @失败抛出一个boost::system::system_error异常, 包含详细的错误信息.
-	void start(const std::string &u, const settings &s)
+	BOOST_ASIO_DECL void start(const std::string &u, const settings &s)
 	{
 		boost::system::error_code ec;
 		start(u, s, ec);
@@ -186,7 +191,7 @@ public:
 	// @param u指定的url.
 	// @param s指定的设置信息.
 	// @返回error_code, 包含详细的错误信息.
-	void start(const std::string &u, const settings &s, boost::system::error_code &ec)
+	BOOST_ASIO_DECL void start(const std::string &u, const settings &s, boost::system::error_code &ec)
 	{
 		// 清空所有连接.
 		{
@@ -206,6 +211,7 @@ public:
 		std::string utf8 = detail::ansi_utf8(u);
 		utf8 = detail::escape_path(utf8);
 		m_final_url = utf8;
+		m_file_name = "";
 
 		// 解析meta文件.
 		if (m_settings.meta_file.empty())
@@ -226,18 +232,19 @@ public:
 		// 创建一个http_stream对象.
 		http_object_ptr obj(new http_stream_object);
 
-		request_opts req_opt;
-		req_opt.insert("Range", "bytes=0-");
-		req_opt.insert("Connection", "keep-alive");
+		request_opts req_opt = m_settings.opts;
+		req_opt.insert(http_options::range, "bytes=0-");
+		req_opt.insert(http_options::connection, "keep-alive");
 
 		// 创建http_stream并同步打开, 检查返回状态码是否为206, 如果非206则表示该http服务器不支持多点下载.
 		obj->stream.reset(new http_stream(m_io_service));
 		http_stream &h = *obj->stream;
+		// 添加代理设置.
+		h.proxy(m_settings.proxy);
+		// 添加请求设置.
 		h.request_options(req_opt);
 		// 如果是ssl连接, 默认为检查证书.
 		h.check_certificate(m_settings.check_certificate);
-		// 添加代理设置.
-		h.proxy(m_settings.proxy);
 		// 打开http_stream.
 		h.open(m_final_url, ec);
 		// 打开失败则退出.
@@ -253,7 +260,7 @@ public:
 
 		// 判断是否支持多点下载.
 		std::string status_code;
-		h.response_options().find("_status_code", status_code);
+		h.response_options().find(http_options::status_code, status_code);
 		if (status_code != "206")
 			m_accept_multi = false;
 		else
@@ -261,10 +268,10 @@ public:
 
 		// 得到文件大小.
 		std::string length;
-		h.response_options().find("Content-Length", length);
+		h.response_options().find(http_options::content_length, length);
 		if (length.empty())
 		{
-			h.response_options().find("Content-Range", length);
+			h.response_options().find(http_options::content_length, length);
 			std::string::size_type f = length.find('/');
 			if (f++ != std::string::npos)
 				length = length.substr(f);
@@ -303,7 +310,7 @@ public:
 		if (m_accept_multi)
 		{
 			std::string keep_alive;
-			h.response_options().find("Connection", keep_alive);
+			h.response_options().find(http_options::connection, keep_alive);
 			boost::to_lower(keep_alive);
 			if (keep_alive == "keep-alive")
 				m_keep_alive = true;
@@ -349,11 +356,11 @@ public:
 		}
 
 		// 根据第1个连接返回的信息, 重新设置请求选项.
-		req_opt.clear();
+		req_opt = m_settings.opts;
 		if (m_keep_alive)
-			req_opt.insert("Connection", "keep-alive");
+			req_opt.insert(http_options::connection, "keep-alive");
 		else
-			req_opt.insert("Connection", "close");
+			req_opt.insert(http_options::connection, "close");
 
 		// 修改终止状态.
 		m_abort = false;
@@ -382,8 +389,8 @@ public:
 				p->request_range = req_range;
 
 				// 设置请求区间到请求选项中.
-				req_opt.remove("Range");
-				req_opt.insert("Range",
+				req_opt.remove(http_options::range);
+				req_opt.insert(http_options::range,
 					boost::str(boost::format("bytes=%lld-%lld") % req_range.left % req_range.right));
 
 				// 设置请求选项.
@@ -409,6 +416,7 @@ public:
 				p->last_request_time = boost::posix_time::microsec_clock::local_time();
 
 				m_number_of_connections++;
+				change_outstranding(true);
 
 				// 开始异步打开, 传入指针http_object_ptr, 以确保多线程安全.
 				p->stream->async_open(m_final_url,
@@ -436,12 +444,9 @@ public:
 				obj->request_range = req_range;
 
 				// 设置请求区间到请求选项中.
-				req_opt.remove("Range");
-				req_opt.insert("Range",
+				req_opt.remove(http_options::range);
+				req_opt.insert(http_options::range,
 					boost::str(boost::format("bytes=%lld-%lld") % req_range.left % req_range.right));
-
-				// 设置请求选项.
-				h.request_options(req_opt);
 			}
 
 			// 保存最后请求时间, 方便检查超时重置.
@@ -449,15 +454,16 @@ public:
 
 			m_number_of_connections++;
 
+			// 添加代理设置.
+			h.proxy(m_settings.proxy);
+			// 设置请求选项.
+			h.request_options(req_opt);
 			// 如果是ssl连接, 默认为检查证书.
 			h.check_certificate(m_settings.check_certificate);
-
 			// 禁用重定向.
 			h.max_redirects(0);
 
-			// 添加代理设置.
-			h.proxy(m_settings.proxy);
-
+			change_outstranding(true);
 			// 开始异步打开.
 			h.async_open(m_final_url,
 				boost::bind(&multi_download::handle_open, this,
@@ -465,6 +471,7 @@ public:
 
 		} while (0);
 
+		change_outstranding(true);
 		// 开启定时器, 执行任务.
 		m_timer.expires_from_now(boost::posix_time::seconds(1));
 		m_timer.async_wait(boost::bind(&multi_download::on_tick, this, boost::asio::placeholders::error));
@@ -543,12 +550,16 @@ public:
 		std::string utf8 = detail::ansi_utf8(u);
 		utf8 = detail::escape_path(utf8);
 		m_final_url = utf8;
+		m_file_name = "";
 		m_settings = s;
 
+		// 设置状态.
+		m_abort = false;
+
 		// 解析meta文件.
-		if (!m_settings.meta_file.empty())
+		if (m_settings.meta_file.empty())
 		{
-			// filename + ".meta".
+			// 修正meta文件名(filename + ".meta").
 			m_settings.meta_file = file_name() + ".meta";
 		}
 
@@ -564,9 +575,9 @@ public:
 		// 创建一个http_stream对象.
 		http_object_ptr obj(new http_stream_object);
 
-		request_opts req_opt;
-		req_opt.insert("Range", "bytes=0-");
-		req_opt.insert("Connection", "keep-alive");
+		request_opts req_opt = m_settings.opts;
+		req_opt.insert(http_options::range, "bytes=0-");
+		req_opt.insert(http_options::connection, "keep-alive");
 
 		// 创建http_stream并同步打开, 检查返回状态码是否为206, 如果非206则表示该http服务器不支持多点下载.
 		obj->stream.reset(new http_stream(m_io_service));
@@ -574,13 +585,12 @@ public:
 
 		// 设置请求选项.
 		h.request_options(req_opt);
-
+		// 添加代理设置.
+		h.proxy(m_settings.proxy);
 		// 如果是ssl连接, 默认为检查证书.
 		h.check_certificate(m_settings.check_certificate);
 
-		// 添加代理设置.
-		h.proxy(m_settings.proxy);
-
+		change_outstranding(true);
 		typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
 		h.async_open(m_final_url, boost::bind(&multi_download::handle_start<HandlerWrapper>, this,
 			HandlerWrapper(handler), obj, boost::asio::placeholders::error));
@@ -589,7 +599,7 @@ public:
 	}
 
 	// stop当前所有连接, 停止工作.
-	void stop()
+	BOOST_ASIO_DECL void stop()
 	{
 		m_abort = true;
 
@@ -607,29 +617,117 @@ public:
 		}
 	}
 
+	///获取指定的数据, 并改变下载点的位置.
+	// @param buffers 指定的数据缓冲. 这个类型必须满足MutableBufferSequence的定义,
+	//          MutableBufferSequence的定义在boost.asio文档中.
+	// @param offset 读取数据的指定偏移位置, 注意: offset影响内部下载位置从offset开始下载.
+	// 返回读取数据的大小.
+	template <typename MutableBufferSequence>
+	std::size_t fetch_data(const MutableBufferSequence &buffers,
+		boost::int64_t offset)
+	{
+		if (!m_storage) // 没有存储设备, 无法获得数据.
+		{
+			return 0;
+		}
+
+		// 更新下载点位置.
+		m_download_point = offset;
+
+		// 得到用户缓冲大小, 以确定最大读取字节数.
+		std::size_t buffer_length = 0;
+		{
+			typename MutableBufferSequence::const_iterator iter = buffers.begin();
+			typename MutableBufferSequence::const_iterator end = buffers.end();
+			// 计算得到用户buffers的总大小.
+			for (; iter != end; ++iter)
+			{
+				boost::asio::mutable_buffer buffer(*iter);
+				buffer_length += boost::asio::buffer_size(buffer);
+			}
+		}
+
+		// 得到offset后面可读取的数据大小, 使用折半法来获得可读空间大小.
+		while (buffer_length != 0)
+		{
+			if (m_downlaoded_field.check_range(offset, buffer_length))
+				break;
+			buffer_length /= 2;
+		}
+
+		// 读取数据.
+		if (buffer_length != 0)
+		{
+			std::size_t available_length = buffer_length;
+			boost::int64_t offset_for_read = offset;
+
+			typename MutableBufferSequence::const_iterator iter = buffers.begin();
+			typename MutableBufferSequence::const_iterator end = buffers.end();
+			// 计算得到用户buffers的总大小.
+			for (; iter != end; ++iter)
+			{
+				boost::asio::mutable_buffer buffer(*iter);
+
+				char* buffer_ptr = boost::asio::buffer_cast<char*>(buffer);
+				std::size_t buffer_size = boost::asio::buffer_size(buffer);
+
+				if ((boost::int64_t)available_length - (boost::int64_t)buffer_size < 0)
+					buffer_size = available_length;
+
+				std::size_t length = m_storage->read(buffer_ptr, offset_for_read, buffer_size);
+				BOOST_ASSERT(length == buffer_size);
+				offset_for_read += length;
+				available_length -= length;
+
+				if (available_length == 0)
+					break;
+			}
+			// 计算实际读取的字节数.
+			buffer_length = offset_for_read - offset;
+		}
+
+		return buffer_length;
+	}
+
 	///返回当前设置信息.
-	const settings& set() const
+	BOOST_ASIO_DECL const settings& set() const
 	{
 		return m_settings;
 	}
 
+	///是否停止下载.
+	BOOST_ASIO_DECL bool stopped() const
+	{
+		if (m_abort)
+		{
+#ifndef AVHTTP_DISABLE_THREAD
+			boost::mutex::scoped_lock lock(m_outstanding_mutex);
+#endif
+			if (m_outstanding == 0)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
 	///设置是否检查证书, 默认检查证书.
 	// @param check指定是否检查ssl证书.
-	void check_certificate(bool check)
+	BOOST_ASIO_DECL void check_certificate(bool check)
 	{
 		m_settings.check_certificate = check;
 	}
 
 	///返回当前下载的文件大小.
 	// @如果服务器不支持多点下载, 则可能文件大小为-1.
-	boost::int64_t file_size() const
+	BOOST_ASIO_DECL boost::int64_t file_size() const
 	{
 		return m_file_size;
 	}
 
 	///得到当前下载的文件名.
 	// @如果请求的url不太规则, 则可能返回错误的文件名.
-	std::string file_name() const
+	BOOST_ASIO_DECL std::string file_name() const
 	{
 		if (m_file_name.empty())
 		{
@@ -656,7 +754,7 @@ public:
 	}
 
 	///当前已经下载的字节总数.
-	boost::int64_t bytes_download() const
+	BOOST_ASIO_DECL boost::int64_t bytes_download() const
 	{
 		if (m_file_size != -1)
 			return m_downlaoded_field.range_size();
@@ -677,19 +775,19 @@ public:
 	}
 
 	///当前下载速率, 单位byte/s.
-	int download_rate() const
+	BOOST_ASIO_DECL int download_rate() const
 	{
 		return m_byte_rate.current_byte_rate;
 	}
 
 	///设置下载速率, -1为无限制, 单位byte/s.
-	void download_rate_limit(int rate)
+	BOOST_ASIO_DECL void download_rate_limit(int rate)
 	{
 		m_settings.download_rate_limit = rate;
 	}
 
 	///返回当前限速.
-	int download_rate_limit() const
+	BOOST_ASIO_DECL int download_rate_limit() const
 	{
 		return m_settings.download_rate_limit;
 	}
@@ -698,9 +796,13 @@ protected:
 	void handle_open(const int index,
 		http_object_ptr object_ptr, const boost::system::error_code &ec)
 	{
+		change_outstranding(false);
 		http_stream_object &object = *object_ptr;
 		if (ec || m_abort)
 		{
+			// 保存最后的错误信息, 避免一些过期无效或没有允可的链接不断的尝试.
+			object.ec = ec;
+
 			// 单连接模式, 表示下载停止, 终止下载.
 			if (!m_accept_multi)
 			{
@@ -743,6 +845,7 @@ protected:
 		// 发起数据读取请求.
 		http_stream_ptr &stream_ptr = object.stream;
 
+		change_outstranding(true);
 		// 传入指针http_object_ptr, 以确保多线程安全.
 		stream_ptr->async_read_some(boost::asio::buffer(object.buffer, available_bytes),
 			boost::bind(&multi_download::handle_read, this,
@@ -754,6 +857,7 @@ protected:
 	void handle_read(const int index,
 		http_object_ptr object_ptr, int bytes_transferred, const boost::system::error_code &ec)
 	{
+		change_outstranding(false);
 		http_stream_object &object = *object_ptr;
 
 		// 保存数据, 当远程服务器断开时, ec为eof, 保证数据全部写入.
@@ -807,11 +911,11 @@ protected:
 			http_stream &stream = *object.stream;
 
 			// 配置请求选项.
-			request_opts req_opt;
+			request_opts req_opt = m_settings.opts;
 
 			// 设置是否为长连接.
 			if (m_keep_alive)
-				req_opt.insert("Connection", "keep-alive");
+				req_opt.insert(http_options::connection, "keep-alive");
 
 			// 如果分配空闲空间失败, 则跳过这个socket, 并立即尝试连接这个socket.
 			if (!allocate_range(object.request_range))
@@ -824,24 +928,23 @@ protected:
 			object.bytes_transferred = 0;
 
 			// 插入新的区间请求.
-			req_opt.insert("Range",
+			req_opt.insert(http_options::range,
 				boost::str(boost::format("bytes=%lld-%lld")
 				% object.request_range.left % object.request_range.right));
 
+			// 添加代理设置.
+			stream.proxy(m_settings.proxy);
 			// 设置到请求选项中.
 			stream.request_options(req_opt);
-
 			// 如果是ssl连接, 默认为检查证书.
 			stream.check_certificate(m_settings.check_certificate);
-
 			// 禁用重定向.
 			stream.max_redirects(0);
 
-			// 添加代理设置.
-			stream.proxy(m_settings.proxy);
-
 			// 保存最后请求时间, 方便检查超时重置.
 			object.last_request_time = boost::posix_time::microsec_clock::local_time();
+
+			change_outstranding(true);
 
 			// 发起异步http数据请求, 传入指针http_object_ptr, 以确保多线程安全.
 			if (!m_keep_alive)
@@ -879,6 +982,7 @@ protected:
 				}
 			}
 
+			change_outstranding(true);
 			// 继续读取数据, 传入指针http_object_ptr, 以确保多线程安全.
 			object.stream->async_read_some(boost::asio::buffer(object.buffer, available_bytes),
 				boost::bind(&multi_download::handle_read, this,
@@ -891,10 +995,14 @@ protected:
 	void handle_request(const int index,
 		http_object_ptr object_ptr, const boost::system::error_code &ec)
 	{
+		change_outstranding(false);
 		http_stream_object &object = *object_ptr;
 		object.request_count++;
 		if (ec || m_abort)
 		{
+			// 保存最后的错误信息, 避免一些过期无效或没有允可的链接不断的尝试.
+			object.ec = ec;
+
 			// 单连接模式, 表示下载停止, 终止下载.
 			if (!m_accept_multi)
 			{
@@ -922,6 +1030,7 @@ protected:
 			}
 		}
 
+		change_outstranding(true);
 		// 发起数据读取请求, 传入指针http_object_ptr, 以确保多线程安全.
 		object_ptr->stream->async_read_some(boost::asio::buffer(object.buffer, available_bytes),
 			boost::bind(&multi_download::handle_read, this,
@@ -933,6 +1042,8 @@ protected:
 	template <typename Handler>
 	void handle_start(Handler handler, http_object_ptr object_ptr, const boost::system::error_code &ec)
 	{
+		change_outstranding(false);
+
 		// 打开失败则退出.
 		if (ec)
 		{
@@ -953,7 +1064,7 @@ protected:
 
 		// 判断是否支持多点下载.
 		std::string status_code;
-		h.response_options().find("_status_code", status_code);
+		h.response_options().find(http_options::status_code, status_code);
 		if (status_code != "206")
 			m_accept_multi = false;
 		else
@@ -961,11 +1072,10 @@ protected:
 
 		// 得到文件大小.
 		std::string length;
-		boost::int64_t file_size = -1;
-		h.response_options().find("Content-Length", length);
+		h.response_options().find(http_options::content_length, length);
 		if (length.empty())
 		{
-			h.response_options().find("Content-Range", length);
+			h.response_options().find(http_options::content_range, length);
 			std::string::size_type f = length.find('/');
 			if (f++ != std::string::npos)
 				length = length.substr(f);
@@ -978,6 +1088,7 @@ protected:
 			}
 		}
 
+		boost::int64_t file_size = -1;
 		if (!length.empty())
 		{
 			try
@@ -992,7 +1103,7 @@ protected:
 		}
 
 		// 按文件大小分配rangefield.
-		if (file_size == -1 && file_size != m_file_size)
+		if (file_size != -1 && file_size != m_file_size)
 		{
 			m_file_size = file_size;
 			m_rangefield.reset(m_file_size);
@@ -1003,7 +1114,7 @@ protected:
 		if (m_accept_multi)
 		{
 			std::string keep_alive;
-			h.response_options().find("Connection", keep_alive);
+			h.response_options().find(http_options::connection, keep_alive);
 			boost::to_lower(keep_alive);
 			if (keep_alive == "keep-alive")
 				m_keep_alive = true;
@@ -1035,11 +1146,6 @@ protected:
 
 		// 关闭stream.
 		h.close(ignore);
-		if (ignore)
-		{
-			handler(ignore);
-			return;
-		}
 
 		{
 #ifndef AVHTTP_DISABLE_THREAD
@@ -1049,11 +1155,11 @@ protected:
 		}
 
 		// 根据第1个连接返回的信息, 设置请求选项.
-		request_opts req_opt;
+		request_opts req_opt = m_settings.opts;
 		if (m_keep_alive)
-			req_opt.insert("Connection", "keep-alive");
+			req_opt.insert(http_options::connection, "keep-alive");
 		else
-			req_opt.insert("Connection", "close");
+			req_opt.insert(http_options::connection, "close");
 
 		// 修改终止状态.
 		m_abort = false;
@@ -1082,21 +1188,18 @@ protected:
 				p->request_range = req_range;
 
 				// 设置请求区间到请求选项中.
-				req_opt.remove("Range");
-				req_opt.insert("Range",
+				req_opt.remove(http_options::range);
+				req_opt.insert(http_options::range,
 					boost::str(boost::format("bytes=%lld-%lld") % req_range.left % req_range.right));
 
 				// 设置请求选项.
 				ptr->request_options(req_opt);
-
-				// 如果是ssl连接, 默认为检查证书.
-				ptr->check_certificate(m_settings.check_certificate);
-
-				// 禁用重定向.
-				ptr->max_redirects(0);
-
 				// 添加代理设置.
 				ptr->proxy(m_settings.proxy);
+				// 如果是ssl连接, 默认为检查证书.
+				ptr->check_certificate(m_settings.check_certificate);
+				// 禁用重定向.
+				ptr->max_redirects(0);
 
 				// 将连接添加到容器中.
 				p->stream = ptr;
@@ -1112,6 +1215,7 @@ protected:
 				p->last_request_time = boost::posix_time::microsec_clock::local_time();
 
 				m_number_of_connections++;
+				change_outstranding(true);
 
 				// 开始异步打开, 传入指针http_object_ptr, 以确保多线程安全.
 				p->stream->async_open(m_final_url,
@@ -1139,12 +1243,9 @@ protected:
 				object.request_range = req_range;
 
 				// 设置请求区间到请求选项中.
-				req_opt.remove("Range");
-				req_opt.insert("Range",
+				req_opt.remove(http_options::range);
+				req_opt.insert(http_options::range,
 					boost::str(boost::format("bytes=%lld-%lld") % req_range.left % req_range.right));
-
-				// 设置请求选项.
-				h.request_options(req_opt);
 			}
 
 			// 保存最后请求时间, 方便检查超时重置.
@@ -1154,12 +1255,14 @@ protected:
 
 			// 添加代理设置.
 			h.proxy(m_settings.proxy);
-
+			// 设置请求选项.
+			h.request_options(req_opt);
 			// 如果是ssl连接, 默认为检查证书.
 			h.check_certificate(m_settings.check_certificate);
-
 			// 禁用重定向.
 			h.max_redirects(0);
+
+			change_outstranding(true);
 
 			// 开始异步打开.
 			h.async_open(m_final_url,
@@ -1167,6 +1270,8 @@ protected:
 				0, object_ptr, boost::asio::placeholders::error));
 
 		} while (0);
+
+		change_outstranding(true);
 
 		// 开启定时器, 执行任务.
 		m_timer.expires_from_now(boost::posix_time::seconds(1));
@@ -1180,6 +1285,7 @@ protected:
 
 	void on_tick(const boost::system::error_code &e)
 	{
+		change_outstranding(false);
 		m_time_total++;
 
 		// 在这里更新位图.
@@ -1191,8 +1297,10 @@ protected:
 		// 每隔1秒进行一次on_tick.
 		if (!m_abort && !e)
 		{
+			change_outstranding(true);
 			m_timer.expires_from_now(boost::posix_time::seconds(1));
-			m_timer.async_wait(boost::bind(&multi_download::on_tick, this, boost::asio::placeholders::error));
+			m_timer.async_wait(boost::bind(&multi_download::on_tick,
+				this, boost::asio::placeholders::error));
 		}
 		else
 		{
@@ -1228,12 +1336,21 @@ protected:
 			boost::posix_time::time_duration duration =
 				boost::posix_time::microsec_clock::local_time() - object_item_ptr->last_request_time;
 
-			if (!object_item_ptr->done &&	(duration > boost::posix_time::seconds(m_settings.time_out)
+			if (!object_item_ptr->done && (duration > boost::posix_time::seconds(m_settings.time_out)
 				|| object_item_ptr->direct_reconnect))
 			{
-				// 超时, 关闭并重新创建连接.
+				// 超时或出错, 关闭并重新创建连接.
 				boost::system::error_code ec;
 				object_item_ptr->stream->close(ec);
+
+				// 出现下列之一的错误, 将不再尝试连接服务器, 因为重试也是没有意义的.
+				if (object_item_ptr->ec == avhttp::errc::forbidden
+					|| object_item_ptr->ec == avhttp::errc::not_found
+					|| object_item_ptr->ec == avhttp::errc::method_not_allowed)
+				{
+					object_item_ptr->done = true;
+					continue;
+				}
 
 				// 单连接模式, 表示下载停止, 终止下载.
 				if (!m_accept_multi)
@@ -1257,11 +1374,11 @@ protected:
 				http_stream &stream = *object.stream;
 
 				// 配置请求选项.
-				request_opts req_opt;
+				request_opts req_opt = m_settings.opts;
 
 				// 设置是否为长连接.
 				if (m_keep_alive)
-					req_opt.insert("Connection", "keep-alive");
+					req_opt.insert(http_options::connection, "keep-alive");
 
 				// 继续从上次未完成的位置开始请求.
 				if (m_accept_multi)
@@ -1284,25 +1401,23 @@ protected:
 						end = object.request_range.right;
 					}
 
-					req_opt.insert("Range",
+					req_opt.insert(http_options::range,
 						boost::str(boost::format("bytes=%lld-%lld") % begin % end));
 				}
 
-				// 设置到请求选项中.
-				stream.request_options(req_opt);
-
-				// 如果是ssl连接, 默认为检查证书.
-				stream.check_certificate(m_settings.check_certificate);
-
-				// 禁用重定向.
-				stream.max_redirects(0);
-
 				// 添加代理设置.
 				stream.proxy(m_settings.proxy);
+				// 设置到请求选项中.
+				stream.request_options(req_opt);
+				// 如果是ssl连接, 默认为检查证书.
+				stream.check_certificate(m_settings.check_certificate);
+				// 禁用重定向.
+				stream.max_redirects(0);
 
 				// 保存最后请求时间, 方便检查超时重置.
 				object.last_request_time = boost::posix_time::microsec_clock::local_time();
 
+				change_outstranding(true);
 				// 重新发起异步请求, 传入object_item_ptr指针, 以确保线程安全.
 				stream.async_open(m_final_url, boost::bind(&multi_download::handle_open, this,
 					i, object_item_ptr, boost::asio::placeholders::error));
@@ -1319,7 +1434,7 @@ protected:
 		}
 
 		// 检查位图是否已经满以及异步操作是否完成.
-		if (done == m_streams.size() && (m_downlaoded_field.is_full() || !m_accept_multi))
+		if (done == m_streams.size())
 		{
 			boost::system::error_code ignore;
 			m_abort = true;
@@ -1330,12 +1445,19 @@ protected:
 
 	bool allocate_range(range &r)
 	{
+#ifndef AVHTTP_DISABLE_THREAD
+		// 在多线程运行io_service时, 必须加锁, 避免重入时多次重复分配相同区域.
+		// 单线程执行io_service(并启用了AVHTTP_DISABLE_THREAD)无需考虑加
+		// 锁, 因为所有操作都是异步串行的动作.
 		boost::mutex::scoped_lock lock(m_rangefield_mutex);
+#endif
+
 		range temp(-1, -1);
+
 		do
 		{
-			// 从文件间区中得到一段空间.
-			if (!m_rangefield.out_space(temp))
+			// 从指定位置m_download_point开始文件间区中得到一段空间.
+			if (!m_rangefield.out_space(m_download_point, temp.left, temp.right))
 				return false;
 
 			// 用于调试.
@@ -1373,6 +1495,7 @@ protected:
 			size = 0;
 
 		// 打开文件.
+		m_file_meta.close();
 		m_file_meta.open(file_path, ec);
 		if (ec)
 			return false;
@@ -1388,7 +1511,8 @@ protected:
 			entry e = bdecode(buffer.begin(), buffer.end());
 
 			// 最终的url.
-			m_final_url = e["final_url"].string();
+			if (m_settings.allow_use_meta_url)
+				m_final_url = e["final_url"].string();
 
 			// 文件大小.
 			m_file_size = e["file_size"].integer();
@@ -1444,6 +1568,19 @@ protected:
 	}
 
 private:
+
+	inline void change_outstranding(bool addref = true)
+	{
+#ifndef AVHTTP_DISABLE_THREAD
+		boost::mutex::scoped_lock lock(m_outstanding_mutex);
+#endif
+		if (addref)
+			m_outstanding++;
+		else
+			m_outstanding--;
+	}
+
+private:
 	// io_service引用.
 	boost::asio::io_service &m_io_service;
 
@@ -1495,6 +1632,9 @@ private:
 	// meta文件, 用于续传.
 	file m_file_meta;
 
+	// 下载点位置.
+	boost::int64_t m_download_point;
+
 	// 文件区间图, 每次请求将由m_rangefield来分配空间区间.
 	rangefield m_rangefield;
 
@@ -1502,10 +1642,19 @@ private:
 	rangefield m_downlaoded_field;
 
 	// 保证分配空闲区间的唯一性.
+#ifndef AVHTTP_DISABLE_THREAD
 	boost::mutex m_rangefield_mutex;
+#endif
 
 	// 用于限速.
 	int m_drop_size;
+
+	// 用于异步工作计数.
+	int m_outstanding;
+
+#ifndef AVHTTP_DISABLE_THREAD
+	mutable boost::mutex m_outstanding_mutex;
+#endif
 
 	// 是否中止工作.
 	bool m_abort;
