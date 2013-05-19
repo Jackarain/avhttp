@@ -1511,7 +1511,8 @@ protected:
 			entry e = bdecode(buffer.begin(), buffer.end());
 
 			// 最终的url.
-			m_final_url = e["final_url"].string();
+			if (m_settings.allow_use_meta_url)
+				m_final_url = e["final_url"].string();
 
 			// 文件大小.
 			m_file_size = e["file_size"].integer();

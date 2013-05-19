@@ -257,6 +257,7 @@ struct settings
 		, time_out(default_time_out)
 		, request_piece_num(default_request_piece_num)
 		, current_downlad_mode(dispersion_mode)
+		, allow_use_meta_url(true)
 		, check_certificate(true)
 		, storage(NULL)
 	{}
@@ -281,6 +282,9 @@ struct settings
 
 	// meta_file路径, 默认为当前路径下同文件名的.meta文件.
 	fs::path meta_file;
+
+	// 允许使用meta中保存的url, 默认为允许. 针对一些变动的url, 我们应该禁用.
+	bool allow_use_meta_url;
 
 	// 下载文件路径, 默认为当前目录.
 	fs::path save_path;
