@@ -1434,7 +1434,7 @@ protected:
 		}
 
 		// 检查位图是否已经满以及异步操作是否完成.
-		if (done == m_streams.size() && (m_downlaoded_field.is_full() || !m_accept_multi))
+		if (done == m_streams.size())
 		{
 			boost::system::error_code ignore;
 			m_abort = true;
