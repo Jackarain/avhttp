@@ -101,4 +101,5 @@ h.open("http://www.boost.org/LICENSE_1_0.txt");
 
 * 如果需要支持https, 它依赖openssl, 请自行编译openssl或到 http://sourceforge.net/projects/avplayer/files/develop/OpenSSL-dev/ 下载已经编译好的ssl开发包, 并在项目中设置, 启用AVHTTP_ENABLE_OPENSSL.
 * 如果需要支持gzip, 它依赖zlib, 需要在项目中启用AVHTTP_ENABLE_ZLIB, 当然您还需要使用avhttp::request_opts指定相应Accept-Encoding.
+* 如果您只有一个线程运行io_service, 那么定义AVHTTP_DISABLE_THREAD可以避免锁来提高工作效率.
 * 如果您还有其它任何问题, 请加QQ群:3597082或IRC #avplayer @ irc.freenode.net, 或直接mailto: jack.wgm@gmail.com.
