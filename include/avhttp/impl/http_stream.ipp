@@ -154,6 +154,7 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 			// 开始解析端口和主机名.
 			tcp::resolver resolver(m_io_service);
 			std::ostringstream port_string;
+			port_string.imbue(std::locale("C"));
 			port_string << m_url.port();
 			tcp::resolver::query query(m_url.host(), port_string.str());
 			tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
@@ -265,6 +266,7 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 				// 开始解析端口和主机名.
 				tcp::resolver resolver(m_io_service);
 				std::ostringstream port_string;
+				port_string.imbue(std::locale("C"));
 				port_string << m_proxy.port;
 				tcp::resolver::query query(m_proxy.hostname, port_string.str());
 				tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
@@ -1661,6 +1663,7 @@ void http_stream::socks_proxy_connect(Stream &sock, boost::system::error_code &e
 	// 开始解析代理的端口和主机名.
 	tcp::resolver resolver(m_io_service);
 	std::ostringstream port_string;
+	port_string.imbue(std::locale("C"));
 	port_string << s.port;
 	tcp::resolver::query query(s.hostname.c_str(), port_string.str());
 	tcp::resolver::iterator endpoint_iterator = resolver.resolve(query, ec);
@@ -1831,6 +1834,7 @@ void http_stream::socks_proxy_handshake(Stream &sock, boost::system::error_code 
 		// socks4协议只接受ip地址, 不支持域名.
 		tcp::resolver resolver(m_io_service);
 		std::ostringstream port_string;
+		port_string.imbue(std::locale("C"));
 		port_string << u.port();
 		tcp::resolver::query query(host.c_str(), port_string.str());
 		// 解析出域名中的ip地址.
@@ -1978,6 +1982,7 @@ void http_stream::async_socks_proxy_connect(Stream &sock, Handler handler)
 {
 	// 构造异步查询proxy主机信息.
 	std::ostringstream port_string;
+	port_string.imbue(std::locale("C"));
 	port_string << m_proxy.port;
 	tcp::resolver::query query(m_proxy.hostname, port_string.str());
 
@@ -2108,6 +2113,7 @@ void http_stream::handle_connect_socks(Stream &sock, Handler handler,
 
 		// 构造异步查询远程主机的HOST.
 		std::ostringstream port_string;
+		port_string.imbue(std::locale("C"));
 		port_string << m_url.port();
 		tcp::resolver::query query(m_url.host(), port_string.str());
 
@@ -2574,6 +2580,7 @@ void http_stream::async_https_proxy_connect(Stream &sock, Handler handler)
 {
 	// 构造异步查询proxy主机信息.
 	std::ostringstream port_string;
+	port_string.imbue(std::locale("C"));
 	port_string << m_proxy.port;
 	tcp::resolver::query query(m_proxy.hostname, port_string.str());
 
@@ -2867,6 +2874,7 @@ void http_stream::https_proxy_connect(Stream &sock, boost::system::error_code &e
 	// 开始解析端口和主机名.
 	tcp::resolver resolver(m_io_service);
 	std::ostringstream port_string;
+	port_string.imbue(std::locale("C"));
 	port_string << m_proxy.port;
 	tcp::resolver::query query(m_proxy.hostname, port_string.str());
 	tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
