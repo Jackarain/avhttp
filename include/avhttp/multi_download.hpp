@@ -390,8 +390,8 @@ public:
 
 				// 设置请求区间到请求选项中.
 				req_opt.remove(http_options::range);
-				req_opt.insert(http_options::range,
-					boost::str(boost::format("bytes=%lld-%lld") % req_range.left % req_range.right));
+				req_opt.insert(http_options::range, boost::str(
+					boost::format("bytes=%lld-%lld", std::locale("C")) % req_range.left % req_range.right));
 
 				// 设置请求选项.
 				ptr->request_options(req_opt);
@@ -445,8 +445,8 @@ public:
 
 				// 设置请求区间到请求选项中.
 				req_opt.remove(http_options::range);
-				req_opt.insert(http_options::range,
-					boost::str(boost::format("bytes=%lld-%lld") % req_range.left % req_range.right));
+				req_opt.insert(http_options::range, boost::str(
+					boost::format("bytes=%lld-%lld", std::locale("C")) % req_range.left % req_range.right));
 			}
 
 			// 保存最后请求时间, 方便检查超时重置.
@@ -929,8 +929,8 @@ protected:
 
 			// 插入新的区间请求.
 			req_opt.insert(http_options::range,
-				boost::str(boost::format("bytes=%lld-%lld")
-				% object.request_range.left % object.request_range.right));
+				boost::str(boost::format("bytes=%lld-%lld", std::locale("C")) %
+				object.request_range.left % object.request_range.right));
 
 			// 添加代理设置.
 			stream.proxy(m_settings.proxy);
@@ -1189,8 +1189,8 @@ protected:
 
 				// 设置请求区间到请求选项中.
 				req_opt.remove(http_options::range);
-				req_opt.insert(http_options::range,
-					boost::str(boost::format("bytes=%lld-%lld") % req_range.left % req_range.right));
+				req_opt.insert(http_options::range, boost::str(
+					boost::format("bytes=%lld-%lld", std::locale("C")) % req_range.left % req_range.right));
 
 				// 设置请求选项.
 				ptr->request_options(req_opt);
@@ -1244,8 +1244,8 @@ protected:
 
 				// 设置请求区间到请求选项中.
 				req_opt.remove(http_options::range);
-				req_opt.insert(http_options::range,
-					boost::str(boost::format("bytes=%lld-%lld") % req_range.left % req_range.right));
+				req_opt.insert(http_options::range, boost::str(
+					boost::format("bytes=%lld-%lld", std::locale("C")) % req_range.left % req_range.right));
 			}
 
 			// 保存最后请求时间, 方便检查超时重置.
@@ -1401,8 +1401,8 @@ protected:
 						end = object.request_range.right;
 					}
 
-					req_opt.insert(http_options::range,
-						boost::str(boost::format("bytes=%lld-%lld") % begin % end));
+					req_opt.insert(http_options::range, boost::str(
+						boost::format("bytes=%lld-%lld", std::locale("C")) % begin % end));
 				}
 
 				// 添加代理设置.
