@@ -17,6 +17,16 @@
 
 #include "avhttp/detail/abi_prefix.hpp"
 
+#include <boost/version.hpp>
+#include <boost/static_assert.hpp>
+
+namespace
+{
+	// 由于avhttp使用了boost.locale, 必须使用boost版本1.48或以上版本!!!
+	// 原因是boost.locale是在boost-1.48加入boost的.
+	BOOST_STATIC_ASSERT_MSG(BOOST_VERSION >= 104800, "You must use boost-1.48 or later!!!");
+}
+
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
 
