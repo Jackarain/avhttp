@@ -76,7 +76,7 @@ avhttp::request_opts 在发起HTTP请求之前的设定HTTP选项, 它可以实�
 -
 
 
-##### 使用avhttp::proxy_settings设置代理
+##### 使用proxy_settings设置代理
 
 ``` c++
 boost::asio::io_service io;
