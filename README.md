@@ -94,7 +94,7 @@ h.open("http://www.boost.org/LICENSE_1_0.txt");
 // ...
 ``` 
 
-想了解更多的关于avhttp的使用(比如异步/断点续传并发下载)或avhttp的实现, 请研读avhttp的example或avhttp的源代码.
+想了解更多的关于avhttp的使用(比如异步/断点续传并发下载), 请参考avhttp的example代码.
 
 -
 
