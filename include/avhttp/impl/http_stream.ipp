@@ -626,7 +626,7 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 					max_length += boost::asio::buffer_size(buffer);
 				}
 				// 得到合适的缓冲大小.
-				max_length = std::min(max_length, m_chunked_size);
+				max_length = (std::min)(max_length, m_chunked_size);
 			}
 
 #ifdef AVHTTP_ENABLE_ZLIB
@@ -642,7 +642,7 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 			{
 				if (m_stream.avail_in == 0)
 				{
-					std::size_t buf_size = std::min(m_chunked_size, std::size_t(1024));
+					std::size_t buf_size = (std::min)(m_chunked_size, std::size_t(1024));
 					bytes_transferred = read_some_impl(boost::asio::buffer(m_zlib_buffer, buf_size), ec);
 					m_chunked_size -= bytes_transferred;
 					m_zlib_buffer_size = bytes_transferred;
@@ -772,7 +772,7 @@ void http_stream::async_read_some(const MutableBufferSequence &buffers, Handler 
 				if (response_size > 0)	// 从m_response缓冲中跳过.
 				{
 					bytes_transferred = m_response.sgetn(
-						crlf.get(), std::min(response_size, 2));
+						crlf.get(), (std::min)(response_size, 2));
 					if (bytes_transferred == 1)
 					{
 						// 继续异步读取下一个LF字节.
@@ -849,7 +849,7 @@ void http_stream::async_read_some(const MutableBufferSequence &buffers, Handler 
 					max_length += boost::asio::buffer_size(buffer);
 				}
 				// 得到合适的缓冲大小.
-				max_length = std::min(max_length, m_chunked_size);
+				max_length = (std::min)(max_length, m_chunked_size);
 			}
 
 			// 读取数据到m_response, 如果有压缩, 需要在handle_async_read中解压.
@@ -1498,7 +1498,7 @@ void http_stream::handle_async_read(const MutableBufferSequence &buffers,
 		{
 			if (m_stream.avail_in == 0)
 			{
-				std::size_t buf_size = std::min(m_chunked_size, std::size_t(1024));
+				std::size_t buf_size = (std::min)(m_chunked_size, std::size_t(1024));
 				bytes_transferred = read_some_impl(boost::asio::buffer(m_zlib_buffer, buf_size), err);
 				m_chunked_size -= bytes_transferred;
 				m_zlib_buffer_size = bytes_transferred;
@@ -1621,7 +1621,7 @@ void http_stream::handle_chunked_size(const MutableBufferSequence &buffers,
 					max_length += boost::asio::buffer_size(buffer);
 				}
 				// 得到合适的缓冲大小.
-				max_length = std::min(max_length, m_chunked_size);
+				max_length = (std::min)(max_length, m_chunked_size);
 			}
 
 			// 读取数据到m_response, 如果有压缩, 需要在handle_async_read中解压.
