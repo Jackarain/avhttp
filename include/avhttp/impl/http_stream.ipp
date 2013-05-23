@@ -2580,6 +2580,9 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 	}
 }
 
+
+#ifdef AVHTTP_ENABLE_OPENSSL
+
 // 实现CONNECT指令, 用于请求目标为https主机时使用.
 template <typename Stream, typename Handler>
 void http_stream::async_https_proxy_connect(Stream &sock, Handler handler)
@@ -3008,6 +3011,8 @@ void http_stream::https_proxy_connect(Stream &sock, boost::system::error_code &e
 
 	return;
 }
+
+#endif
 
 template <typename Stream>
 void http_stream::request_impl(Stream &sock, request_opts &opt, boost::system::error_code &ec)
