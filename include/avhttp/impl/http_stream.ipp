@@ -95,7 +95,7 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 #endif
 	else
 	{
-		LOG_DEBUG("Unsupported scheme \'" << m_protocol << "\'");
+		LOG_ERROR("Unsupported scheme \'" << m_protocol << "\'");
 		ec = boost::asio::error::operation_not_supported;
 		return;
 	}
@@ -117,7 +117,7 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 			ssl_sock->add_verify_path(m_ca_directory, ec);
 			if (ec)
 			{
-				LOG_DEBUG("Add verify path \'" << m_ca_directory <<
+				LOG_ERROR("Add verify path \'" << m_ca_directory <<
 					"\', error message \'" << ec.message() << "\'");
 				return;
 			}
@@ -127,7 +127,7 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 			ssl_sock->load_verify_file(m_ca_cert, ec);
 			if (ec)
 			{
-				LOG_DEBUG("Load verify file \'" << m_ca_cert <<
+				LOG_ERROR("Load verify file \'" << m_ca_cert <<
 					"\', error message \'" << ec.message() << "\'");
 				return;
 			}
@@ -138,7 +138,7 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 				boost::asio::ssl::rfc2818_verification(m_url.host()), ec);
 			if (ec)
 			{
-				LOG_DEBUG("Set verify callback \'" << m_url.host() <<
+				LOG_ERROR("Set verify callback \'" << m_url.host() <<
 					"\', error message \'" << ec.message() << "\'");
 				return;
 			}
@@ -169,7 +169,7 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 			}
 			if (ec)
 			{
-				LOG_DEBUG("Connect to \'" << m_url.host() <<
+				LOG_ERROR("Connect to \'" << m_url.host() <<
 					"\', error message \'" << ec.message() << "\'");
 				return;
 			}
@@ -187,7 +187,7 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 				socks_proxy_connect(m_sock, ec);
 				if (ec)
 				{
-					LOG_DEBUG("Connect to socks proxy \'" << m_proxy.hostname << ":" << m_proxy.port <<
+					LOG_ERROR("Connect to socks proxy \'" << m_proxy.hostname << ":" << m_proxy.port <<
 						"\', error message \'" << ec.message() << "\'");
 					return;
 				}
@@ -202,7 +202,7 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 				socks_proxy_connect(m_nossl_socket, ec);
 				if (ec)
 				{
-					LOG_DEBUG("Connect to socks proxy \'" << m_proxy.hostname << ":" << m_proxy.port <<
+					LOG_ERROR("Connect to socks proxy \'" << m_proxy.hostname << ":" << m_proxy.port <<
 						"\', error message \'" << ec.message() << "\'");
 					return;
 				}
@@ -215,7 +215,7 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 				ssl_sock->handshake(ec);
 				if (ec)
 				{
-					LOG_DEBUG("Handshake to \'" << m_url.host() <<
+					LOG_ERROR("Handshake to \'" << m_url.host() <<
 						"\', error message \'" << ec.message() << "\'");
 					return;
 				}
@@ -237,7 +237,7 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 				https_proxy_connect(m_nossl_socket, ec);
 				if (ec)
 				{
-					LOG_DEBUG("Connect to http proxy \'" << m_proxy.hostname << ":" << m_proxy.port <<
+					LOG_ERROR("Connect to http proxy \'" << m_proxy.hostname << ":" << m_proxy.port <<
 						"\', error message \'" << ec.message() << "\'");
 					return;
 				}
@@ -250,7 +250,7 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 				ssl_sock->handshake(ec);
 				if (ec)
 				{
-					LOG_DEBUG("Handshake to \'" << m_url.host() <<
+					LOG_ERROR("Handshake to \'" << m_url.host() <<
 						"\', error message \'" << ec.message() << "\'");
 					return;
 				}
@@ -281,7 +281,7 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 				}
 				if (ec)
 				{
-					LOG_DEBUG("Connect to http proxy \'" << m_proxy.hostname << ":" << m_proxy.port <<
+					LOG_ERROR("Connect to http proxy \'" << m_proxy.hostname << ":" << m_proxy.port <<
 						"\', error message \'" << ec.message() << "\'");
 					return;
 				}
@@ -293,7 +293,7 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 		}
 		else
 		{
-			LOG_DEBUG("Unsupported proxy \'" << m_proxy.type << "\'");
+			LOG_ERROR("Unsupported proxy \'" << m_proxy.type << "\'");
 			// 不支持的操作功能.
 			ec = boost::asio::error::operation_not_supported;
 			return;
@@ -303,7 +303,7 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 		m_sock.set_option(tcp::no_delay(true), ec);
 		if (ec)
 		{
-			LOG_DEBUG("Set option to nodelay, error message \'" << ec.message() << "\'");
+			LOG_ERROR("Set option to nodelay, error message \'" << ec.message() << "\'");
 			return;
 		}
 	}
@@ -311,7 +311,7 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 	{
 		// socket已经打开.
 		ec = boost::asio::error::already_open;
-		LOG_DEBUG("Open socket, error message\'" << ec.message() << "\'");
+		LOG_ERROR("Open socket, error message\'" << ec.message() << "\'");
 		return;
 	}
 
@@ -378,7 +378,7 @@ void http_stream::async_open(const url &u, Handler handler)
 #endif
 	else
 	{
-		LOG_DEBUG("Unsupported scheme \'" << m_protocol << "\'");
+		LOG_ERROR("Unsupported scheme \'" << m_protocol << "\'");
 		m_io_service.post(boost::asio::detail::bind_handler(
 			handler, boost::asio::error::operation_not_supported));
 		return;
@@ -402,7 +402,7 @@ void http_stream::async_open(const url &u, Handler handler)
 			ssl_sock->add_verify_path(m_ca_directory, ec);
 			if (ec)
 			{
-				LOG_DEBUG("Add verify path \'" << m_ca_directory <<
+				LOG_ERROR("Add verify path \'" << m_ca_directory <<
 					"\', error message \'" << ec.message() << "\'");
 
 				m_io_service.post(boost::asio::detail::bind_handler(
@@ -415,7 +415,7 @@ void http_stream::async_open(const url &u, Handler handler)
 			ssl_sock->load_verify_file(m_ca_cert, ec);
 			if (ec)
 			{
-				LOG_DEBUG("Load verify file \'" << m_ca_cert <<
+				LOG_ERROR("Load verify file \'" << m_ca_cert <<
 					"\', error message \'" << ec.message() << "\'");
 
 				m_io_service.post(boost::asio::detail::bind_handler(
@@ -429,7 +429,7 @@ void http_stream::async_open(const url &u, Handler handler)
 				boost::asio::ssl::rfc2818_verification(m_url.host()), ec);
 			if (ec)
 			{
-				LOG_DEBUG("Set verify callback \'" << m_url.host() <<
+				LOG_ERROR("Set verify callback \'" << m_url.host() <<
 					"\', error message \'" << ec.message() << "\'");
 
 				m_io_service.post(boost::asio::detail::bind_handler(
@@ -443,7 +443,7 @@ void http_stream::async_open(const url &u, Handler handler)
 	// 判断socket是否打开.
 	if (m_sock.instantiated() && m_sock.is_open())
 	{
-		LOG_DEBUG("Open socket, error message\'" <<
+		LOG_ERROR("Open socket, error message\'" <<
 			make_error_code(boost::asio::error::already_open).message() << "\'");
 
 		m_io_service.post(boost::asio::detail::bind_handler(
@@ -952,7 +952,7 @@ void http_stream::async_request(const request_opts &opt, Handler handler)
 	if (!m_sock.is_open())
 	{
 		handler(boost::asio::error::network_reset);
-		LOG_DEBUG("Socket is open, error message\'" << ec.message() << "\'");
+		LOG_ERROR("Socket is open, error message\'" << ec.message() << "\'");
 		return;
 	}
 
@@ -1255,7 +1255,7 @@ void http_stream::handle_resolve(const boost::system::error_code &err,
 	}
 	else
 	{
-		LOG_DEBUG("Resolve DNS error, \'" << m_url.host() <<
+		LOG_ERROR("Resolve DNS error, \'" << m_url.host() <<
 			"\', error message \'" << err.message() << "\'");
 
 		// 出错回调.
@@ -1279,7 +1279,7 @@ void http_stream::handle_connect(Handler handler,
 		// 检查是否已经尝试了endpoint列表中的所有endpoint.
 		if (++endpoint_iterator == tcp::resolver::iterator())
 		{
-			LOG_DEBUG("Connect to \'" << m_url.host() <<
+			LOG_ERROR("Connect to \'" << m_url.host() <<
 				"\', error message \'" << err.message() << "\'");
 
 			handler(err);
@@ -1306,7 +1306,7 @@ void http_stream::handle_request(Handler handler, const boost::system::error_cod
 	// 发生错误.
 	if (err)
 	{
-		LOG_DEBUG("Send request, error message: \'" << err.message() <<"\'");
+		LOG_ERROR("Send request, error message: \'" << err.message() <<"\'");
 
 		handler(err);
 		return;
@@ -1327,7 +1327,7 @@ void http_stream::handle_status(Handler handler, const boost::system::error_code
 	// 发生错误.
 	if (err)
 	{
-		LOG_DEBUG("Read status line, error message: \'" << err.message() <<"\'");
+		LOG_ERROR("Read status line, error message: \'" << err.message() <<"\'");
 
 		handler(err);
 		return;
@@ -1353,7 +1353,7 @@ void http_stream::handle_status(Handler handler, const boost::system::error_code
 		version_major, version_minor, m_status_code))
 	{
 		handler(avhttp::errc::malformed_status_line);
-		LOG_DEBUG("Malformed status line");
+		LOG_ERROR("Malformed status line");
 		return;
 	}
 
@@ -1393,7 +1393,7 @@ void http_stream::handle_header(Handler handler, int bytes_transferred, const bo
 {
 	if (err)
 	{
-		LOG_DEBUG("Header error, error message: \'" << err.message() << "\'");
+		LOG_ERROR("Header error, error message: \'" << err.message() << "\'");
 
 		handler(err);
 		return;
@@ -1411,7 +1411,7 @@ void http_stream::handle_header(Handler handler, int bytes_transferred, const bo
 		m_content_type, m_content_length, m_location, m_response_opts.option_all()))
 	{
 		handler(avhttp::errc::malformed_response_headers);
-		LOG_DEBUG("Parse header error, error message: \'" << err.message() << "\'");
+		LOG_ERROR("Parse header error, error message: \'" << err.message() << "\'");
 		return;
 	}
 	boost::system::error_code ec;
@@ -2034,7 +2034,7 @@ void http_stream::async_socks_proxy_resolve(const boost::system::error_code &err
 {
 	if (err)
 	{
-		LOG_DEBUG("Resolve socks server error, \'" << m_proxy.hostname << ":" << m_proxy.port <<
+		LOG_ERROR("Resolve socks server error, \'" << m_proxy.hostname << ":" << m_proxy.port <<
 			"\', error message \'" << err.message() << "\'");
 
 		handler(err);
@@ -2077,7 +2077,7 @@ void http_stream::handle_connect_socks(Stream &sock, Handler handler,
 		tcp::resolver::iterator end;
 		if (endpoint_iterator == end)
 		{
-			LOG_DEBUG("Connect to socks proxy, \'" << m_proxy.hostname << ":" << m_proxy.port <<
+			LOG_ERROR("Connect to socks proxy, \'" << m_proxy.hostname << ":" << m_proxy.port <<
 				"\', error message \'" << err.message() << "\'");
 
 			handler(err);
@@ -2164,7 +2164,7 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 
 	if (err)
 	{
-		LOG_DEBUG("Socks proxy process error, \'" << m_proxy.hostname << ":" << m_proxy.port <<
+		LOG_ERROR("Socks proxy process error, \'" << m_proxy.hostname << ":" << m_proxy.port <<
 			"\', error message \'" << err.message() << "\'");
 
 		handler(err);
@@ -2360,7 +2360,7 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 				case 93: ec = errc::socks_identd_error; break;
 				}
 
-				LOG_DEBUG("Socks4 proxy process error, \'" << m_proxy.hostname << ":" << m_proxy.port <<
+				LOG_ERROR("Socks4 proxy process error, \'" << m_proxy.hostname << ":" << m_proxy.port <<
 					"\', error message \'" << ec.message() << "\'");
 
 				handler(ec);
@@ -2387,7 +2387,7 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 			if (version != 5)	// 版本不等于5, 不支持socks5.
 			{
 				boost::system::error_code ec = make_error_code(errc::socks_unsupported_version);
-				LOG_DEBUG("Socks5 response version, \'" << m_proxy.hostname << ":" << m_proxy.port <<
+				LOG_ERROR("Socks5 response version, \'" << m_proxy.hostname << ":" << m_proxy.port <<
 					"\', error message \'" << ec.message() << "\'");
 				handler(ec);
 				return;
@@ -2400,7 +2400,7 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 				if (s.username.empty())
 				{
 					boost::system::error_code ec = make_error_code(errc::socks_username_required);
-					LOG_DEBUG("Socks5 response version, \'" << m_proxy.hostname << ":" << m_proxy.port <<
+					LOG_ERROR("Socks5 response version, \'" << m_proxy.hostname << ":" << m_proxy.port <<
 						"\', error message \'" << ec.message() << "\'");
 					handler(ec);
 					return;
@@ -2453,7 +2453,7 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 			if (version != 1)	// 不支持的版本.
 			{
 				boost::system::error_code ec = make_error_code(errc::socks_unsupported_authentication_version);
-				LOG_DEBUG("Socks5 auth status, \'" << m_proxy.hostname << ":" << m_proxy.port <<
+				LOG_ERROR("Socks5 auth status, \'" << m_proxy.hostname << ":" << m_proxy.port <<
 					"\', error message \'" << ec.message() << "\'");
 				handler(ec);
 				return;
@@ -2462,7 +2462,7 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 			if (status != 0)	// 认证错误.
 			{
 				boost::system::error_code ec = make_error_code(errc::socks_authentication_error);
-				LOG_DEBUG("Socks5 auth status, \'" << m_proxy.hostname << ":" << m_proxy.port <<
+				LOG_ERROR("Socks5 auth status, \'" << m_proxy.hostname << ":" << m_proxy.port <<
 					"\', error message \'" << ec.message() << "\'");
 				handler(ec);
 				return;
@@ -2484,7 +2484,7 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 			if (version != 5)
 			{
 				boost::system::error_code ec = make_error_code(errc::socks_general_failure);
-				LOG_DEBUG("Socks5 result, \'" << m_proxy.hostname << ":" << m_proxy.port <<
+				LOG_ERROR("Socks5 result, \'" << m_proxy.hostname << ":" << m_proxy.port <<
 					"\', error message \'" << ec.message() << "\'");
 				handler(ec);
 				return;
@@ -2504,7 +2504,7 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 				case 7: ec = make_error_code(errc::socks_command_not_supported); break;
 				case 8: ec = boost::asio::error::address_family_not_supported; break;
 				}
-				LOG_DEBUG("Socks5 result, \'" << m_proxy.hostname << ":" << m_proxy.port <<
+				LOG_ERROR("Socks5 result, \'" << m_proxy.hostname << ":" << m_proxy.port <<
 					"\', error message \'" << ec.message() << "\'");
 				handler(ec);
 				return;
@@ -2564,7 +2564,7 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 			else
 			{
 				boost::system::error_code ec = boost::asio::error::address_family_not_supported;
-				LOG_DEBUG("Socks5 result, \'" << m_proxy.hostname << ":" << m_proxy.port <<
+				LOG_ERROR("Socks5 result, \'" << m_proxy.hostname << ":" << m_proxy.port <<
 					"\', error message \'" << ec.message() << "\'");
 				handler(ec);
 				return;
@@ -2632,7 +2632,7 @@ void http_stream::async_https_proxy_resolve(const boost::system::error_code &err
 {
 	if (err)
 	{
-		LOG_DEBUG("Connect to http proxy \'" << m_proxy.hostname << ":" << m_proxy.port <<
+		LOG_ERROR("Connect to http proxy \'" << m_proxy.hostname << ":" << m_proxy.port <<
 			"\', error message \'" << err.message() << "\'");
 
 		handler(err);
@@ -2657,7 +2657,7 @@ void http_stream::handle_connect_https_proxy(Stream &sock, Handler handler,
 		tcp::resolver::iterator end;
 		if (endpoint_iterator == end)
 		{
-			LOG_DEBUG("Connect to http proxy \'" << m_proxy.hostname << ":" << m_proxy.port <<
+			LOG_ERROR("Connect to http proxy \'" << m_proxy.hostname << ":" << m_proxy.port <<
 				"\', error message \'" << err.message() << "\'");
 
 			handler(err);
@@ -2738,7 +2738,7 @@ void http_stream::handle_https_proxy_request(Stream &sock, Handler handler,
 	// 发生错误.
 	if (err)
 	{
-		LOG_DEBUG("Connect to http proxy \'" << m_proxy.hostname << ":" << m_proxy.port <<
+		LOG_ERROR("Connect to http proxy \'" << m_proxy.hostname << ":" << m_proxy.port <<
 			"\', error message \'" << err.message() << "\'");
 
 		handler(err);
@@ -2762,7 +2762,7 @@ void http_stream::handle_https_proxy_status(Stream &sock, Handler handler,
 	// 发生错误.
 	if (err)
 	{
-		LOG_DEBUG("Connect to http proxy, \'" << m_proxy.hostname << ":" << m_proxy.port <<
+		LOG_ERROR("Connect to http proxy, \'" << m_proxy.hostname << ":" << m_proxy.port <<
 			"\', error message \'" << err.message() << "\'");
 
 		handler(err);
@@ -2779,7 +2779,7 @@ void http_stream::handle_https_proxy_status(Stream &sock, Handler handler,
 		std::istreambuf_iterator<char>(),
 		version_major, version_minor, m_status_code))
 	{
-		LOG_DEBUG("Connect to http proxy, \'" << m_proxy.hostname << ":" << m_proxy.port <<
+		LOG_ERROR("Connect to http proxy, \'" << m_proxy.hostname << ":" << m_proxy.port <<
 			"\', error message \'" << make_error_code(avhttp::errc::malformed_status_line) << "\'");
 
 		handler(avhttp::errc::malformed_status_line);
@@ -2823,7 +2823,7 @@ void http_stream::handle_https_proxy_header(Stream &sock, Handler handler,
 {
 	if (err)
 	{
-		LOG_DEBUG("Connect to http proxy, \'" << m_proxy.hostname << ":" << m_proxy.port <<
+		LOG_ERROR("Connect to http proxy, \'" << m_proxy.hostname << ":" << m_proxy.port <<
 			"\', error message \'" << err.message() << "\'");
 
 		handler(err);
@@ -2838,7 +2838,7 @@ void http_stream::handle_https_proxy_header(Stream &sock, Handler handler,
 	if (!detail::parse_http_headers(header_string.begin(), header_string.end(),
 		m_content_type, m_content_length, m_location, m_response_opts.option_all()))
 	{
-		LOG_DEBUG("Connect to http proxy, \'" << m_proxy.hostname << ":" << m_proxy.port <<
+		LOG_ERROR("Connect to http proxy, \'" << m_proxy.hostname << ":" << m_proxy.port <<
 			"\', error message \'" << err.message() << "\'");
 
 		handler(avhttp::errc::malformed_response_headers);
@@ -2851,7 +2851,7 @@ void http_stream::handle_https_proxy_header(Stream &sock, Handler handler,
 	{
 		ec = make_error_code(static_cast<avhttp::errc::errc_t>(m_status_code));
 
-		LOG_DEBUG("Connect to http proxy, \'" << m_proxy.hostname << ":" << m_proxy.port <<
+		LOG_ERROR("Connect to http proxy, \'" << m_proxy.hostname << ":" << m_proxy.port <<
 			"\', error message \'" << err.message() << "\'");
 
 		// 回调通知.
@@ -2880,7 +2880,7 @@ void http_stream::handle_https_proxy_handshake(Stream &sock, Handler handler,
 {
 	if (err)
 	{
-		LOG_DEBUG("Handshake to \'" << m_url.host() <<
+		LOG_ERROR("Handshake to \'" << m_url.host() <<
 			"\', error message \'" << err.message() << "\'");
 
 		// 回调通知.
@@ -3042,7 +3042,7 @@ void http_stream::request_impl(Stream &sock, request_opts &opt, boost::system::e
 	if (!sock.is_open())
 	{
 		ec = boost::asio::error::network_reset;
-		LOG_DEBUG("Socket is open, error message\'" << ec.message() << "\'");
+		LOG_ERROR("Socket is open, error message\'" << ec.message() << "\'");
 		return;
 	}
 
@@ -3179,7 +3179,7 @@ void http_stream::request_impl(Stream &sock, request_opts &opt, boost::system::e
 	boost::asio::write(sock, m_request, ec);
 	if (ec)
 	{
-		LOG_DEBUG("Send request, error message: \'" << ec.message() <<"\'");
+		LOG_ERROR("Send request, error message: \'" << ec.message() <<"\'");
 		return;
 	}
 
@@ -3189,7 +3189,7 @@ void http_stream::request_impl(Stream &sock, request_opts &opt, boost::system::e
 		boost::asio::read_until(sock, m_response, "\r\n", ec);
 		if (ec)
 		{
-			LOG_DEBUG("Read status line, error message: \'" << ec.message() <<"\'");
+			LOG_ERROR("Read status line, error message: \'" << ec.message() <<"\'");
 			return;
 		}
 
@@ -3213,7 +3213,7 @@ void http_stream::request_impl(Stream &sock, request_opts &opt, boost::system::e
 			version_major, version_minor, m_status_code))
 		{
 			ec = avhttp::errc::malformed_status_line;
-			LOG_DEBUG("Malformed status line");
+			LOG_ERROR("Malformed status line");
 			return;
 		}
 
@@ -3249,7 +3249,7 @@ void http_stream::request_impl(Stream &sock, request_opts &opt, boost::system::e
 			ec = avhttp::errc::malformed_response_headers;
 		else
 			ec = read_err;
-		LOG_DEBUG("Header error, error message: \'" << ec.message() << "\'");
+		LOG_ERROR("Header error, error message: \'" << ec.message() << "\'");
 		return;
 	}
 
@@ -3265,7 +3265,7 @@ void http_stream::request_impl(Stream &sock, request_opts &opt, boost::system::e
 		m_content_type, m_content_length, m_location, m_response_opts.option_all()))
 	{
 		ec = avhttp::errc::malformed_response_headers;
-		LOG_DEBUG("Parse header error, error message: \'" << ec.message() << "\'");
+		LOG_ERROR("Parse header error, error message: \'" << ec.message() << "\'");
 		return;
 	}
 
