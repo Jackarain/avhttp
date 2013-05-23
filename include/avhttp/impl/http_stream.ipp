@@ -561,7 +561,7 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 				// 在release下, 不确定是不是服务器的回复错误, 暂时假设是服务器的回复错误!!!
 				if(crlf[0] != '\r' || crlf[1] != '\n')
 				{
-					ec = errc::make_error_code(errc::invalid_server_response);
+					ec = errc::make_error_code(errc::invalid_chunked_encoding);
 					return bytes_transferred;
 				}
 			}
@@ -812,7 +812,7 @@ void http_stream::async_read_some(const MutableBufferSequence &buffers, Handler 
 						// 在release下, 不确定是不是服务器的回复错误, 假设是服务器的回复错误!!!
 						if(crlf.get()[0] != '\r' || crlf.get()[1] != '\n')
 						{
-							ec = errc::make_error_code(errc::invalid_server_response);
+							ec = errc::make_error_code(errc::invalid_chunked_encoding);
 							m_io_service.post(
 								boost::asio::detail::bind_handler(handler, ec, 0));
 							return;
@@ -1477,7 +1477,7 @@ void http_stream::handle_skip_crlf(const MutableBufferSequence &buffers,
 		// 在release下, 不确定是不是服务器的回复错误, 暂时假设是服务器的回复错误!!!
 		if(crlf.get()[0] != '\r' || crlf.get()[1] != '\n')
 		{
-			boost::system::error_code err = errc::make_error_code(errc::invalid_server_response);
+			boost::system::error_code err = errc::make_error_code(errc::invalid_chunked_encoding);
 			handler(err, bytes_transferred);
 			return;
 		}
