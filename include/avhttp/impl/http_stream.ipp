@@ -799,7 +799,13 @@ void http_stream::async_read_some(const MutableBufferSequence &buffers, Handler 
 						}
 						// 读取到CRLF, so, 这里只能是2!!! 然后开始处理chunked size.
 						BOOST_ASSERT(bytes_transferred == 2);
-						BOOST_ASSERT(crlf.get()[0] == '\r' && crlf.get()[1] == '\n');
+						// 如果不是换行,  一定是服务器有问题, 向用户报告服务器返回的数据是错误的.
+						if(crlf.get()[0] != '\r' || crlf.get()[1] != '\n'){
+							ec = errc::make_error_code(errc::invalid_server_response);
+							m_io_service.post(
+								boost::asio::detail::bind_handler(handler, ec, 0));
+							return;
+						}
 					}
 				}
 				else

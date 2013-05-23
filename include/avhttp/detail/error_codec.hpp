@@ -62,6 +62,9 @@ enum errc_t
 	/// The entry type error.
 	invalid_entry_type = 10,
 
+	/// invalid server response
+	invalid_server_response = 11,
+
 	// Server-generated status codes.
 
 	/// The server-generated status code "100 Continue".
