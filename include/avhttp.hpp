@@ -41,6 +41,7 @@ namespace
 # define AVHTTP_DECL inline
 #endif
 
+#include "avhttp/version.hpp"
 #include "avhttp/logging.hpp"
 #include "avhttp/detail/error_codec.hpp"
 #include "avhttp/entry.hpp"
