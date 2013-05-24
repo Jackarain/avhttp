@@ -16,7 +16,7 @@
 // M = Major version, m = minor version, t = tiny version
 #define AVHTTP_VERSION_NUM ((AVHTTP_VERSION_MAJOR * 10000) + (AVHTTP_VERSION_MINOR * 100) + AVHTTP_VERSION_TINY)
 #define AVHTTP_VERSION "2.8.0"
-#define AVHTTP_VERSION_MIME "avhttp/"##AVHTTP_VERSION
+#define AVHTTP_VERSION_MIME "avhttp/"AVHTTP_VERSION
 // #define AVHTTP_REVISION "$Git-Rev$"
 
 
