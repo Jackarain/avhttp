@@ -1000,7 +1000,7 @@ void http_stream::async_request(const request_opts &opt, Handler handler)
 	m_request_opts.insert(http_options::accept, accept);
 
 	// 添加user_agent.
-	std::string user_agent = "avhttp/2.6";
+	std::string user_agent = AVHTTP_VERSION_MIME;
 	if (opts.find(http_options::user_agent, user_agent))
 		opts.remove(http_options::user_agent);	// 删除处理过的选项.
 	m_request_opts.insert(http_options::user_agent, user_agent);
@@ -2686,7 +2686,7 @@ void http_stream::handle_connect_https_proxy(Stream &sock, Handler handler,
 	std::string http_version = "HTTP/1.1";
 
 	// 添加user_agent.
-	std::string user_agent = "avhttp/2.6";
+	std::string user_agent = AVHTTP_VERSION_MIME;
 	if (opts.find(http_options::user_agent, user_agent))
 		opts.remove(http_options::user_agent);	// 删除处理过的选项.
 
@@ -2932,7 +2932,7 @@ void http_stream::https_proxy_connect(Stream &sock, boost::system::error_code &e
 	std::string http_version = "HTTP/1.1";
 
 	// 添加user_agent.
-	std::string user_agent = "avhttp/2.6";
+	std::string user_agent = AVHTTP_VERSION_MIME;
 	if (opts.find(http_options::user_agent, user_agent))
 		opts.remove(http_options::user_agent);	// 删除处理过的选项.
 
@@ -3090,7 +3090,7 @@ void http_stream::request_impl(Stream &sock, request_opts &opt, boost::system::e
 	m_request_opts.insert(http_options::accept, accept);
 
 	// 添加user_agent.
-	std::string user_agent = "avhttp/2.6";
+	std::string user_agent = AVHTTP_VERSION_MIME;
 	if (opts.find(http_options::user_agent, user_agent))
 		opts.remove(http_options::user_agent);	// 删除处理过的选项.
 	m_request_opts.insert(http_options::user_agent, user_agent);
