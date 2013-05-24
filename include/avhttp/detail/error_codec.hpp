@@ -62,6 +62,9 @@ enum errc_t
 	/// The entry type error.
 	invalid_entry_type = 10,
 
+	/// Invalid chunked encoding.
+	invalid_chunked_encoding = 11,
+
 	// Server-generated status codes.
 
 	/// The server-generated status code "100 Continue".
@@ -257,6 +260,8 @@ class error_category_impl
 			return "Malformed response headers";
 		case errc::invalid_entry_type:
 			return "invalid type requested from entry";
+		case errc::invalid_chunked_encoding:
+			return "Invalid chunked encoding";
 		case errc::continue_request:
 			return "Continue";
 		case errc::switching_protocols:

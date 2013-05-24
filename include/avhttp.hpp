@@ -35,6 +35,13 @@ namespace
 #include <boost/function.hpp>
 #include <boost/noncopyable.hpp>
 
+// 仅限于header only, 如果avhttp支持单独编译时或编译成动态库, AVHTTP_DECL应该
+// 相应支持其它定义.
+#ifndef AVHTTP_DECL
+# define AVHTTP_DECL inline
+#endif
+
+#include "avhttp/version.hpp"
 #include "avhttp/logging.hpp"
 #include "avhttp/detail/error_codec.hpp"
 #include "avhttp/entry.hpp"

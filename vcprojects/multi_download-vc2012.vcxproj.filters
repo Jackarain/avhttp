@@ -19,6 +19,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
     </Filter>
+    <Filter Include="头文件\avhttp\impl">
+      <UniqueIdentifier>{47f1d63e-e248-44ee-96ed-8cc26b97292b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\example\multi_download.cpp">
@@ -83,5 +86,10 @@
     <ClInclude Include="..\include\avhttp\detail\ssl_stream.hpp">
       <Filter>头文件\avhttp\detail</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\include\avhttp\impl\http_stream.ipp">
+      <Filter>头文件\avhttp\impl</Filter>
+    </None>
   </ItemGroup>
 </Project>

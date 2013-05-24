@@ -112,6 +112,9 @@
     <ClInclude Include="..\include\avhttp\detail\socket_type.hpp" />
     <ClInclude Include="..\include\avhttp\detail\ssl_stream.hpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\include\avhttp\impl\http_stream.ipp" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

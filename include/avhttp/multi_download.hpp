@@ -36,15 +36,6 @@
 #include "avhttp/entry.hpp"
 #include "avhttp/settings.hpp"
 
-#if defined(_MSC_VER)
-#ifdef min
-#undef min
-#endif
-
-#ifdef max
-#undef max
-#endif
-#endif
 
 namespace avhttp
 {
@@ -833,7 +824,7 @@ protected:
 		int available_bytes = default_buffer_size;
 		if (m_drop_size != -1)
 		{
-			available_bytes = std::min(m_drop_size, default_buffer_size);
+			available_bytes = (std::min)(m_drop_size, default_buffer_size);
 			m_drop_size -= available_bytes;
 			if (available_bytes == 0)
 			{
@@ -973,7 +964,7 @@ protected:
 			int available_bytes = default_buffer_size;
 			if (m_drop_size != -1)
 			{
-				available_bytes = std::min(m_drop_size, default_buffer_size);
+				available_bytes = (std::min)(m_drop_size, default_buffer_size);
 				m_drop_size -= available_bytes;
 				if (available_bytes == 0)
 				{
@@ -1021,7 +1012,7 @@ protected:
 		int available_bytes = default_buffer_size;
 		if (m_drop_size != -1)
 		{
-			available_bytes = std::min(m_drop_size, default_buffer_size);
+			available_bytes = (std::min)(m_drop_size, default_buffer_size);
 			m_drop_size -= available_bytes;
 			if (available_bytes == 0)
 			{

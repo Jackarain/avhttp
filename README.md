@@ -76,7 +76,7 @@ avhttp::request_opts 在发起HTTP请求之前的设定HTTP选项, 它可以实�
 -
 
 
-##### 使用avhttp::proxy_settings设置代理
+##### 使用proxy_settings设置代理
 
 ``` c++
 boost::asio::io_service io;
@@ -93,6 +93,8 @@ h.proxy(p); // 设置代理.
 h.open("http://www.boost.org/LICENSE_1_0.txt");
 // ...
 ``` 
+
+想了解更多的关于avhttp的使用(比如异步/断点续传并发下载), 请参考avhttp的example代码.
 
 -
 
