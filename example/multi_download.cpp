@@ -67,6 +67,7 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 
+	std::locale::global(std::locale(""));
 	INIT_LOGGER(".", "multi_download.log");
 
 	try {
@@ -90,7 +91,7 @@ int main(int argc, char* argv[])
 			printf("\n");
 			int percent = 0;
 			boost::int64_t bytes_download = 0;
-			while (percent != 100)
+			while (percent != 100 && !d.stopped())
 			{
 				boost::int64_t file_size = d.file_size();
 				bytes_download = d.bytes_download();

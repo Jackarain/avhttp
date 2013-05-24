@@ -25,15 +25,7 @@
 
 #include "avhttp/bitfield.hpp"
 
-#if defined(_MSC_VER)
-#ifdef min
-#undef min
-#endif
 
-#ifdef max
-#undef max
-#endif
-#endif
 
 namespace avhttp {
 
@@ -403,7 +395,7 @@ public:
 			if (left_record && !(*i))
 			{
 				// 得到区间.
-				right = std::min(right, m_size);
+				right = (std::min)(right, m_size);
 				m_ranges[left] = right;
 				left_record = false;
 			}
@@ -411,7 +403,7 @@ public:
 
 		if (left_record)
 		{
-			right = std::min(right, m_size);
+			right = (std::min)(right, m_size);
 			m_ranges[left] = right;
 			left_record = false;
 		}

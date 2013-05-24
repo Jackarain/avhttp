@@ -197,19 +197,19 @@ Logger_ptr& logger_single(std::string path = ".",
 
 #define LOG_INFO(message) do { \
 	_LOCKS_(); \
-	_LOGS_ << time_now_string() << "[INFO]: " << message << "\n"; \
+	_LOGS_ << avhttp::time_now_string() << "[INFO]: " << message << "\n"; \
 	_DBG_VIEW_(); \
 } while (0)
 
 #define LOG_WARNING(message) do { \
 	_LOCKS_(); \
-	_LOGS_ << time_now_string() << "[WARNING]: " << message << "\n"; \
+	_LOGS_ << avhttp::time_now_string() << "[WARNING]: " << message << "\n"; \
 	_DBG_VIEW_(); \
 } while (0)
 
 #define LOG_ERROR(message) do { \
 	_LOCKS_(); \
-	_LOGS_ << time_now_string() << "[ERROR]: " << message << "\n"; \
+	_LOGS_ << avhttp::time_now_string() << "[ERROR]: " << message << "\n"; \
 	_DBG_VIEW_(); \
 } while (0)
 
