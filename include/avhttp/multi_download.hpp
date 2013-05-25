@@ -206,22 +206,6 @@ public:
 		m_final_url = utf8;
 		m_file_name = "";
 
-		// 解析meta文件.
-		if (m_settings.meta_file.empty())
-		{
-			// 没有指定meta文件名, 自动修正meta文件名.
-			m_settings.meta_file = meta_name(utf8);
-		}
-
-		// 打开meta文件, 如果打开成功, 则表示解析出相应的位图了.
-		if (!open_meta(m_settings.meta_file))
-		{
-			// 位图打开失败, 无所谓, 下载过程中会创建新的位图, 删除meta文件.
-			m_file_meta.close();
-			boost::system::error_code ignore;
-			fs::remove(m_settings.meta_file, ignore);
-		}
-
 		// 创建一个http_stream对象.
 		http_object_ptr obj(new http_stream_object);
 
@@ -309,14 +293,22 @@ public:
 				m_keep_alive = true;
 			else
 				m_keep_alive = false;
-		}
-		else
-		{
-			// 不支持多点下载, 关闭meta, 并删除meta文件.
-			m_file_meta.close();
-			boost::system::error_code ignore;
-			fs::remove(m_settings.meta_file, ignore);
-			m_settings.meta_file = "";
+
+			// 如果未指定meta文件名, 则使用最终url生成meta文件名.
+			if (m_settings.meta_file.empty())
+			{
+				// 没有指定meta文件名, 自动修正meta文件名.
+				m_settings.meta_file = meta_name(m_final_url.to_string());
+			}
+
+			// 打开meta文件, 如果打开成功, 则表示解析出相应的位图了.
+			if (!open_meta(m_settings.meta_file))
+			{
+				// 位图打开失败, 无所谓, 下载过程中会创建新的位图, 删除meta文件.
+				m_file_meta.close();
+				boost::system::error_code ignore;
+				fs::remove(m_settings.meta_file, ignore);
+			}
 		}
 
 		// 创建存储对象.
@@ -556,22 +548,6 @@ public:
 
 		// 设置状态.
 		m_abort = false;
-
-		// 解析meta文件.
-		if (m_settings.meta_file.empty())
-		{
-			// 没有指定meta文件名, 自动修正meta文件名.
-			m_settings.meta_file = meta_name(utf8);
-		}
-
-		// 打开meta文件, 如果打开成功, 则表示解析出相应的位图了.
-		if (!open_meta(m_settings.meta_file))
-		{
-			// 位图打开失败, 无所谓, 下载过程中会创建新的位图, 删除meta文件.
-			m_file_meta.close();
-			boost::system::error_code ignore;
-			fs::remove(m_settings.meta_file, ignore);
-		}
 
 		// 创建一个http_stream对象.
 		http_object_ptr obj(new http_stream_object);
@@ -1135,14 +1111,22 @@ protected:
 				m_keep_alive = true;
 			else
 				m_keep_alive = false;
-		}
-		else
-		{
-			// 不支持多点下载, 关闭meta, 并删除meta文件.
-			m_file_meta.close();
-			boost::system::error_code ignore;
-			fs::remove(m_settings.meta_file, ignore);
-			m_settings.meta_file = "";
+
+			// 如果未指定meta文件名, 则使用最终url生成meta文件名.
+			if (m_settings.meta_file.empty())
+			{
+				// 没有指定meta文件名, 自动修正meta文件名.
+				m_settings.meta_file = meta_name(m_final_url.to_string());
+			}
+
+			// 打开meta文件, 如果打开成功, 则表示解析出相应的位图了.
+			if (!open_meta(m_settings.meta_file))
+			{
+				// 位图打开失败, 无所谓, 下载过程中会创建新的位图, 删除meta文件.
+				m_file_meta.close();
+				boost::system::error_code ignore;
+				fs::remove(m_settings.meta_file, ignore);
+			}
 		}
 
 		// 创建存储对象.
