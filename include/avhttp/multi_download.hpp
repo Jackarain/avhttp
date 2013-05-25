@@ -29,6 +29,8 @@
 #include <boost/date_time.hpp>
 #include <boost/format.hpp>
 #include <boost/filesystem/fstream.hpp>
+#include <boost/crc.hpp>  // for boost::crc_32_type
+
 
 #include "avhttp/file.hpp"
 #include "avhttp/http_stream.hpp"
@@ -207,8 +209,8 @@ public:
 		// 解析meta文件.
 		if (m_settings.meta_file.empty())
 		{
-			// 修正文件路径.
-			m_settings.meta_file = file_name() + ".meta";
+			// 没有指定meta文件名, 自动修正meta文件名.
+			m_settings.meta_file = meta_name(utf8);
 		}
 
 		// 打开meta文件, 如果打开成功, 则表示解析出相应的位图了.
@@ -307,6 +309,14 @@ public:
 				m_keep_alive = true;
 			else
 				m_keep_alive = false;
+		}
+		else
+		{
+			// 不支持多点下载, 关闭meta, 并删除meta文件.
+			m_file_meta.close();
+			boost::system::error_code ignore;
+			fs::remove(m_settings.meta_file, ignore);
+			m_settings.meta_file = "";
 		}
 
 		// 创建存储对象.
@@ -550,8 +560,8 @@ public:
 		// 解析meta文件.
 		if (m_settings.meta_file.empty())
 		{
-			// 修正meta文件名(filename + ".meta").
-			m_settings.meta_file = file_name() + ".meta";
+			// 没有指定meta文件名, 自动修正meta文件名.
+			m_settings.meta_file = meta_name(utf8);
 		}
 
 		// 打开meta文件, 如果打开成功, 则表示解析出相应的位图了.
@@ -714,6 +724,20 @@ public:
 	AVHTTP_DECL boost::int64_t file_size() const
 	{
 		return m_file_size;
+	}
+
+	///根据url计算出对应的meta文件名.
+	// @param url是指定的url地址.
+	// @返回一串由crc32编码url后的16进制字符串meta文件名.
+	AVHTTP_DECL std::string meta_name(const std::string &url) const
+	{
+		// 使用url的crc作为文件名, 这样只要url是确定的, 那么就不会找错meta文件.
+		boost::crc_32_type result;
+		result.process_bytes(url.c_str(), url.size());
+		std::stringstream ss;
+		ss.imbue(std::locale("C"));
+		ss << std::hex << result.checksum() << ".meta";
+		return ss.str();
 	}
 
 	///得到当前下载的文件名.
@@ -1111,6 +1135,14 @@ protected:
 				m_keep_alive = true;
 			else
 				m_keep_alive = false;
+		}
+		else
+		{
+			// 不支持多点下载, 关闭meta, 并删除meta文件.
+			m_file_meta.close();
+			boost::system::error_code ignore;
+			fs::remove(m_settings.meta_file, ignore);
+			m_settings.meta_file = "";
 		}
 
 		// 创建存储对象.
