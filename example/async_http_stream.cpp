@@ -88,6 +88,7 @@ int main(int argc, char* argv[])
 	if (argc != 2)
 	{
 		std::cerr << "usage: " << argv[0] << " <url>\n";
+		std::cerr << "usage: " << argv[0] << " <url_list.txt>\n";
 		return -1;
 	}
 
@@ -97,6 +98,10 @@ int main(int argc, char* argv[])
 	bool urllist = false;
 
 	// 如果是存在的文件, 则查看是否是txt文件, 允许.txt文件中多个url.
+	// 在一个txt文件中可以保存多行url, 比如文件urls.txt中可以是:
+	// http://www.boost.org/LICENSE_1_0.txt
+	// http://www.microsoft.com/en-us/default.aspx
+	// 本程序将同时下载这两个链接, 并且是单线程的哦!!!
 	if (boost::filesystem::exists(filename))
 	{
 		if (boost::filesystem::extension(filename) == ".txt")
