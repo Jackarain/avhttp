@@ -46,10 +46,7 @@ inline bool is_tspecial(int c)
 {
 	switch (c)
 	{
-	case '(': case ')': case '<': case '>': case '@':
-	case ',': case ';': case ':': case '\\': case '"':
-	case '/': case '[': case ']': case '?': case '=':
-	case '{': case '}': case ' ': case '\t':
+	case ' ': case '`': case '{': case '}': case '^': case '|':
 		return true;
 	default:
 		return false;
@@ -95,7 +92,7 @@ inline std::string escape_path(const std::string &s)
 	for (std::string::const_iterator i = s.begin(); i != s.end(); i++)
 	{
 		h = *i;
-		if (!is_char(*i) || *i == ' ')
+		if (!is_char(*i) || is_tspecial(*i))
 			h = "%" + to_hex(h);
 		ret += h;
 	}
