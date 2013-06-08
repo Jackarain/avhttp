@@ -95,7 +95,7 @@ inline std::string escape_path(const std::string &s)
 	for (std::string::const_iterator i = s.begin(); i != s.end(); i++)
 	{
 		h = *i;
-		if (!is_char(*i))
+		if (!is_char(*i) || *i == ' ')
 			h = "%" + to_hex(h);
 		ret += h;
 	}
