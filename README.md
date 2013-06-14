@@ -47,8 +47,109 @@ int main()
 }
 ``` 
 
+OK, 上面已经展示了一个简单却功能完善的示例用于同步方式HTTP下载, 下面我来介绍异步并发下载多个URL的示范.
 
-OK, 上面已经展示了一个简单却功能完善的示例用于HTTP下载, 但事实上有时您需要定制自己的HTTP请求, 请继续往下看, 下面介绍HTTP参数相关的设置.
+``` c++
+#include <iostream>
+
+#include <boost/array.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/enable_shared_from_this.hpp>
+#include "avhttp.hpp"
+
+class downloader : public boost::enable_shared_from_this<downloader>
+{
+public:
+	downloader(boost::asio::io_service &io)
+		: m_io_service(io)
+		, m_stream(io)
+	{}
+	~downloader()
+	{}
+
+public:
+	void start(const std::string &url)
+	{
+		// 异步打开链接, 完成操作时将调用handle_open.
+		m_stream.async_open(url,
+			boost::bind(&downloader::handle_open, shared_from_this(), boost::asio::placeholders::error));
+	}
+
+	void handle_open(const boost::system::error_code &ec)
+	{
+		if (!ec)
+		{
+			// 异步发起从http读取数据操作.
+			m_stream.async_read_some(boost::asio::buffer(m_buffer, 1024),
+				boost::bind(&downloader::handle_read, shared_from_this(),
+					boost::asio::placeholders::bytes_transferred,
+					boost::asio::placeholders::error
+				)
+			);
+		}
+	}
+
+	void handle_read(int bytes_transferred, const boost::system::error_code &ec)
+	{
+		if (!ec)
+		{
+			// 输出到屏幕.
+			std::cout.write(m_buffer.data(), bytes_transferred);
+			// 继续读取http数据.
+			m_stream.async_read_some(boost::asio::buffer(m_buffer),
+				boost::bind(&downloader::handle_read, shared_from_this(),
+					boost::asio::placeholders::bytes_transferred,
+					boost::asio::placeholders::error
+				)
+			);
+		}
+		else if (ec == boost::asio::error::eof)
+		{
+			std::cout.write(m_buffer.data(), bytes_transferred);
+		}
+		std::cout.flush();
+	}
+
+private:
+	boost::asio::io_service &m_io_service;
+	avhttp::http_stream m_stream;
+	boost::array<char, 1024> m_buffer;
+};
+
+int main(int argc, char* argv[])
+{
+	if (argc < 2)
+	{
+		std::cerr << "usage: " << argv[0] << " <url1> [url2] ...\n";
+		return -1;
+	}
+
+	try
+	{
+		boost::asio::io_service io;
+		// 循环遍历url, 并创建下载.
+		for (int i = 1; i < argc; i++)
+		{
+			std::string url = argv[i];
+			if (url.empty())
+				break;
+			boost::shared_ptr<downloader> d(new downloader(io));
+			d->start(url);
+		}
+
+		io.run();
+	}
+	catch (std::exception &e)
+	{
+		std::cerr << "Exception: " << e.what() << std::endl;
+		return -1;
+	}
+
+	return 0;
+}
+``` 
+
+到现在为止, 您已经了解了AVHTTP的同步和异步的基本用法, 但事实上有时您还需要定制自己的HTTP请求, 请继续往下看, 下面介绍HTTP参数相关的设置.
 
 
 -
@@ -94,7 +195,7 @@ h.open("http://www.boost.org/LICENSE_1_0.txt");
 // ...
 ``` 
 
-想了解更多的关于avhttp的使用(比如异步/断点续传并发下载), 请参考avhttp的example代码.
+想了解更多的关于avhttp的使用(断点续传并发下载等), 请参考avhttp的example代码.
 
 -
 

@@ -39,6 +39,7 @@ public:
 	// @param ec在出错时保存了详细的错误信息.
 	virtual void open(const fs::path &file_path, boost::system::error_code &ec)
 	{
+		ec = boost::system::error_code();
 		m_fstream.open(file_path, ios::binary|ios::in|ios::out);
 		if (!m_fstream.is_open())
 		{
