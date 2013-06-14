@@ -64,7 +64,7 @@ struct range
 	boost::int64_t right;
 };
 
-// 一个按区域来划分的位图实现, 该类对象线程访问安全.
+// 一个按区域来划分的位图实现(类似Range tree).
 class rangefield
 {
 	typedef std::map<boost::int64_t, boost::int64_t> range_map;
@@ -72,7 +72,7 @@ class rangefield
 public:
 	// @param size表示区间的总大小.
 	inline rangefield(boost::int64_t size = 0)
-		: m_need_clean(false)
+		: m_need_merge(false)
 		, m_size(size)
 #ifndef AVHTTP_DISABLE_THREAD
 		, m_mutex(new boost::mutex())
@@ -84,7 +84,7 @@ public:
 
 	rangefield(const rangefield& rhs)
 	{
-		m_need_clean = rhs.m_need_clean;
+		m_need_merge = rhs.m_need_merge;
 		m_ranges = rhs.m_ranges;
 		m_size = rhs.m_size;
 #ifndef AVHTTP_DISABLE_THREAD
@@ -94,7 +94,7 @@ public:
 
 	const rangefield& operator=(const rangefield& rhs)
 	{
-		m_need_clean = rhs.m_need_clean;
+		m_need_merge = rhs.m_need_merge;
 		m_ranges = rhs.m_ranges;
 		m_size = rhs.m_size;
 #ifndef AVHTTP_DISABLE_THREAD
@@ -113,7 +113,7 @@ public:
 		boost::mutex::scoped_lock lock(*m_mutex);
 #endif
 		m_size = size;
-		m_need_clean = false;
+		m_need_merge = false;
 		m_ranges.clear();
 	}
 
@@ -147,7 +147,7 @@ public:
 		if ((left < 0 || right > m_size) || (right <= left))
 			return false;
 		m_ranges[left] = right;
-		m_need_clean = true;
+		m_need_merge = true;
 		return true;
 	}
 
@@ -170,8 +170,8 @@ public:
 		BOOST_ASSERT((left >= 0 && left < right) && right <= m_size);
 
 		// 先整理.
-		if (m_need_clean)
-			clean();
+		if (m_need_merge)
+			merge();
 
 #ifndef AVHTTP_DISABLE_THREAD
 		boost::mutex::scoped_lock lock(*m_mutex);
@@ -197,8 +197,8 @@ public:
 		BOOST_ASSERT((left >= 0 && left < right) && right <= m_size);
 
 		// 先整理.
-		if (m_need_clean)
-			clean();
+		if (m_need_merge)
+			merge();
 
 #ifndef AVHTTP_DISABLE_THREAD
 		boost::mutex::scoped_lock lock(*m_mutex);
@@ -239,8 +239,8 @@ public:
 	inline bool out_space(boost::int64_t &left, boost::int64_t &right)
 	{
 		// 先整理.
-		if (m_need_clean)
-			clean();
+		if (m_need_merge)
+			merge();
 		return out_space(0, left, right);
 	}
 
@@ -253,8 +253,8 @@ public:
 	inline bool out_space(boost::int64_t offset, boost::int64_t &left, boost::int64_t &right)
 	{
 		// 先整理.
-		if (m_need_clean)
-			clean();
+		if (m_need_merge)
+			merge();
 
 #ifndef AVHTTP_DISABLE_THREAD
 		boost::mutex::scoped_lock lock(*m_mutex);
@@ -299,8 +299,8 @@ public:
 	inline bool is_full()
 	{
 		// 先整理.
-		if (m_need_clean)
-			clean();
+		if (m_need_merge)
+			merge();
 
 #ifndef AVHTTP_DISABLE_THREAD
 		boost::mutex::scoped_lock lock(*m_mutex);
@@ -338,8 +338,8 @@ public:
 	inline void range_to_bitfield(bitfield &bf, int piece_size)
 	{
 		// 先整理.
-		if (m_need_clean)
-			clean();
+		if (m_need_merge)
+			merge();
 
 		int piece_num = (m_size / piece_size) + (m_size % piece_size == 0 ? 0 : 1);
 
@@ -408,7 +408,7 @@ public:
 			left_record = false;
 		}
 
-		m_need_clean = true;
+		m_need_merge = true;
 	}
 
 	///输出range内容, 调试使用.
@@ -434,7 +434,7 @@ public:
 		range_map m = inverse_impl();
 		rangefield f(m_size);
 
-		f.m_need_clean = m_need_clean;
+		f.m_need_merge = m_need_merge;
 		f.m_ranges = m;
 
 		return f;
@@ -446,8 +446,8 @@ protected:
 	inline range_map inverse_impl()
 	{
 		// 先整理.
-		if (m_need_clean)
-			clean();
+		if (m_need_merge)
+			merge();
 
 		range_map reverse_map;
 		boost::int64_t point = 0;
@@ -486,7 +486,7 @@ protected:
 	}
 
 	///整理回收range中的重叠部分.
-	inline void clean()
+	inline void merge()
 	{
 #ifndef AVHTTP_DISABLE_THREAD
 		boost::mutex::scoped_lock lock(*m_mutex);
@@ -539,11 +539,11 @@ protected:
 		}
 		result.insert(max_value);
 		m_ranges = result;
-		m_need_clean = false;
+		m_need_merge = false;
 	}
 
 private:
-	bool m_need_clean;
+	bool m_need_merge;
 	boost::int64_t m_size;
 	range_map m_ranges;
 #ifndef AVHTTP_DISABLE_THREAD
