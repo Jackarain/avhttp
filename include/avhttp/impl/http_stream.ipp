@@ -1422,7 +1422,16 @@ void http_stream::handle_header(Handler handler, int bytes_transferred, const bo
 		m_sock.close(ec);
 		if (++m_redirects <= m_max_redirects)
 		{
-			url new_url =  url::from_string(m_location, ec);
+			// 查询location中是否有协议相关标识, 如果没有http或https前辍, 则添加.
+			std::size_t found = m_location.find("://");
+			if (found == std::string::npos)
+			{
+				// 添加头.
+				std::string prefix = m_url.to_string(
+					url::protocol_component|url::host_component|url::port_component);
+				m_location = prefix + "/" + m_location;
+			}
+			url new_url = url::from_string(m_location, ec);
 			if (ec == boost::system::errc::invalid_argument)
 			{
 				// 向用户报告跳转地址错误.
