@@ -65,6 +65,9 @@ enum errc_t
 	/// Invalid chunked encoding.
 	invalid_chunked_encoding = 11,
 
+	/// Invalid redirect address
+	invalid_redirect = 12,
+
 	// Server-generated status codes.
 
 	/// The server-generated status code "100 Continue".

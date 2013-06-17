@@ -1422,7 +1422,14 @@ void http_stream::handle_header(Handler handler, int bytes_transferred, const bo
 		m_sock.close(ec);
 		if (++m_redirects <= m_max_redirects)
 		{
-			async_open(m_location, handler);
+			url new_url =  url::from_string(m_location, ec);
+			if (ec == boost::system::errc::invalid_argument)
+			{
+				// 向用户报告跳转地址错误.
+				handler(errc::make_error_code(errc::invalid_redirect));
+				return;
+			}
+			async_open(new_url, handler);
 			return;
 		}
 	}
