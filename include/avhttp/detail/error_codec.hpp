@@ -265,6 +265,8 @@ class error_category_impl
 			return "invalid type requested from entry";
 		case errc::invalid_chunked_encoding:
 			return "Invalid chunked encoding";
+		case errc::invalid_redirect:
+			return "Invalid redirect address";
 		case errc::continue_request:
 			return "Continue";
 		case errc::switching_protocols:
