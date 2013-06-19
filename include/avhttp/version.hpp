@@ -9,13 +9,13 @@
 #define __VERSION_HPP__
 
 #define AVHTTP_VERSION_MAJOR 2
-#define AVHTTP_VERSION_MINOR 8
-#define AVHTTP_VERSION_TINY 1
+#define AVHTTP_VERSION_MINOR 9
+#define AVHTTP_VERSION_TINY 0
 
 // the format of this version is: MMmmtt
 // M = Major version, m = minor version, t = tiny version
 #define AVHTTP_VERSION_NUM ((AVHTTP_VERSION_MAJOR * 10000) + (AVHTTP_VERSION_MINOR * 100) + AVHTTP_VERSION_TINY)
-#define AVHTTP_VERSION "2.8.1"
+#define AVHTTP_VERSION "2.9.0"
 #define AVHTTP_VERSION_MIME "avhttp/"AVHTTP_VERSION
 // #define AVHTTP_REVISION "$Git-Rev$"
 
