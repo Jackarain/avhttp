@@ -377,7 +377,7 @@ bool parse_http_headers(Iterator begin, Iterator end,
 		case space_before_header_value:
 			if (c == ' ')
 				state = header_value;
-			if (c == '\r')	// µ±valueÃ»ÓĞÖµµÄÊ±ºò, Ö±½Ó½øÈë¶ÁÈ¡valueÍê³ÉÂß¼­, ±ÜÃâÊ§°Ü.
+			if (c == '\r')	// å½“valueæ²¡æœ‰å€¼çš„æ—¶å€™, ç›´æ¥è¿›å…¥è¯»å–valueå®Œæˆé€»è¾‘, é¿å…å¤±è´¥.
 				state = linefeed;
 			else if (is_ctl(c))
 				state = fail;
