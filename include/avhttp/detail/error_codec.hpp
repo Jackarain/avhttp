@@ -65,6 +65,9 @@ enum errc_t
 	/// Invalid chunked encoding.
 	invalid_chunked_encoding = 11,
 
+	/// Invalid redirect address
+	invalid_redirect = 12,
+
 	// Server-generated status codes.
 
 	/// The server-generated status code "100 Continue".
@@ -262,6 +265,8 @@ class error_category_impl
 			return "invalid type requested from entry";
 		case errc::invalid_chunked_encoding:
 			return "Invalid chunked encoding";
+		case errc::invalid_redirect:
+			return "Invalid redirect address";
 		case errc::continue_request:
 			return "Continue";
 		case errc::switching_protocols:

@@ -1406,15 +1406,17 @@ void http_stream::handle_header(Handler handler, int bytes_transferred, const bo
 	LOG_DEBUG("Status code: " << m_status_code);
 	LOG_DEBUG("Http header:\n" << header_string);
 
+	boost::system::error_code ec;
+
 	// 解析Http Header.
 	if (!detail::parse_http_headers(header_string.begin(), header_string.end(),
 		m_content_type, m_content_length, m_location, m_response_opts.option_all()))
 	{
-		handler(avhttp::errc::malformed_response_headers);
-		LOG_ERROR("Parse header error, error message: \'" << err.message() << "\'");
+		ec = errc::make_error_code(errc::malformed_response_headers);
+		LOG_ERROR("Parse header error, error message: \'" << ec.message() << "\'");
+		handler(ec);
 		return;
 	}
-	boost::system::error_code ec;
 
 	// 判断是否需要跳转.
 	if (m_status_code == avhttp::errc::moved_permanently || m_status_code == avhttp::errc::found)
@@ -1422,7 +1424,25 @@ void http_stream::handle_header(Handler handler, int bytes_transferred, const bo
 		m_sock.close(ec);
 		if (++m_redirects <= m_max_redirects)
 		{
-			async_open(m_location, handler);
+			// 查询location中是否有协议相关标识, 如果没有http或https前辍, 则添加.
+			std::size_t found = m_location.find("://");
+			if (found == std::string::npos)
+			{
+				// 添加头.
+				std::string prefix = m_url.to_string(
+					url::protocol_component|url::host_component|url::port_component);
+				m_location = prefix + "/" + m_location;
+			}
+			url new_url = url::from_string(m_location, ec);
+			if (ec == boost::system::errc::invalid_argument)
+			{
+				// 向用户报告跳转地址错误.
+				ec = errc::make_error_code(errc::invalid_redirect);
+				LOG_ERROR("Location url invalid, error message: \'" << ec.message() << "\'");
+				handler(ec);
+				return;
+			}
+			async_open(new_url, handler);
 			return;
 		}
 	}
