@@ -150,7 +150,7 @@ class http_stream : public boost::noncopyable
 public:
 
 	/// Constructor.
-	AVHTTP_DECL http_stream(boost::asio::io_service &io);
+	AVHTTP_DECL explicit http_stream(boost::asio::io_service &io);
 
 	/// Destructor.
 	AVHTTP_DECL virtual ~http_stream();

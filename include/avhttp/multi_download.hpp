@@ -122,7 +122,7 @@ class multi_download : public boost::noncopyable
 	};
 
 public:
-	AVHTTP_DECL multi_download(boost::asio::io_service &io)
+	AVHTTP_DECL explicit multi_download(boost::asio::io_service &io)
 		: m_io_service(io)
 		, m_accept_multi(false)
 		, m_keep_alive(false)
