@@ -15,6 +15,7 @@
 # pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
+#include <stdlib.h> // for mbtowc, wctomb.
 #include <string>
 
 #include <boost/locale.hpp>
@@ -55,12 +56,7 @@ inline std::wstring ansi_wide(
 inline std::wstring ansi_wide(
 	const std::string &source, const std::string &characters)
 {
-	std::wstring destination;
-
-	std::string s = ansi_utf8(source, characters);
-	destination = boost::locale::conv::utf_to_utf<wchar_t>(s);
-
-	return destination;
+	return boost::locale::conv::utf_to_utf<wchar_t>(ansi_utf8(source, characters));
 }
 
 inline std::wstring ansi_wide(const std::string &source)
@@ -90,11 +86,7 @@ inline std::wstring ansi_wide(const std::string &source)
 inline std::string ansi_utf8(
 	std::string const &source, const std::string &characters)
 {
-	std::string destination;
-
-	destination = boost::locale::conv::between(source, "UTF-8", characters);
-
-	return destination;
+	return boost::locale::conv::between(source, "UTF-8", characters);
 }
 
 inline std::string ansi_utf8(std::string const &source)
@@ -105,50 +97,29 @@ inline std::string ansi_utf8(std::string const &source)
 
 inline std::string wide_utf8(const std::wstring &source)
 {
-	std::string destination;
-
-	destination = boost::locale::conv::utf_to_utf<char>(source);
-
-	return destination;
+	return boost::locale::conv::utf_to_utf<char>(source);
 }
 
 inline std::wstring utf8_wide(std::string const &source)
 {
-	std::wstring destination;
-
-	destination = boost::locale::conv::utf_to_utf<wchar_t>(source);
-
-	return destination;
+	return boost::locale::conv::utf_to_utf<wchar_t>(source);
 }
 
 inline std::string utf8_ansi(
-	std::string const &source, const std::string &characters/* = default_characters*/)
+	std::string const &source, const std::string &characters)
 {
-	std::string destination;
-
-	destination = boost::locale::conv::between(source, characters, "UTF-8");
-
-	return destination;
+	return boost::locale::conv::between(source, characters, "UTF-8");
 }
 
 inline std::string utf8_ansi(std::string const &source)
 {
-	std::string destination;
-
-	destination = wide_ansi(utf8_wide(source));
-
-	return destination;
+	return wide_ansi(utf8_wide(source));
 }
 
 inline std::string wide_ansi(
 	std::wstring const &source, const std::string &characters)
 {
-	std::string destination;
-
-	destination = wide_utf8(source);
-	destination = utf8_ansi(destination, characters);
-
-	return destination;
+	return utf8_ansi(wide_utf8(source), characters);
 }
 
 inline std::string wide_ansi(const std::wstring &source)
