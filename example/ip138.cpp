@@ -1,3 +1,4 @@
+///这个示例是用于从IP138.COM网站获得IP或域名所对应的地理位置.
 #include <iostream>
 #include <boost/array.hpp>
 #include <boost/regex.hpp>
@@ -16,6 +17,7 @@ int main(int argc, char* argv[])
 
 	std::string ip = argv[1];
 	boost::trim(ip);
+	// 构造查询IP的URL.
 	std::string query_url = "http://ip138.com/ips138.asp?ip=" + ip;
 
 	avhttp::http_stream h(io);
