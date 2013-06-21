@@ -15,6 +15,7 @@ int main(int argc, char* argv[])
 	boost::system::error_code ec;
 
 	std::string ip = argv[1];
+	boost::trim(ip);
 	std::string query_url = "http://ip138.com/ips138.asp?ip=" + ip;
 
 	avhttp::http_stream h(io);
