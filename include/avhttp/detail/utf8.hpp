@@ -129,7 +129,7 @@ inline std::string wide_ansi(const std::wstring &source)
 	std::string ansi;
 
 	// reset wctomb.
-	wctomb(NULL, NULL);
+	wctomb(NULL, 0);
 
 	// convert source to wide.
 	for (std::wstring::const_iterator i = source.begin();
