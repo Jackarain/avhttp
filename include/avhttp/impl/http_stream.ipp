@@ -750,6 +750,7 @@ template <typename MutableBufferSequence, typename Handler>
 void http_stream::async_read_some(const MutableBufferSequence &buffers, BOOST_ASIO_MOVE_ARG(Handler) handler)
 {
 	AVHTTP_READ_HANDLER_CHECK(Handler, handler) type_check;
+
 	boost::system::error_code ec;
 
 	if (m_is_chunked)	// 如果启用了分块传输模式, 则解析块大小, 并读取小于块大小的数据.
