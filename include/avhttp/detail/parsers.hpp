@@ -377,6 +377,8 @@ bool parse_http_headers(Iterator begin, Iterator end,
 		case space_before_header_value:
 			if (c == ' ')
 				state = header_value;
+			if (c == '\r')	// 当value没有值的时候, 直接进入读取value完成逻辑, 避免失败.
+				state = linefeed;
 			else if (is_ctl(c))
 				state = fail;
 			else
