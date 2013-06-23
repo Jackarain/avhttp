@@ -686,6 +686,13 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 		if (m_chunked_size == 0)
 		{
 			m_is_chunked_end = true;
+#ifdef AVHTTP_ENABLE_ZLIB	// 如果遇到chunk结尾, 则释放m_stream, 因为下一个chunked块需要重新初始化.
+			if (m_stream.zalloc)
+			{
+				inflateEnd(&m_stream);
+				m_stream.zalloc = NULL;
+			}
+#endif
 			if (!m_keep_alive)
 				ec = boost::asio::error::eof;
 			return 0;
@@ -1680,6 +1687,13 @@ void http_stream::handle_chunked_size(const MutableBufferSequence &buffers,
 		{
 			boost::system::error_code err;
 			m_is_chunked_end = true;
+#ifdef AVHTTP_ENABLE_ZLIB
+					if (m_stream.zalloc)
+					{
+						inflateEnd(&m_stream);
+						m_stream.zalloc = NULL;
+					}
+#endif
 			if (!m_keep_alive)
 				err = boost::asio::error::eof;
 			handler(err, 0);
