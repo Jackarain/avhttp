@@ -346,7 +346,7 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 template <typename Handler>
 void http_stream::async_open(const url &u, BOOST_ASIO_MOVE_ARG(Handler) handler)
 {
-	BOOST_ASIO_OPEN_HANDLER_CHECK(Handler, handler) type_check;
+	AVHTTP_OPEN_HANDLER_CHECK(Handler, handler) type_check;
 
 	boost::system::error_code ec;
 	const std::string protocol = u.protocol();
@@ -749,7 +749,7 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 template <typename MutableBufferSequence, typename Handler>
 void http_stream::async_read_some(const MutableBufferSequence &buffers, BOOST_ASIO_MOVE_ARG(Handler) handler)
 {
-	BOOST_ASIO_READ_HANDLER_CHECK(Handler, handler) type_check;
+	AVHTTP_READ_HANDLER_CHECK(Handler, handler) type_check;
 	boost::system::error_code ec;
 
 	if (m_is_chunked)	// 如果启用了分块传输模式, 则解析块大小, 并读取小于块大小的数据.
@@ -916,7 +916,7 @@ std::size_t http_stream::write_some(const ConstBufferSequence &buffers,
 template <typename ConstBufferSequence, typename Handler>
 void http_stream::async_write_some(const ConstBufferSequence &buffers, BOOST_ASIO_MOVE_ARG(Handler) handler)
 {
-	BOOST_ASIO_WRITE_HANDLER_CHECK(Handler, handler) type_check;
+	AVHTTP_WRITE_HANDLER_CHECK(Handler, handler) type_check;
 
 	m_sock.async_write_some(buffers, handler);
 }
@@ -939,7 +939,7 @@ void http_stream::request(request_opts &opt, boost::system::error_code &ec)
 template <typename Handler>
 void http_stream::async_request(const request_opts &opt, BOOST_ASIO_MOVE_ARG(Handler) handler)
 {
-	BOOST_ASIO_REQUEST_HANDLER_CHECK(Handler, handler) type_check;
+	AVHTTP_REQUEST_HANDLER_CHECK(Handler, handler) type_check;
 
 	boost::system::error_code ec;
 
