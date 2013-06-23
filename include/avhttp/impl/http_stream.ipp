@@ -344,7 +344,7 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 }
 
 template <typename Handler>
-void http_stream::async_open(const url &u, Handler handler)
+void http_stream::async_open(const url &u, BOOST_ASIO_MOVE_ARG(Handler) handler)
 {
 	BOOST_ASIO_OPEN_HANDLER_CHECK(Handler, handler) type_check;
 
@@ -747,7 +747,7 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 }
 
 template <typename MutableBufferSequence, typename Handler>
-void http_stream::async_read_some(const MutableBufferSequence &buffers, Handler handler)
+void http_stream::async_read_some(const MutableBufferSequence &buffers, BOOST_ASIO_MOVE_ARG(Handler) handler)
 {
 	BOOST_ASIO_READ_HANDLER_CHECK(Handler, handler) type_check;
 	boost::system::error_code ec;
@@ -914,7 +914,7 @@ std::size_t http_stream::write_some(const ConstBufferSequence &buffers,
 }
 
 template <typename ConstBufferSequence, typename Handler>
-void http_stream::async_write_some(const ConstBufferSequence &buffers, Handler handler)
+void http_stream::async_write_some(const ConstBufferSequence &buffers, BOOST_ASIO_MOVE_ARG(Handler) handler)
 {
 	BOOST_ASIO_WRITE_HANDLER_CHECK(Handler, handler) type_check;
 
@@ -937,7 +937,7 @@ void http_stream::request(request_opts &opt, boost::system::error_code &ec)
 }
 
 template <typename Handler>
-void http_stream::async_request(const request_opts &opt, Handler handler)
+void http_stream::async_request(const request_opts &opt, BOOST_ASIO_MOVE_ARG(Handler) handler)
 {
 	BOOST_ASIO_REQUEST_HANDLER_CHECK(Handler, handler) type_check;
 
