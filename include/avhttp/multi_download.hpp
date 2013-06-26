@@ -1046,6 +1046,8 @@ protected:
 			return;
 		}
 
+		boost::system::error_code err;
+
 		// 下面使用引用http_stream_object对象.
 		http_stream_object &object = *object_ptr;
 
@@ -1128,14 +1130,16 @@ protected:
 			{
 				// 位图打开失败, 无所谓, 下载过程中会创建新的位图, 删除meta文件.
 				m_file_meta.close();
-				boost::system::error_code ignore;
-				fs::remove(m_settings.meta_file, ignore);
+				fs::remove(m_settings.meta_file, err);
 			}
 		}
 
 		// 判断文件是否已经下载完成, 完成则直接返回.
 		if (m_downlaoded_field.is_full())
+		{
+			handler(err);
 			return;
+		}
 
 		// 创建存储对象.
 		if (!m_settings.storage)
@@ -1145,11 +1149,10 @@ protected:
 		BOOST_ASSERT(m_storage);
 
 		// 打开文件, 构造文件名.
-		boost::system::error_code ignore;
-		m_storage->open(boost::filesystem::path(file_name()), ignore);
-		if (ignore)
+		m_storage->open(boost::filesystem::path(file_name()), err);
+		if (err)
 		{
-			handler(ignore);
+			handler(err);
 			return;
 		}
 
@@ -1160,7 +1163,7 @@ protected:
 			m_settings.piece_size = default_piece_size;
 
 		// 关闭stream.
-		h.close(ignore);
+		h.close(err);
 
 		{
 #ifndef AVHTTP_DISABLE_THREAD
