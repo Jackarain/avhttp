@@ -311,6 +311,10 @@ public:
 			}
 		}
 
+		// 判断文件是否已经下载完成, 完成则直接返回.
+		if (m_downlaoded_field.is_full())
+			return;
+
 		// 创建存储对象.
 		if (!s.storage)
 			m_storage.reset(default_storage_constructor());
@@ -1128,6 +1132,10 @@ protected:
 				fs::remove(m_settings.meta_file, ignore);
 			}
 		}
+
+		// 判断文件是否已经下载完成, 完成则直接返回.
+		if (m_downlaoded_field.is_full())
+			return;
 
 		// 创建存储对象.
 		if (!m_settings.storage)
