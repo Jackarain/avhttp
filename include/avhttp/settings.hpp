@@ -235,28 +235,12 @@ static const int default_buffer_size = 1024;
 
 struct settings
 {
-	// 下载模式.
-	enum downlad_mode
-	{
-		// 紧凑模式下载, 紧凑模式是指, 将文件分片后, 从文件头开始, 一片紧接着一片,
-		// 连续不断的下载.
-		compact_mode,
-
-		// TODO: 松散模式下载, 是指将文件分片后, 按连接数平分为N大块进行下载.
-		dispersion_mode,
-
-		// TODO: 快速读取模式下载, 这个模式是根据用户读取数据位置开始下载数据, 是尽快响应
-		// 下载用户需要的数据.
-		quick_read_mode
-	};
-
 	settings ()
 		: download_rate_limit(-1)
 		, connections_limit(default_connections_limit)
 		, piece_size(default_piece_size)
 		, time_out(default_time_out)
 		, request_piece_num(default_request_piece_num)
-		, current_downlad_mode(dispersion_mode)
 		, allow_use_meta_url(true)
 		, check_certificate(true)
 		, storage(NULL)
@@ -276,9 +260,6 @@ struct settings
 
 	// 每次请求的分片数, 默认为10.
 	int request_piece_num;
-
-	// 下载模式, 默认为dispersion_mode.
-	downlad_mode current_downlad_mode;
 
 	// meta_file路径, 默认为当前路径下同文件名的.meta文件.
 	fs::path meta_file;
