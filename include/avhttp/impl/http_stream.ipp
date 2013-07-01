@@ -32,6 +32,7 @@ http_stream::http_stream(boost::asio::io_service &io)
 	, m_redirects(0)
 	, m_max_redirects(AVHTTP_MAX_REDIRECTS)
 	, m_content_length(0)
+	, m_body_size(0)
 #ifdef AVHTTP_ENABLE_ZLIB
 	, m_is_gzip(false)
 #endif
@@ -76,6 +77,7 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 	m_content_type = "";
 	m_status_code = 0;
 	m_content_length = 0;
+	m_body_size = 0;
 	m_content_type = "";
 	m_request.consume(m_request.size());
 	m_response.consume(m_response.size());
@@ -360,6 +362,7 @@ void http_stream::async_open(const url &u, BOOST_ASIO_MOVE_ARG(Handler) handler)
 	m_content_type = "";
 	m_status_code = 0;
 	m_content_length = 0;
+	m_body_size = 0;
 	m_content_type = "";
 	m_request.consume(m_request.size());
 	m_response.consume(m_response.size());
@@ -712,9 +715,18 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 			}
 		}
 
-		if (m_stream.avail_in == 0)
+		if (m_stream.avail_in == 0)	// 上一块解压完成.
 		{
+			if (m_keep_alive)
+			{
+				if (m_content_length != 0 && m_body_size == m_content_length)
+				{
+					return 0;
+				}
+			}
+
 			bytes_transferred = read_some_impl(boost::asio::buffer(m_zlib_buffer, 1024), ec);
+			m_body_size += bytes_transferred;
 			m_zlib_buffer_size = bytes_transferred;
 			m_stream.avail_in = (uInt)m_zlib_buffer_size;
 			m_stream.next_in = (z_const Bytef *)&m_zlib_buffer[0];
@@ -749,7 +761,20 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 	}
 #endif
 
+	// 如果启用了keep_alive, 则计算是否读取body完成, 如果完成, 则直接返回0而不是去读取.
+	if (m_keep_alive)
+	{
+		if (m_content_length != 0 && m_body_size == m_content_length)
+		{
+			return 0;
+		}
+	}
+
+	// 真正读取数据.
 	bytes_transferred = read_some_impl(buffers, ec);
+	m_body_size += bytes_transferred;
+
+	// 返回数据大小.
 	return bytes_transferred;
 }
 
@@ -895,8 +920,56 @@ void http_stream::async_read_some(const MutableBufferSequence &buffers, BOOST_AS
 		return;
 	}
 
-	// 当缓冲区数据不够, 直接从socket中异步读取.
-	m_sock.async_read_some(buffers, handler);
+	{
+#ifdef AVHTTP_ENABLE_ZLIB
+		// 如果没有启用gzip, 则判断在keep-alive模式下, 用户读取是否
+		// 完整了, 如果读取完整了, 则回调长度为0, 并保持连接.
+		if (!m_is_gzip)
+#endif // AVHTTP_ENABLE_ZLIB
+		{
+			if (m_keep_alive)
+			{
+				if (m_content_length != 0 && m_body_size == m_content_length)
+				{
+					m_io_service.post(
+						boost::asio::detail::bind_handler(handler, ec, 0));
+					return;
+				}
+			}
+		}
+
+		std::size_t max_length = 0;
+
+		// 这里为0是直接读取m_response中的数据, 而不再从socket读取数据, 避免
+		// 读取数据到尾部的时候, 发生长时间等待的情况.
+		if (m_response.size() != 0)
+			max_length = 0;
+		else
+		{
+			typename MutableBufferSequence::const_iterator iter = buffers.begin();
+			typename MutableBufferSequence::const_iterator end = buffers.end();
+			// 计算得到用户buffer_size总大小.
+			for (; iter != end; ++iter)
+			{
+				boost::asio::mutable_buffer buffer(*iter);
+				max_length += boost::asio::buffer_size(buffer);
+			}
+			// 得到合适的缓冲大小.
+			max_length = (std::min)((boost::int64_t)max_length, m_content_length);
+		}
+
+		// 读取数据到m_response, 如果有压缩, 需要在handle_read中解压.
+		boost::asio::streambuf::mutable_buffers_type bufs = m_response.prepare(max_length);
+		typedef boost::function<void (boost::system::error_code, std::size_t)> HandlerWrapper;
+		HandlerWrapper h(handler);
+		m_sock.async_read_some(boost::asio::buffer(bufs),
+			boost::bind(&http_stream::handle_read<MutableBufferSequence, HandlerWrapper>,
+				this, buffers, h,
+				boost::asio::placeholders::error,
+				boost::asio::placeholders::bytes_transferred
+			)
+		);
+	}
 }
 
 template <typename ConstBufferSequence>
@@ -966,6 +1039,7 @@ void http_stream::async_request(const request_opts &opt, BOOST_ASIO_MOVE_ARG(Han
 	m_request_opts.clear();
 	m_is_chunked_end = false;
 	m_keep_alive = true;
+	m_body_size = 0;
 
 	// 得到url选项.
 	std::string new_url;
@@ -1474,6 +1548,99 @@ void http_stream::handle_header(Handler handler, int bytes_transferred, const bo
 }
 
 template <typename MutableBufferSequence, typename Handler>
+void http_stream::handle_read(const MutableBufferSequence &buffers, Handler handler,
+	const boost::system::error_code &ec, std::size_t bytes_transferred)
+{
+	boost::system::error_code err;
+	if (!ec || m_response.size() > 0
+#ifdef AVHTTP_ENABLE_ZLIB
+		|| (m_is_gzip && m_stream.avail_in > 0)	// 启用了压缩并未解压完缓冲区中的数据.
+#endif
+		)
+	{
+		// 提交缓冲.
+		m_response.commit(bytes_transferred);
+
+#ifdef AVHTTP_ENABLE_ZLIB
+		if (!m_is_gzip)	// 如果没有启用gzip, 则直接读取数据后返回.
+#endif
+		{
+			if (bytes_transferred <= 0 && m_response.size() == 0)
+			{
+				handler(ec, bytes_transferred);
+				return;
+			}
+			else
+			{
+				bytes_transferred = read_some_impl(buffers, err);	// 这里其实都是从m_response中读取数据.
+				BOOST_ASSERT(!err);
+				m_body_size += bytes_transferred;					// 统计读取body的字节数.
+				handler(ec, bytes_transferred);
+				return;
+			}
+		}
+#ifdef AVHTTP_ENABLE_ZLIB
+		else					// 否则读取数据到解压缓冲中.
+		{
+			if (m_stream.avail_in == 0)
+			{
+				if (bytes_transferred <= 0 && m_response.size() == 0)
+				{
+					handler(ec, bytes_transferred);
+					return;
+				}
+				else
+				{
+					bytes_transferred = read_some_impl(boost::asio::buffer(m_zlib_buffer, 1024), err);
+					m_body_size -= bytes_transferred;				// 统计读取body的字节数.
+					m_zlib_buffer_size = bytes_transferred;
+					m_stream.avail_in = (uInt)m_zlib_buffer_size;
+					m_stream.next_in = (z_const Bytef *)&m_zlib_buffer[0];
+				}
+			}
+
+			bytes_transferred = 0;
+
+			{
+				typename MutableBufferSequence::const_iterator iter = buffers.begin();
+				typename MutableBufferSequence::const_iterator end = buffers.end();
+				// 计算得到用户buffer_size总大小.
+				for (; iter != end; ++iter)
+				{
+					boost::asio::mutable_buffer buffer(*iter);
+					m_stream.next_in = (z_const Bytef *)(&m_zlib_buffer[0] + m_zlib_buffer_size - m_stream.avail_in);
+					m_stream.avail_out = boost::asio::buffer_size(buffer);
+					m_stream.next_out = boost::asio::buffer_cast<Bytef*>(buffer);
+					int ret = inflate(&m_stream, Z_SYNC_FLUSH);
+					if (ret < 0)
+					{
+						err = boost::asio::error::operation_not_supported;
+						// 解压发生错误, 通知用户并放弃处理.
+						handler(err, 0);
+						return;
+					}
+
+					bytes_transferred += (boost::asio::buffer_size(buffer) - m_stream.avail_out);
+					if (bytes_transferred != boost::asio::buffer_size(buffer))
+						break;
+				}
+			}
+
+			if (m_stream.avail_in == 0)
+				err = ec;	// FIXME!!!
+
+			handler(err, bytes_transferred);
+			return;
+		}
+#endif
+	}
+	else
+	{
+		handler(ec, bytes_transferred);
+	}
+}
+
+template <typename MutableBufferSequence, typename Handler>
 void http_stream::handle_skip_crlf(const MutableBufferSequence &buffers,
 	Handler handler, boost::shared_array<char> crlf,
 	const boost::system::error_code &ec, std::size_t bytes_transferred)
@@ -1579,7 +1746,7 @@ void http_stream::handle_async_read(const MutableBufferSequence &buffers,
 			}
 
 			if (m_chunked_size == 0 && m_stream.avail_in == 0)
-				err = ec;
+				err = ec;	// FIXME!!!
 
 			handler(err, bytes_transferred);
 			return;
@@ -3065,6 +3232,7 @@ void http_stream::request_impl(Stream &sock, request_opts &opt, boost::system::e
 	m_request_opts.clear();
 	m_is_chunked_end = false;
 	m_keep_alive = true;
+	m_body_size = 0;
 
 	// 得到url选项.
 	std::string new_url;

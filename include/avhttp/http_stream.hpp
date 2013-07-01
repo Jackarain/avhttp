@@ -515,6 +515,10 @@ protected:
 	void handle_header(Handler handler, int bytes_transferred, const boost::system::error_code &err);
 
 	template <typename MutableBufferSequence, typename Handler>
+	void handle_read(const MutableBufferSequence &buffers,
+		Handler handler, const boost::system::error_code &ec, std::size_t bytes_transferred);
+
+	template <typename MutableBufferSequence, typename Handler>
 	void handle_skip_crlf(const MutableBufferSequence &buffers,
 		Handler handler, boost::shared_array<char> crlf,
 		const boost::system::error_code &ec, std::size_t bytes_transferred);
@@ -648,6 +652,7 @@ private:
 	std::size_t m_max_redirects;					// 重定向次数计数.
 	std::string m_content_type;						// 数据类型.
 	boost::int64_t m_content_length;				// 数据内容长度.
+	std::size_t m_body_size;						// body大小.
 	std::string m_location;							// 重定向的地址.
 	boost::asio::streambuf m_request;				// 请求缓冲.
 	boost::asio::streambuf m_response;				// 回复缓冲.
