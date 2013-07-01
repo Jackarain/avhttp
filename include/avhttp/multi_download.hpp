@@ -105,7 +105,9 @@ class multi_download : public boost::noncopyable
 		{
 			last_byte_rate.resize(seconds);
 			for (int i = 0; i < seconds; i++)
+			{
 				last_byte_rate[i] = 0;
+			}
 		}
 
 		// 用于统计速率的时间.
@@ -233,15 +235,29 @@ public:
 		// 保存最终url信息.
 		std::string location = h.location();
 		if (!location.empty())
+		{
 			m_final_url = location;
+		}
 
 		// 判断是否支持多点下载.
 		std::string status_code;
 		h.response_options().find(http_options::status_code, status_code);
 		if (status_code != "206")
+		{
 			m_accept_multi = false;
+		}
 		else
+		{
 			m_accept_multi = true;
+		}
+
+		// 判断是否为动态请求页面, 如果是, 则禁用并发下载模式.
+		// 动态页面不推荐使用multi_download进行下载, 而应该使用http_stream进行下载
+		// multi_download主要应用在大文件, 静态页面下载.
+		if (!url::from_string(h.final_url()).query().empty())
+		{
+			m_accept_multi = false;
+		}
 
 		// 得到文件大小.
 		std::string length;
@@ -251,9 +267,14 @@ public:
 			h.response_options().find(http_options::content_length, length);
 			std::string::size_type f = length.find('/');
 			if (f++ != std::string::npos)
+			{
 				length = length.substr(f);
+			}
 			else
+			{
 				length = "";
+			}
+
 			if (length.empty())
 			{
 				// 得到不文件长度, 设置为不支持多下载模式.
@@ -290,9 +311,13 @@ public:
 			h.response_options().find(http_options::connection, keep_alive);
 			boost::to_lower(keep_alive);
 			if (keep_alive == "keep-alive")
+			{
 				m_keep_alive = true;
+			}
 			else
+			{
 				m_keep_alive = false;
+			}
 
 			// 如果未指定meta文件名, 则使用最终url生成meta文件名.
 			if (m_settings.meta_file.empty())
@@ -313,13 +338,19 @@ public:
 
 		// 判断文件是否已经下载完成, 完成则直接返回.
 		if (m_downlaoded_field.is_full())
+		{
 			return;
+		}
 
 		// 创建存储对象.
 		if (!s.storage)
+		{
 			m_storage.reset(default_storage_constructor());
+		}
 		else
+		{
 			m_storage.reset(s.storage());
+		}
 		BOOST_ASSERT(m_storage);
 
 		// 打开文件, 构造文件名.
@@ -334,9 +365,13 @@ public:
 
 		// 处理默认设置.
 		if (m_settings.connections_limit == -1)
+		{
 			m_settings.connections_limit = default_connections_limit;
+		}
 		if (m_settings.piece_size == -1 && m_file_size != -1)
+		{
 			m_settings.piece_size = default_piece_size;
+		}
 
 		// 关闭stream.
 		h.close(ec);
@@ -355,9 +390,13 @@ public:
 		// 根据第1个连接返回的信息, 重新设置请求选项.
 		req_opt = m_settings.opts;
 		if (m_keep_alive)
+		{
 			req_opt.insert(http_options::connection, "keep-alive");
+		}
 		else
+		{
 			req_opt.insert(http_options::connection, "close");
+		}
 
 		// 修改终止状态.
 		m_abort = false;
@@ -594,7 +633,9 @@ public:
 		{
 			const http_object_ptr &ptr = m_streams[i];
 			if (ptr && ptr->stream)
+			{
 				ptr->stream->close(ignore);
+			}
 		}
 	}
 
@@ -632,7 +673,9 @@ public:
 		while (buffer_length != 0)
 		{
 			if (m_downlaoded_field.check_range(offset, buffer_length))
+			{
 				break;
+			}
 			buffer_length /= 2;
 		}
 
@@ -661,7 +704,9 @@ public:
 				available_length -= length;
 
 				if (available_length == 0)
+				{
 					break;
+				}
 			}
 			// 计算实际读取的字节数.
 			buffer_length = offset_for_read - offset;
@@ -752,7 +797,9 @@ public:
 	AVHTTP_DECL boost::int64_t bytes_download() const
 	{
 		if (m_file_size != -1)
+		{
 			return m_downlaoded_field.range_size();
+		}
 
 		boost::int64_t bytes_count = 0;
 
@@ -763,7 +810,9 @@ public:
 		{
 			const http_object_ptr &ptr = m_streams[i];
 			if (ptr)
+			{
 				bytes_count += ptr->bytes_downloaded;
+			}
 		}
 
 		return bytes_count;
@@ -863,7 +912,9 @@ protected:
 
 			// 更新完成下载区间位图.
 			if (m_file_size != -1)
+			{
 				m_downlaoded_field.update(offset, offset + bytes_transferred);
+			}
 
 			// 使用m_storage写入.
 			m_storage->write(object.buffer.c_array(), offset, bytes_transferred);
@@ -910,7 +961,9 @@ protected:
 
 			// 设置是否为长连接.
 			if (m_keep_alive)
+			{
 				req_opt.insert(http_options::connection, "keep-alive");
+			}
 
 			// 如果分配空闲空间失败, 则跳过这个socket, 并立即尝试连接这个socket.
 			if (!allocate_range(object.request_range))
@@ -943,11 +996,15 @@ protected:
 
 			// 发起异步http数据请求, 传入指针http_object_ptr, 以确保多线程安全.
 			if (!m_keep_alive)
+			{
 				stream.async_open(m_final_url, boost::bind(&multi_download::handle_open, this,
 					index, object_ptr, boost::asio::placeholders::error));
+			}
 			else
+			{
 				stream.async_request(req_opt, boost::bind(&multi_download::handle_request, this,
 					index, object_ptr, boost::asio::placeholders::error));
+			}
 		}
 		else
 		{
@@ -1057,15 +1114,29 @@ protected:
 		// 保存最终url信息.
 		std::string location = h.location();
 		if (!location.empty())
+		{
 			m_final_url = location;
+		}
 
 		// 判断是否支持多点下载.
 		std::string status_code;
 		h.response_options().find(http_options::status_code, status_code);
 		if (status_code != "206")
+		{
 			m_accept_multi = false;
+		}
 		else
+		{
 			m_accept_multi = true;
+		}
+
+		// 判断是否为动态请求页面, 如果是, 则禁用并发下载模式.
+		// 动态页面不推荐使用multi_download进行下载, 而应该使用http_stream进行下载
+		// multi_download主要应用在大文件, 静态页面下载.
+		if (!url::from_string(h.final_url()).query().empty())
+		{
+			m_accept_multi = false;
+		}
 
 		// 得到文件大小.
 		std::string length;
@@ -1075,9 +1146,14 @@ protected:
 			h.response_options().find(http_options::content_range, length);
 			std::string::size_type f = length.find('/');
 			if (f++ != std::string::npos)
+			{
 				length = length.substr(f);
+			}
 			else
+			{
 				length = "";
+			}
+
 			if (length.empty())
 			{
 				// 得到不文件长度, 设置为不支持多下载模式.
@@ -1114,9 +1190,13 @@ protected:
 			h.response_options().find(http_options::connection, keep_alive);
 			boost::to_lower(keep_alive);
 			if (keep_alive == "keep-alive")
+			{
 				m_keep_alive = true;
+			}
 			else
+			{
 				m_keep_alive = false;
+			}
 
 			// 如果未指定meta文件名, 则使用最终url生成meta文件名.
 			if (m_settings.meta_file.empty())
@@ -1143,9 +1223,13 @@ protected:
 
 		// 创建存储对象.
 		if (!m_settings.storage)
+		{
 			m_storage.reset(default_storage_constructor());
+		}
 		else
+		{
 			m_storage.reset(m_settings.storage());
+		}
 		BOOST_ASSERT(m_storage);
 
 		// 打开文件, 构造文件名.
@@ -1158,9 +1242,13 @@ protected:
 
 		// 处理默认设置.
 		if (m_settings.connections_limit == -1)
+		{
 			m_settings.connections_limit = default_connections_limit;
+		}
 		if (m_settings.piece_size == -1 && m_file_size != -1)
+		{
 			m_settings.piece_size = default_piece_size;
+		}
 
 		// 关闭stream.
 		h.close(err);
@@ -1175,9 +1263,13 @@ protected:
 		// 根据第1个连接返回的信息, 设置请求选项.
 		request_opts req_opt = m_settings.opts;
 		if (m_keep_alive)
+		{
 			req_opt.insert(http_options::connection, "keep-alive");
+		}
 		else
+		{
 			req_opt.insert(http_options::connection, "close");
+		}
 
 		// 修改终止状态.
 		m_abort = false;
@@ -1448,7 +1540,9 @@ protected:
 		{
 			http_object_ptr &object_item_ptr = m_streams[i];
 			if (object_item_ptr->done)
+			{
 				done++;
+			}
 		}
 
 		// 检查位图是否已经满以及异步操作是否完成.
@@ -1476,7 +1570,9 @@ protected:
 		{
 			// 从指定位置m_download_point开始文件间区中得到一段空间.
 			if (!m_rangefield.out_space(m_download_point, temp.left, temp.right))
+			{
 				return false;
+			}
 
 			// 用于调试.
 			BOOST_ASSERT(temp != r);
@@ -1485,20 +1581,28 @@ protected:
 			// 重新计算为最大max_request_bytes大小.
 			boost::int64_t max_request_bytes = m_settings.request_piece_num * m_settings.piece_size;
 			if (temp.size() > max_request_bytes)
+			{
 				temp.right = temp.left + max_request_bytes;
+			}
 
 			r = temp;
 
 			// 从m_rangefield中分配这个空间.
 			if (!m_rangefield.update(temp))
+			{
 				continue;
+			}
 			else
+			{
 				break;
+			}
 		} while (!m_abort);
 
 		// 右边边界减1, 因为http请求的区间是包含右边界值, 下载时会将right下标位置的字节下载.
 		if (--r.right < r.left)
+		{
 			return false;
+		}
 
 		return true;
 	}
@@ -1510,13 +1614,17 @@ protected:
 		// 得到文件大小.
 		boost::uintmax_t size = fs::file_size(file_path, ec);
 		if (ec)
+		{
 			size = 0;
+		}
 
 		// 打开文件.
 		m_file_meta.close();
 		m_file_meta.open(file_path, ec);
 		if (ec)
+		{
 			return false;
+		}
 
 		// 如果有数据, 则解码meta数据.
 		if (size != 0)
@@ -1530,7 +1638,9 @@ protected:
 
 			// 最终的url.
 			if (m_settings.allow_use_meta_url)
+			{
 				m_final_url = e["final_url"].string();
+			}
 
 			// 文件大小.
 			m_file_size = e["file_size"].integer();
@@ -1564,7 +1674,9 @@ protected:
 			boost::system::error_code ec;
 			m_file_meta.open(m_settings.meta_file, ec);
 			if (ec)
-				return ;
+			{
+				return;
+			}
 		}
 
 		entry e;
@@ -1593,9 +1705,13 @@ private:
 		boost::mutex::scoped_lock lock(m_outstanding_mutex);
 #endif
 		if (addref)
+		{
 			m_outstanding++;
+		}
 		else
+		{
 			m_outstanding--;
+		}
 	}
 
 private:
