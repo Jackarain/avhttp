@@ -251,15 +251,10 @@ public:
 			m_accept_multi = true;
 		}
 
-		// 判断是否为动态请求页面, 如果是, 则禁用并发下载模式.
-		// 动态页面不推荐使用multi_download进行下载, 而应该使用http_stream进行下载
-		// multi_download主要应用在大文件, 静态页面下载.
-		if (!s.allow_dynamic_pages)
+		// 禁用并发模式下载.
+		if (m_settings.disable_multi_download)
 		{
-			if (!url::from_string(h.final_url()).query().empty())
-			{
-				m_accept_multi = false;
-			}
+			m_accept_multi = false;
 		}
 
 		// 得到文件大小.
@@ -1133,15 +1128,10 @@ protected:
 			m_accept_multi = true;
 		}
 
-		// 判断是否为动态请求页面, 如果是, 则禁用并发下载模式.
-		// 动态页面不推荐使用multi_download进行下载, 而应该使用http_stream进行下载
-		// multi_download主要应用在大文件, 静态页面下载.
-		if (!s.allow_dynamic_pages)
+		// 禁用并发模式下载.
+		if (m_settings.disable_multi_download)
 		{
-			if (!url::from_string(h.final_url()).query().empty())
-			{
-				m_accept_multi = false;
-			}
+			m_accept_multi = false;
 		}
 
 		// 得到文件大小.
