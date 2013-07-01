@@ -242,6 +242,7 @@ struct settings
 		, time_out(default_time_out)
 		, request_piece_num(default_request_piece_num)
 		, allow_use_meta_url(true)
+		, allow_dynamic_pages(false)
 		, check_certificate(true)
 		, storage(NULL)
 	{}
@@ -266,6 +267,12 @@ struct settings
 
 	// 允许使用meta中保存的url, 默认为允许. 针对一些变动的url, 我们应该禁用.
 	bool allow_use_meta_url;
+
+	// 允许并发下载动态页面.
+	// 默认禁用并发下载动态页面, 如果判断为动态页面, 将自动切换为单点下载.
+	// NOTE: 动态页面不推荐使用multi_download进行下载, 而应该使用http_stream进行下载
+	// multi_download主要应用在大文件, 静态页面下载!
+	bool allow_dynamic_pages;
 
 	// 下载文件路径, 默认为当前目录.
 	fs::path save_path;

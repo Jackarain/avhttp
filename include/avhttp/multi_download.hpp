@@ -254,9 +254,12 @@ public:
 		// 判断是否为动态请求页面, 如果是, 则禁用并发下载模式.
 		// 动态页面不推荐使用multi_download进行下载, 而应该使用http_stream进行下载
 		// multi_download主要应用在大文件, 静态页面下载.
-		if (!url::from_string(h.final_url()).query().empty())
+		if (!s.allow_dynamic_pages)
 		{
-			m_accept_multi = false;
+			if (!url::from_string(h.final_url()).query().empty())
+			{
+				m_accept_multi = false;
+			}
 		}
 
 		// 得到文件大小.
@@ -1133,9 +1136,12 @@ protected:
 		// 判断是否为动态请求页面, 如果是, 则禁用并发下载模式.
 		// 动态页面不推荐使用multi_download进行下载, 而应该使用http_stream进行下载
 		// multi_download主要应用在大文件, 静态页面下载.
-		if (!url::from_string(h.final_url()).query().empty())
+		if (!s.allow_dynamic_pages)
 		{
-			m_accept_multi = false;
+			if (!url::from_string(h.final_url()).query().empty())
+			{
+				m_accept_multi = false;
+			}
 		}
 
 		// 得到文件大小.
