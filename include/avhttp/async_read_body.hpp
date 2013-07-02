@@ -21,7 +21,6 @@ BOOST_STATIC_ASSERT_MSG(BOOST_VERSION >= 105400, "You must use boost-1.54 or lat
 #include "avhttp/http_stream.hpp"
 
 namespace avhttp {
-namespace misc {
 namespace detail {
 
 // match condition!
@@ -167,7 +166,6 @@ AVHTTP_DECL void async_read_body(AsyncReadStream &stream,
 	detail::make_read_body_op(stream, url, buffers, handler);
 }
 
-} // namespace misc
 } // namespace avhttp
 
 #endif // __AVHTTP_MISC_HTTP_READBODY_HPP__
