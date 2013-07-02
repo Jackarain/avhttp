@@ -28,7 +28,7 @@ namespace detail {
 struct read_all_t
 {
 	read_all_t(boost::int64_t content_length)
-		: m_content_length(false)
+		: m_content_length(content_length)
 	{
 	}
 
