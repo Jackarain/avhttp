@@ -51,6 +51,9 @@ namespace
 #include "avhttp/rangefield.hpp"
 #include "avhttp/bitfield.hpp"
 #include "avhttp/multi_download.hpp"
+#if (BOOST_VERSION >= 105400)
+#include "avhttp/async_read_body.hpp"
+#endif
 
 #include "avhttp/detail/abi_suffix.hpp"
 
