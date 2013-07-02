@@ -859,7 +859,7 @@ protected:
 		if (!m_accept_multi)
 		{
 			// 当不支持断点续传时, 有时请求到的文件大小和start请求到的文件大小不一至, 则需要新file_size.
-			if (object.stream->content_length() != 0 &&
+			if (object.stream->content_length() != -1 &&
 				object.stream->content_length() != m_file_size)
 			{
 				m_file_size = object.stream->content_length();

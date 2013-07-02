@@ -76,7 +76,7 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 	// 清空一些选项.
 	m_content_type = "";
 	m_status_code = 0;
-	m_content_length = 0;
+	m_content_length = -1;
 	m_body_size = 0;
 	m_content_type = "";
 	m_request.consume(m_request.size());
@@ -361,7 +361,7 @@ void http_stream::async_open(const url &u, BOOST_ASIO_MOVE_ARG(Handler) handler)
 	// 清空一些选项.
 	m_content_type = "";
 	m_status_code = 0;
-	m_content_length = 0;
+	m_content_length = -1;
 	m_body_size = 0;
 	m_content_type = "";
 	m_request.consume(m_request.size());
@@ -719,7 +719,7 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 		{
 			if (m_keep_alive)
 			{
-				if (m_content_length != 0 && m_body_size == m_content_length)
+				if (m_content_length != -1 && m_body_size == m_content_length)
 				{
 					return 0;
 				}
@@ -764,7 +764,7 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 	// 如果启用了keep_alive, 则计算是否读取body完成, 如果完成, 则直接返回0而不是去读取.
 	if (m_keep_alive)
 	{
-		if (m_content_length != 0 && m_body_size == m_content_length)
+		if (m_content_length != -1 && m_body_size == m_content_length)
 		{
 			return 0;
 		}
@@ -929,7 +929,7 @@ void http_stream::async_read_some(const MutableBufferSequence &buffers, BOOST_AS
 		{
 			if (m_keep_alive)
 			{
-				if (m_content_length != 0 && m_body_size == m_content_length)
+				if (m_content_length != -1 && m_body_size == m_content_length)
 				{
 					m_io_service.post(
 						boost::asio::detail::bind_handler(handler, ec, 0));

@@ -470,7 +470,7 @@ public:
 	AVHTTP_DECL const std::string final_url() const;
 
 	///返回content_length.
-	// @content_length信息, 如果没有则为0.
+	// @content_length信息, 如果没有则为-1.
 	AVHTTP_DECL boost::int64_t content_length();
 
 	///设置是否认证服务器证书.
