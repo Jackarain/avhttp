@@ -955,7 +955,8 @@ void http_stream::async_read_some(const MutableBufferSequence &buffers, BOOST_AS
 				max_length += boost::asio::buffer_size(buffer);
 			}
 			// 得到合适的缓冲大小.
-			max_length = (std::min)((boost::int64_t)max_length, m_content_length);
+			max_length = (std::min)(
+				(boost::int64_t)max_length, m_content_length == -1 ? 1024 : m_content_length);
 		}
 
 		// 读取数据到m_response, 如果有压缩, 需要在handle_read中解压.
