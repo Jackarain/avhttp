@@ -133,7 +133,7 @@ read_body_op<AsyncReadStream, MutableBufferSequence, Handler>
 // 这个函数用于http_stream异步访问指定的url, 并通过handler回调通知用户, 数据将
 // 保存在用户事先提供的buffers中.
 // @注意:
-//  1. 该函数停止回调条件为直到读取到eof或遇到错误, 错误信息通过error_code传回.
+//  1. 该函数回调条件为直到读取完整的body或eof或其它错误, 错误信息通过error_code传回.
 //  2. 在完成整个过程中, 应该保持 stream 和 buffers的生命期.
 // @param stream 一个http_stream对象.
 // @param url 指定的url.
