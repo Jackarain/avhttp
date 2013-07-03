@@ -135,7 +135,7 @@ inline std::string wide_ansi(const std::wstring &source)
 	for (std::wstring::const_iterator i = source.begin();
 		i != source.end(); i++)
 	{
-		int length = wctomb(buffer.data(), *i);
+		int length = wctomb(&(*buffer.begin()), *i);
 		if (length < 1)
 			break;
 		for (int j = 0; j < length; j++)
