@@ -25,7 +25,47 @@ namespace detail {
 
 #if defined(BOOST_ASIO_ENABLE_HANDLER_TYPE_REQUIREMENTS)
 
-#define BOOST_ASIO_OPEN_HANDLER_CHECK( \
+#define AVHTTP_READ_HANDLER_CHECK( \
+    handler_type, handler) \
+  \
+  BOOST_ASIO_HANDLER_TYPE_REQUIREMENTS_ASSERT( \
+      sizeof(boost::asio::detail::two_arg_handler_test( \
+          handler, \
+          static_cast<const boost::system::error_code*>(0), \
+          static_cast<const std::size_t*>(0))) == 1, \
+      "ReadHandler type requirements not met") \
+  \
+  typedef boost::asio::detail::handler_type_requirements< \
+      sizeof( \
+        boost::asio::detail::argbyv( \
+          boost::asio::detail::clvref(handler))) + \
+      sizeof( \
+        boost::asio::detail::lvref(handler)( \
+          boost::asio::detail::lvref<const boost::system::error_code>(), \
+          boost::asio::detail::lvref<const std::size_t>()), \
+        char(0))>
+
+#define AVHTTP_WRITE_HANDLER_CHECK( \
+    handler_type, handler) \
+  \
+  BOOST_ASIO_HANDLER_TYPE_REQUIREMENTS_ASSERT( \
+      sizeof(boost::asio::detail::two_arg_handler_test( \
+          handler, \
+          static_cast<const boost::system::error_code*>(0), \
+          static_cast<const std::size_t*>(0))) == 1, \
+      "WriteHandler type requirements not met") \
+  \
+  typedef boost::asio::detail::handler_type_requirements< \
+      sizeof( \
+        boost::asio::detail::argbyv( \
+          boost::asio::detail::clvref(handler))) + \
+      sizeof( \
+        boost::asio::detail::lvref(handler)( \
+          boost::asio::detail::lvref<const boost::system::error_code>(), \
+          boost::asio::detail::lvref<const std::size_t>()), \
+        char(0))>
+
+#define AVHTTP_OPEN_HANDLER_CHECK( \
     handler_type, handler) \
   \
   BOOST_ASIO_HANDLER_TYPE_REQUIREMENTS_ASSERT( \
@@ -43,7 +83,7 @@ namespace detail {
           boost::asio::detail::lvref<const boost::system::error_code>()), \
         char(0))>
 
-#define BOOST_ASIO_REQUEST_HANDLER_CHECK( \
+#define AVHTTP_REQUEST_HANDLER_CHECK( \
     handler_type, handler) \
   \
   BOOST_ASIO_HANDLER_TYPE_REQUIREMENTS_ASSERT( \
@@ -63,8 +103,20 @@ namespace detail {
 
 #else
 
-#define BOOST_ASIO_OPEN_HANDLER_CHECK( \
+#define AVHTTP_READ_HANDLER_CHECK( \
     handler_type, handler) \
+  typedef int
+
+#define AVHTTP_WRITE_HANDLER_CHECK( \
+    handler_type, handler) \
+  typedef int
+
+#define AVHTTP_OPEN_HANDLER_CHECK( \
+    handler_type, handler) \
+  typedef int
+
+#define AVHTTP_REQUEST_HANDLER_CHECK( \
+	handler_type, handler) \
   typedef int
 
 #endif

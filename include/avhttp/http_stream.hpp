@@ -208,7 +208,7 @@ public:
 	// @备注: handler也可以使用boost.bind来绑定一个符合规定的函数作
 	// 为async_open的参数handler.
 	template <typename Handler>
-	void async_open(const url &u, Handler handler);
+	void async_open(const url &u, BOOST_ASIO_MOVE_ARG(Handler) handler);
 
 	///从这个http_stream中读取一些数据.
 	// @param buffers一个或多个读取数据的缓冲区, 这个类型必须满足MutableBufferSequence,
@@ -274,7 +274,7 @@ public:
 	// 关于示例中的boost::asio::buffer用法可以参考boost中的文档. 它可以接受一个
 	// boost.array或std.vector作为数据容器.
 	template <typename MutableBufferSequence, typename Handler>
-	void async_read_some(const MutableBufferSequence &buffers, Handler handler);
+	void async_read_some(const MutableBufferSequence &buffers, BOOST_ASIO_MOVE_ARG(Handler) handler);
 
 	///向这个http_stream中发送一些数据.
 	// @param buffers是一个或多个用于发送数据缓冲. 这个类型必须满足ConstBufferSequence, 参考文档:
@@ -339,7 +339,7 @@ public:
 	// 关于示例中的boost::asio::buffer用法可以参考boost中的文档. 它可以接受一个
 	// boost.array或std.vector作为数据容器.
 	template <typename ConstBufferSequence, typename Handler>
-	void async_write_some(const ConstBufferSequence &buffers, Handler handler);
+	void async_write_some(const ConstBufferSequence &buffers, BOOST_ASIO_MOVE_ARG(Handler) handler);
 
 	///向http服务器发起一个请求.
 	// @向http服务器发起一个请求, 如果失败抛出异常.
@@ -393,7 +393,7 @@ public:
 	//  h.async_request(opt, boost::bind(&request_handler, boost::asio::placeholders::error));
 	// @end example
 	template <typename Handler>
-	void async_request(const request_opts &opt, Handler handler);
+	void async_request(const request_opts &opt, BOOST_ASIO_MOVE_ARG(Handler) handler);
 
 	///清除读写缓冲区数据.
 	// @备注: 非线程安全! 不应在正在进行读写操作时进行该操作!
@@ -470,7 +470,7 @@ public:
 	AVHTTP_DECL const std::string final_url() const;
 
 	///返回content_length.
-	// @content_length信息, 如果没有则为0.
+	// @content_length信息, 如果没有则为-1.
 	AVHTTP_DECL boost::int64_t content_length();
 
 	///设置是否认证服务器证书.
@@ -513,6 +513,10 @@ protected:
 
 	template <typename Handler>
 	void handle_header(Handler handler, int bytes_transferred, const boost::system::error_code &err);
+
+	template <typename MutableBufferSequence, typename Handler>
+	void handle_read(const MutableBufferSequence &buffers,
+		Handler handler, const boost::system::error_code &ec, std::size_t bytes_transferred);
 
 	template <typename MutableBufferSequence, typename Handler>
 	void handle_skip_crlf(const MutableBufferSequence &buffers,
@@ -648,6 +652,7 @@ private:
 	std::size_t m_max_redirects;					// 重定向次数计数.
 	std::string m_content_type;						// 数据类型.
 	boost::int64_t m_content_length;				// 数据内容长度.
+	std::size_t m_body_size;						// body大小.
 	std::string m_location;							// 重定向的地址.
 	boost::asio::streambuf m_request;				// 请求缓冲.
 	boost::asio::streambuf m_response;				// 回复缓冲.

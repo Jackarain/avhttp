@@ -235,29 +235,14 @@ static const int default_buffer_size = 1024;
 
 struct settings
 {
-	// 下载模式.
-	enum downlad_mode
-	{
-		// 紧凑模式下载, 紧凑模式是指, 将文件分片后, 从文件头开始, 一片紧接着一片,
-		// 连续不断的下载.
-		compact_mode,
-
-		// TODO: 松散模式下载, 是指将文件分片后, 按连接数平分为N大块进行下载.
-		dispersion_mode,
-
-		// TODO: 快速读取模式下载, 这个模式是根据用户读取数据位置开始下载数据, 是尽快响应
-		// 下载用户需要的数据.
-		quick_read_mode
-	};
-
 	settings ()
 		: download_rate_limit(-1)
 		, connections_limit(default_connections_limit)
 		, piece_size(default_piece_size)
 		, time_out(default_time_out)
 		, request_piece_num(default_request_piece_num)
-		, current_downlad_mode(dispersion_mode)
 		, allow_use_meta_url(true)
+		, disable_multi_download(false)
 		, check_certificate(true)
 		, storage(NULL)
 	{}
@@ -277,14 +262,19 @@ struct settings
 	// 每次请求的分片数, 默认为10.
 	int request_piece_num;
 
-	// 下载模式, 默认为dispersion_mode.
-	downlad_mode current_downlad_mode;
-
 	// meta_file路径, 默认为当前路径下同文件名的.meta文件.
 	fs::path meta_file;
 
 	// 允许使用meta中保存的url, 默认为允许. 针对一些变动的url, 我们应该禁用.
 	bool allow_use_meta_url;
+
+	// 禁止使用并发下载.
+	// NOTE: 比如用于动态页面下载, 因为动态页面不能使用并发下载, 如果还想继续使用
+	// multi_download进行下载, 则需要设置这个参数, 否则并发下载动态数据的行为, 是
+	// 未定义的, 其结果可能因为数据长度不一至导致断言, 也可能数据错误.
+	// NOTE: 不推荐使用multi_download进行下载, 而应该使用http_stream进行下载,
+	// multi_download主要应用在大文件, 静态页面下载!
+	bool disable_multi_download;
 
 	// 下载文件路径, 默认为当前目录.
 	fs::path save_path;
