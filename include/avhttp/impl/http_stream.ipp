@@ -467,7 +467,7 @@ void http_stream::async_open(const url &u, BOOST_ASIO_MOVE_ARG(Handler) handler)
 	}
 
 	std::string host;
-	std::string port;
+	std::ostringstream port_string;
 	if (m_proxy.type == proxy_settings::http || m_proxy.type == proxy_settings::http_pw)
 	{
 #ifdef AVHTTP_ENABLE_OPENSSL
@@ -481,17 +481,19 @@ void http_stream::async_open(const url &u, BOOST_ASIO_MOVE_ARG(Handler) handler)
 #endif
 		{
 			host = m_proxy.hostname;
-			port = boost::lexical_cast<std::string>(m_proxy.port);
+			port_string.imbue(std::locale("C"));
+			port_string << m_proxy.port;
 		}
 	}
 	else
 	{
 		host = m_url.host();
-		port = boost::lexical_cast<std::string>(m_url.port());
+		port_string.imbue(std::locale("C"));
+		port_string << m_url.port();
 	}
 
 	// 构造异步查询HOST.
-	tcp::resolver::query query(host, port);
+	tcp::resolver::query query(host, port_string.str());
 
 	// 开始异步查询HOST信息.
 	typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
