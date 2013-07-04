@@ -590,16 +590,6 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 			ss << std::hex << hex_chunked_size;
 			ss >> m_chunked_size;
 
-#ifdef AVHTTP_ENABLE_ZLIB
-			if (!m_stream.zalloc)
-			{
-				if (inflateInit2(&m_stream, 32+15 ) != Z_OK)
-				{
-					ec = boost::asio::error::operation_not_supported;
-					return 0;
-				}
-			}
-#endif
 			// chunked_size不包括数据尾的crlf, 所以置数据尾的crlf为false状态.
 			m_skip_crlf = false;
 		}
@@ -706,15 +696,6 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 #ifdef AVHTTP_ENABLE_ZLIB
 	if (m_is_gzip && !m_is_chunked)
 	{
-		if (!m_stream.zalloc)
-		{
-			if (inflateInit2(&m_stream, 32+15 ) != Z_OK)
-			{
-				ec = boost::asio::error::operation_not_supported;
-				return 0;
-			}
-		}
-
 		if (m_stream.avail_in == 0)	// 上一块解压完成.
 		{
 			if (m_keep_alive)
@@ -1530,7 +1511,19 @@ void http_stream::handle_header(Handler handler, int bytes_transferred, const bo
 	std::string opt_str = m_response_opts.find(http_options::content_encoding);
 #ifdef AVHTTP_ENABLE_ZLIB
 	if (opt_str == "gzip" || opt_str == "x-gzip")
+	{
 		m_is_gzip = true;
+		if (!m_stream.zalloc)
+		{
+			if (inflateInit2(&m_stream, 32+15 ) != Z_OK)	// 初始化ZLIB库, 每次解压每个chunked的时候, 不需要重新初始化.
+			{
+				ec = boost::asio::error::operation_not_supported;
+				LOG_ERROR("Init zlib invalid, error message: \'" << ec.message() << "\'");
+				handler(ec);
+				return;
+			}
+		}
+	}
 #endif
 	// 是否启用了chunked.
 	opt_str = m_response_opts.find(http_options::transfer_encoding);
@@ -1790,17 +1783,7 @@ void http_stream::handle_chunked_size(const MutableBufferSequence &buffers,
 		ss << std::hex << hex_chunked_size;
 		ss >> m_chunked_size;
 
-#ifdef AVHTTP_ENABLE_ZLIB // 初始化ZLIB库, 每次解压每个chunked的时候, 不需要重新初始化.
-		if (!m_stream.zalloc)
-		{
-			if (inflateInit2(&m_stream, 32+15 ) != Z_OK)
-			{
-				boost::system::error_code err = boost::asio::error::operation_not_supported;
-				handler(err, 0);
-				return;
-			}
-		}
-
+#ifdef AVHTTP_ENABLE_ZLIB
 		if (m_chunked_size == 0 && m_is_gzip)
 		{
 			if (m_stream.avail_in == 0)
@@ -3456,7 +3439,18 @@ void http_stream::request_impl(Stream &sock, request_opts &opt, boost::system::e
 	std::string opt_str = m_response_opts.find(http_options::content_encoding);
 #ifdef AVHTTP_ENABLE_ZLIB
 	if (opt_str == "gzip" || opt_str == "x-gzip")
+	{
 		m_is_gzip = true;
+		if (!m_stream.zalloc)	// 初始化ZLIB库, 每次解压每个chunked的时候, 不需要重新初始化.
+		{
+			if (inflateInit2(&m_stream, 32+15 ) != Z_OK)
+			{
+				ec = boost::asio::error::operation_not_supported;
+				LOG_ERROR("Init zlib invalid, error message: \'" << ec.message() << "\'");
+				return;
+			}
+		}
+	}
 #endif
 	// 是否启用了chunked.
 	opt_str = m_response_opts.find(http_options::transfer_encoding);
