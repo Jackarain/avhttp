@@ -266,8 +266,8 @@ public:
 		// 没有空间.
 		if (inv.size() == 0)
 			return false;
-		for (range_map::iterator i = inv.begin();
-			i != inv.end(); i++)
+		range_map::iterator i;
+		for (i = inv.begin(); i != inv.end(); i++)
 		{
 			// 偏移位置在空间里, 就返回这段空间.
 			if (offset >= i->first)
@@ -288,7 +288,7 @@ public:
 		}
 
 		// 走到这, 还没找到有效的空间, 则直接返回第一块空间.
-		range_map::iterator i = inv.begin();
+		i = inv.begin();
 		left = i->first;
 		right = i->second;
 
