@@ -19,6 +19,11 @@
 #include <cctype>
 #include <cstdlib>
 #include <string>
+#include <sstream>
+
+#include <boost/archive/iterators/base64_from_binary.hpp>
+#include <boost/archive/iterators/transform_width.hpp>
+#include <boost/archive/iterators/ostream_iterator.hpp>
 
 #include "avhttp/detail/utf8.hpp"
 
@@ -151,6 +156,27 @@ inline bool unescape_path(const std::string &in, std::string &out)
 		}
 	}
 	return true;
+}
+
+template <typename Source>
+std::string encode_base64(const Source &s)
+{
+	using namespace boost::archive::iterators;
+	typedef typename Source::const_iterator source_const_iterator;
+	typedef base64_from_binary<
+		transform_width<
+			source_const_iterator,
+			6,
+			8
+		>
+	> base64_text;
+	std::stringstream os;
+	std::copy(base64_text(s.begin()), base64_text(s.end()), ostream_iterator<char>(os));
+	std::string result = os.str();
+	int padding = 4 - result.size() % 4;
+	for (int i = 0; i < padding; i++)
+		result += "=";
+	return result;
 }
 
 }
