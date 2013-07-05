@@ -18,6 +18,7 @@
 #include "avhttp/logging.hpp"
 #include "avhttp/http_stream.hpp"
 #include "avhttp/detail/handler_type_requirements.hpp"
+#include "avhttp/detail/escape_string.hpp"
 
 namespace avhttp {
 
@@ -1067,6 +1068,24 @@ void http_stream::async_request(const request_opts &opt, BOOST_ASIO_MOVE_ARG(Han
 		opts.remove(http_options::user_agent);	// 删除处理过的选项.
 	m_request_opts.insert(http_options::user_agent, user_agent);
 
+	// 如果是认证代理.
+	std::string auth;
+	if ((m_proxy.type == proxy_settings::http_pw || m_proxy.type == proxy_settings::http)
+		&& m_protocol != "https")
+	{
+		if (m_proxy.type == proxy_settings::http_pw)
+		{
+			auth = m_proxy.username + ":" + m_proxy.password;
+			auth = "Basic " + detail::encode_base64(auth);
+			m_request_opts.insert("Proxy-Authorization", auth);
+		}
+		else if (!m_url.user_info().empty())
+		{
+			auth = "Basic " + detail::encode_base64(m_url.user_info());
+			m_request_opts.insert("Proxy-Authorization", auth);
+		}
+	}
+
 	// 默认添加close.
 	std::string connection = "close";
 	if ((m_proxy.type == proxy_settings::http_pw || m_proxy.type == proxy_settings::http)
@@ -1128,12 +1147,20 @@ void http_stream::async_request(const request_opts &opt, BOOST_ASIO_MOVE_ARG(Han
 	request_stream << " " << http_version << "\r\n";
 	request_stream << "Host: " << host << "\r\n";
 	request_stream << "Accept: " << accept << "\r\n";
+	if (!auth.empty())
+	{
+		request_stream << "Proxy-Authorization: " << auth << "\r\n";
+	}
 	request_stream << "User-Agent: " << user_agent << "\r\n";
 	if ((m_proxy.type == proxy_settings::http_pw || m_proxy.type == proxy_settings::http)
 		&& m_protocol != "https")
+	{
 		request_stream << "Proxy-Connection: " << connection << "\r\n";
+	}
 	else
+	{
 		request_stream << "Connection: " << connection << "\r\n";
+	}
 	request_stream << other_option_string << "\r\n";
 	if (!body.empty())
 	{
@@ -2872,6 +2899,20 @@ void http_stream::handle_connect_https_proxy(Stream &sock, Handler handler,
 	if (opts.find(http_options::host, host))
 		opts.remove(http_options::host);		// 删除处理过的选项.
 
+	// 如果是认证代理.
+	std::string auth;
+	if (m_proxy.type == proxy_settings::http_pw)
+	{
+		std::string user_info = m_proxy.username + ":" + m_proxy.password;
+		user_info = "Basic " + detail::encode_base64(user_info);
+		auth = "Proxy-Authorization:" + user_info;
+	}
+	else if (!m_url.user_info().empty())
+	{
+		std::string user_info = "Basic " + detail::encode_base64(m_url.user_info());
+		auth = "Proxy-Authorization:" + user_info;
+	}
+
 	// 整合各选项到Http请求字符串中.
 	std::string request_string;
 	m_request.consume(m_request.size());
@@ -2880,6 +2921,10 @@ void http_stream::handle_connect_https_proxy(Stream &sock, Handler handler,
 	request_stream << m_url.host() << ":" << m_url.port();
 	request_stream << " " << http_version << "\r\n";
 	request_stream << "Host: " << host << "\r\n";
+	if (!auth.empty())
+	{
+		request_stream << auth << "\r\n";
+	}
 	request_stream << "Accept: " << accept << "\r\n";
 	request_stream << "User-Agent: " << user_agent << "\r\n\r\n";
 
@@ -3262,6 +3307,24 @@ void http_stream::request_impl(Stream &sock, request_opts &opt, boost::system::e
 		opts.remove(http_options::user_agent);	// 删除处理过的选项.
 	m_request_opts.insert(http_options::user_agent, user_agent);
 
+	// 如果是认证代理.
+	std::string auth;
+	if ((m_proxy.type == proxy_settings::http_pw || m_proxy.type == proxy_settings::http)
+		&& m_protocol != "https")
+	{
+		if (m_proxy.type == proxy_settings::http_pw)
+		{
+			auth = m_proxy.username + ":" + m_proxy.password;
+			auth = "Basic " + detail::encode_base64(auth);
+			m_request_opts.insert("Proxy-Authorization", auth);
+		}
+		else if (!m_url.user_info().empty())
+		{
+			auth = "Basic " + detail::encode_base64(m_url.user_info());
+			m_request_opts.insert("Proxy-Authorization", auth);
+		}
+	}
+
 	// 默认添加close.
 	std::string connection = "close";
 	if ((m_proxy.type == proxy_settings::http_pw || m_proxy.type == proxy_settings::http)
@@ -3324,9 +3387,17 @@ void http_stream::request_impl(Stream &sock, request_opts &opt, boost::system::e
 	request_stream << "User-Agent: " << user_agent << "\r\n";
 	if ((m_proxy.type == proxy_settings::http_pw || m_proxy.type == proxy_settings::http)
 		&& m_protocol != "https")
+	{
 		request_stream << "Proxy-Connection: " << connection << "\r\n";
+	}
 	else
+	{
 		request_stream << "Connection: " << connection << "\r\n";
+	}
+	if (!auth.empty())
+	{
+		request_stream << "Proxy-Authorization: " << auth << "\r\n";
+	}
 	request_stream << other_option_string << "\r\n";
 	if (!body.empty())
 	{
