@@ -660,6 +660,10 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 						boost::asio::mutable_buffer buffer(*iter);
 						m_stream.next_in = (z_const Bytef *)(&m_zlib_buffer[0] + m_zlib_buffer_size - m_stream.avail_in);
 						m_stream.avail_out = boost::asio::buffer_size(buffer);
+						if (m_stream.avail_out == 0)
+						{
+							break; // 如果用户提供的缓冲大小为0, 则直接返回.
+						}
 						m_stream.next_out = boost::asio::buffer_cast<Bytef*>(buffer);
 						int ret = inflate(&m_stream, Z_SYNC_FLUSH);
 						if (ret < 0)
@@ -670,7 +674,9 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 
 						bytes_transferred += (boost::asio::buffer_size(buffer) - m_stream.avail_out);
 						if (bytes_transferred != boost::asio::buffer_size(buffer))
+						{
 							break;
+						}
 					}
 				}
 
@@ -727,6 +733,10 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 				boost::asio::mutable_buffer buffer(*iter);
 				m_stream.next_in = (z_const Bytef *)(&m_zlib_buffer[0] + m_zlib_buffer_size - m_stream.avail_in);
 				m_stream.avail_out = boost::asio::buffer_size(buffer);
+				if (m_stream.avail_out == 0)
+				{
+					break; // 如果用户提供的缓冲大小为0, 则直接返回.
+				}
 				m_stream.next_out = boost::asio::buffer_cast<Bytef*>(buffer);
 				int ret = inflate(&m_stream, Z_SYNC_FLUSH);
 				if (ret < 0)
@@ -737,7 +747,9 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 
 				bytes_transferred += (boost::asio::buffer_size(buffer) - m_stream.avail_out);
 				if (bytes_transferred != boost::asio::buffer_size(buffer))
+				{
 					break;
+				}
 			}
 		}
 
@@ -1633,6 +1645,10 @@ void http_stream::handle_read(const MutableBufferSequence &buffers, Handler hand
 					boost::asio::mutable_buffer buffer(*iter);
 					m_stream.next_in = (z_const Bytef *)(&m_zlib_buffer[0] + m_zlib_buffer_size - m_stream.avail_in);
 					m_stream.avail_out = boost::asio::buffer_size(buffer);
+					if (m_stream.avail_out == 0)
+					{
+						break; // 如果用户提供的缓冲大小为0, 则直接返回.
+					}
 					m_stream.next_out = boost::asio::buffer_cast<Bytef*>(buffer);
 					int ret = inflate(&m_stream, Z_SYNC_FLUSH);
 					if (ret < 0)
@@ -1645,7 +1661,9 @@ void http_stream::handle_read(const MutableBufferSequence &buffers, Handler hand
 
 					bytes_transferred += (boost::asio::buffer_size(buffer) - m_stream.avail_out);
 					if (bytes_transferred != boost::asio::buffer_size(buffer))
+					{
 						break;
+					}
 				}
 			}
 
@@ -1752,6 +1770,10 @@ void http_stream::handle_async_read(const MutableBufferSequence &buffers,
 					boost::asio::mutable_buffer buffer(*iter);
 					m_stream.next_in = (z_const Bytef *)(&m_zlib_buffer[0] + m_zlib_buffer_size - m_stream.avail_in);
 					m_stream.avail_out = boost::asio::buffer_size(buffer);
+					if (m_stream.avail_out == 0)
+					{
+						break; // 如果用户提供的缓冲大小为0, 则直接返回.
+					}
 					m_stream.next_out = boost::asio::buffer_cast<Bytef*>(buffer);
 					int ret = inflate(&m_stream, Z_SYNC_FLUSH);
 					if (ret < 0)
@@ -1764,7 +1786,9 @@ void http_stream::handle_async_read(const MutableBufferSequence &buffers,
 
 					bytes_transferred += (boost::asio::buffer_size(buffer) - m_stream.avail_out);
 					if (bytes_transferred != boost::asio::buffer_size(buffer))
+					{
 						break;
+					}
 				}
 			}
 
