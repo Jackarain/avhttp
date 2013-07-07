@@ -650,6 +650,7 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 				}
 
 				bytes_transferred = 0;
+				std::size_t buffer_size = 0;
 
 				{
 					typename MutableBufferSequence::const_iterator iter = buffers.begin();
@@ -664,6 +665,7 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 						{
 							break; // 如果用户提供的缓冲大小为0, 则直接返回.
 						}
+						buffer_size += m_stream.avail_out;
 						m_stream.next_out = boost::asio::buffer_cast<Bytef*>(buffer);
 						int ret = inflate(&m_stream, Z_SYNC_FLUSH);
 						if (ret < 0)
@@ -678,6 +680,12 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 							break;
 						}
 					}
+				}
+
+				// 没有解压出数据, 说明解压缓冲太小, 继续读取数据, 以保证有数据返回.
+				if (buffer_size != 0 && bytes_transferred == 0)
+				{
+					return read_some(buffers, ec);
 				}
 
 				return bytes_transferred;
@@ -723,6 +731,7 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 		}
 
 		bytes_transferred = 0;
+		std::size_t buffer_size = 0;
 
 		{
 			typename MutableBufferSequence::const_iterator iter = buffers.begin();
@@ -737,6 +746,7 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 				{
 					break; // 如果用户提供的缓冲大小为0, 则直接返回.
 				}
+				buffer_size += m_stream.avail_out;
 				m_stream.next_out = boost::asio::buffer_cast<Bytef*>(buffer);
 				int ret = inflate(&m_stream, Z_SYNC_FLUSH);
 				if (ret < 0)
@@ -751,6 +761,12 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 					break;
 				}
 			}
+		}
+
+		// 没有解压出数据, 说明解压缓冲太小, 继续读取数据, 以保证有数据返回.
+		if (buffer_size != 0 && bytes_transferred == 0)
+		{
+			return read_some(buffers, ec);
 		}
 
 		return bytes_transferred;
@@ -1635,6 +1651,7 @@ void http_stream::handle_read(const MutableBufferSequence &buffers, Handler hand
 			}
 
 			bytes_transferred = 0;
+			std::size_t buffer_size = 0;
 
 			{
 				typename MutableBufferSequence::const_iterator iter = buffers.begin();
@@ -1649,6 +1666,7 @@ void http_stream::handle_read(const MutableBufferSequence &buffers, Handler hand
 					{
 						break; // 如果用户提供的缓冲大小为0, 则直接返回.
 					}
+					buffer_size += m_stream.avail_out;
 					m_stream.next_out = boost::asio::buffer_cast<Bytef*>(buffer);
 					int ret = inflate(&m_stream, Z_SYNC_FLUSH);
 					if (ret < 0)
@@ -1665,6 +1683,13 @@ void http_stream::handle_read(const MutableBufferSequence &buffers, Handler hand
 						break;
 					}
 				}
+			}
+
+			// 没有解压出东西, 说明压缩数据过少, 继续读取, 以保证能够解压.
+			if (buffer_size != 0 && bytes_transferred == 0)
+			{
+				async_read_some(buffers, handler);
+				return;
 			}
 
 			if (m_stream.avail_in == 0)
@@ -1760,6 +1785,7 @@ void http_stream::handle_async_read(const MutableBufferSequence &buffers,
 			}
 
 			bytes_transferred = 0;
+			std::size_t buffer_size = 0;
 
 			{
 				typename MutableBufferSequence::const_iterator iter = buffers.begin();
@@ -1774,6 +1800,7 @@ void http_stream::handle_async_read(const MutableBufferSequence &buffers,
 					{
 						break; // 如果用户提供的缓冲大小为0, 则直接返回.
 					}
+					buffer_size += m_stream.avail_out;
 					m_stream.next_out = boost::asio::buffer_cast<Bytef*>(buffer);
 					int ret = inflate(&m_stream, Z_SYNC_FLUSH);
 					if (ret < 0)
@@ -1790,6 +1817,13 @@ void http_stream::handle_async_read(const MutableBufferSequence &buffers,
 						break;
 					}
 				}
+			}
+
+			// 如果用户缓冲区空间不为空, 但没解压出数据, 则继续发起异步读取数据, 以保证能正确返回数据给用户.
+			if (buffer_size != 0 && bytes_transferred == 0)
+			{
+				async_read_some(buffers, handler);
+				return;
 			}
 
 			if (m_chunked_size == 0 && m_stream.avail_in == 0)
