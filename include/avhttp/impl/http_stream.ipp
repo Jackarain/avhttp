@@ -704,7 +704,10 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 			}
 #endif
 			if (!m_keep_alive)
+			{
 				ec = boost::asio::error::eof;
+			}
+
 			return 0;
 		}
 	}
@@ -1693,7 +1696,9 @@ void http_stream::handle_read(const MutableBufferSequence &buffers, Handler hand
 			}
 
 			if (m_stream.avail_in == 0)
+			{
 				err = ec;	// FIXME!!!
+			}
 
 			handler(err, bytes_transferred);
 			return;
@@ -1827,7 +1832,9 @@ void http_stream::handle_async_read(const MutableBufferSequence &buffers,
 			}
 
 			if (m_chunked_size == 0 && m_stream.avail_in == 0)
+			{
 				err = ec;	// FIXME!!!
+			}
 
 			handler(err, bytes_transferred);
 			return;
