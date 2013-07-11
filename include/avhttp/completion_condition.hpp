@@ -56,31 +56,30 @@ struct transfer_response_body_t
 
 }
 
-/// Return a completion condition function object that indicates that a read or
-/// write operation should continue until all http respons body have been
-/// transferred, or until an error occurs.
-/**
- * This function is used to create an object, of unspecified type, that meets
- * CompletionCondition requirements.
- *
- * @par Example
- * Reading until a buffer is full or contains all respons body:
- * @code
- * boost::array<char, 12800> buf;
- * boost::system::error_code ec;
- * std::size_t n = boost::asio::read(
- *     avhttp_stream, boost::asio::buffer(buf),
- *     boost::asio::transfer_response_body(avhttp_stream.content_length()), ec);
- * if (ec)
- * {
- *   // An error occurred.
- * }
- * else
- * {
- *   // n == 64
- * }
- * @endcode
- */
+///Return a completion condition function object that indicates that a read or
+// write operation should continue until all http respons body have been
+// transferred, or until an error occurs.
+//
+// This function is used to create an object, of unspecified type, that meets
+// CompletionCondition requirements.
+//
+// @begin example
+// Reading until a buffer is full or contains all respons body:
+// @code
+// boost::array<char, 12800> buf;
+// boost::system::error_code ec;
+// std::size_t n = boost::asio::read(
+//     avhttp_stream, boost::asio::buffer(buf),
+//     boost::asio::transfer_response_body(avhttp_stream.content_length()), ec);
+// if (ec)
+// {
+//   // An error occurred.
+// }
+// else
+// {
+//   // n == 64
+// }
+// @end example
 # if defined(GENERATING_DOCUMENTATION)
 unspecified transfer_response_body(boost::int64_t content_length)
 #else
