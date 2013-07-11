@@ -19,44 +19,10 @@
 BOOST_STATIC_ASSERT_MSG(BOOST_VERSION >= 105400, "You must use boost-1.54 or later!!!");
 
 #include "avhttp/http_stream.hpp"
+#include "avhttp/completion_condition.hpp"
 
 namespace avhttp {
 namespace detail {
-
-// match condition!
-struct transfer_response_body_t
-{
-	transfer_response_body_t(boost::int64_t content_length)
-		: m_content_length(content_length)
-	{
-	}
-
-	template <typename Error>
-	std::size_t operator()(const Error& err, std::size_t bytes_transferred)
-	{
-		using boost::asio::detail::default_max_transfer_size;
-
-		if(m_content_length > 0 )
-		{
-			// just the same boost::asio::transfer_exactly
-			return (!!err || bytes_transferred >= m_content_length) ? 0 :
-			(m_content_length - bytes_transferred < default_max_transfer_size
-				? m_content_length - bytes_transferred : std::size_t(default_max_transfer_size));
-		}
-		else
-		{
-			// just the same as boost::asio::transfer_all
-			return !!err ? 0 : default_max_transfer_size;
-		}
-	}
-
-	boost::int64_t m_content_length;
-};
-
-inline transfer_response_body_t transfer_response_body(boost::int64_t content_length)
-{
-	return transfer_response_body_t(content_length);
-}
 
 template <typename AsyncReadStream, typename MutableBufferSequence, typename Handler>
 class read_body_op : boost::asio::coroutine
