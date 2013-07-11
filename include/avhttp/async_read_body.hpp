@@ -24,9 +24,9 @@ namespace avhttp {
 namespace detail {
 
 // match condition!
-struct read_all_t
+struct transfer_response_body_t
 {
-	read_all_t(boost::int64_t content_length)
+	transfer_response_body_t(boost::int64_t content_length)
 		: m_content_length(content_length)
 	{
 	}
@@ -34,26 +34,28 @@ struct read_all_t
 	template <typename Error>
 	std::size_t operator()(const Error& err, std::size_t bytes_transferred)
 	{
-		if(err)
-			return 0;
+		using boost::asio::detail::default_max_transfer_size;
 
 		if(m_content_length > 0 )
 		{
-			// 读取到 content_length 是吧.
-			return m_content_length - bytes_transferred;
+			// just the same boost::asio::transfer_exactly
+			return (!!err || bytes_transferred >= m_content_length) ? 0 :
+			(m_content_length - bytes_transferred < default_max_transfer_size
+				? m_content_length - bytes_transferred : std::size_t(default_max_transfer_size));
 		}
 		else
 		{
-			return 4096;
+			// just the same as boost::asio::transfer_all
+			return !!err ? 0 : default_max_transfer_size;
 		}
 	}
 
 	boost::int64_t m_content_length;
 };
 
-inline read_all_t read_all(boost::int64_t content_length)
+inline transfer_response_body_t transfer_response_body(boost::int64_t content_length)
 {
-	return read_all_t(content_length);
+	return transfer_response_body_t(content_length);
 }
 
 template <typename AsyncReadStream, typename MutableBufferSequence, typename Handler>
@@ -92,7 +94,7 @@ public:
 			if(!ec)
 			{
 				BOOST_ASIO_CORO_YIELD boost::asio::async_read(
-					m_stream, m_buffers, read_all(m_stream.content_length()), *this);
+					m_stream, m_buffers, transfer_response_body(m_stream.content_length()), *this);
 			}
 			else
 			{
