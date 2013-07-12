@@ -1628,14 +1628,22 @@ protected:
 			std::vector<char> buffer;
 
 			buffer.resize(size);
-			m_file_meta.read(&buffer[0], 0, size);
+			const std::streamsize num = m_file_meta.read(&buffer[0], 0, size);
+			if (num != size)
+			{
+				return false;
+			}
 
 			entry e = bdecode(buffer.begin(), buffer.end());
 
 			// 最终的url.
 			if (m_settings.allow_use_meta_url)
 			{
-				m_final_url = e["final_url"].string();
+				const std::string url = e["final_url"].string();
+				if (!url.empty())
+				{
+					m_final_url = url;
+				}
 			}
 
 			// 文件大小.
