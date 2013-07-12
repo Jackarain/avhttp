@@ -42,14 +42,14 @@ struct storage_interface
 	// @param offset是写入的偏移位置.
 	// @param size指定了写入的数据缓冲大小.
 	// @返回值为实际写入的字节数, 返回-1表示写入失败.
-	virtual int write(const char *buf, boost::uint64_t offset, int size) = 0;
+	virtual std::streamsize write(const char *buf, boost::uint64_t offset, int size) = 0;
 
 	// 读取数据.
 	// @param buf是需要读取的数据缓冲.
 	// @param offset是读取的偏移位置.
 	// @param size指定了读取的数据缓冲大小.
 	// @返回值为实际读取的字节数, 返回-1表示读取失败.
-	virtual int read(char *buf, boost::uint64_t offset, int size) = 0;
+	virtual std::streamsize read(char *buf, boost::uint64_t offset, int size) = 0;
 };
 
 // 重定义storage_interface创建函数指针, 在multi_download内部通过调用它来完成创建storage_interface.
