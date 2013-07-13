@@ -840,16 +840,18 @@ protected:
 
 		bytes_transferred = 0;
 
+		{
 #ifndef AVHTTP_DISABLE_THREAD
-		boost::mutex::scoped_lock lock(m_streams_mutex);
+			boost::mutex::scoped_lock l(m_streams_mutex);
 #endif
 
-		for (std::size_t i = 0; i < m_streams.size(); i++)
-		{
-			const http_object_ptr &ptr = m_streams[i];
-			if (ptr)
+			for (std::size_t i = 0; i < m_streams.size(); i++)
 			{
-				bytes_transferred += ptr->bytes_downloaded;
+				const http_object_ptr &ptr = m_streams[i];
+				if (ptr)
+				{
+					bytes_transferred += ptr->bytes_downloaded;
+				}
 			}
 		}
 
