@@ -337,25 +337,62 @@ public:
 	// @param piece_size指定的piece大小.
 	inline void range_to_bitfield(bitfield &bf, int piece_size)
 	{
-		// 先整理.
+		// 先整理连续的空间, 将连续的区间合并为一个区间.
 		if (m_need_merge)
 			merge();
 
+#ifndef AVHTTP_DISABLE_THREAD
+		boost::mutex::scoped_lock lock(*m_mutex);
+#endif
+
+		// 计算出分片总数.
 		int piece_num = (m_size / piece_size) + (m_size % piece_size == 0 ? 0 : 1);
 
+		// 分配位图空间, 默认为0.
 		bf.resize(piece_num, 0);
 
 		boost::int64_t l = 0;
 		boost::int64_t r = 0;
+		range_map::iterator it = m_ranges.begin();
+		range_map::iterator end = m_ranges.end();
 
+		// 从0位置开始, 每次检查piece_size大小的空间是否数据完整, 数据
+		// 完整则设置到位图为1, 表示有数据.
 		for (int i = 0; i < piece_num; i++)
 		{
 			l = i * piece_size;
 			r = (i + 1) * piece_size;
 			r = r > m_size ? m_size : r;
 
-			if (check_range(l, r))
+			bool is_complete = false;
+			if (it != end)
+			{
+				// 在已经下载的区间中.
+				if (l >= it->first && r <= it->second)
+				{
+					is_complete = true;
+				}
+				else
+				{
+					// 除非右边界大于等于当前区间的右边界, 否则一直使用当前区间判断.
+					// 这样就避免了每次从头循环遍历.
+					if (r >= it->second)
+					{
+						if (++it != end)
+						{
+							if (l >= it->first && r <= it->second)
+							{
+								is_complete = true;
+							}
+						}
+					}
+				}
+			}
+
+			if (is_complete)
+			{
 				bf.set_bit(i);
+			}
 		}
 	}
 
