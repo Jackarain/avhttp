@@ -49,7 +49,9 @@ public:
 		if (!m_fstream.is_open())
 		{
 			ec = boost::system::errc::make_error_code(boost::system::errc::bad_file_descriptor);
+			return;
 		}
+		m_fstream.clear();
 	}
 
 	///是否打开.
@@ -69,12 +71,16 @@ public:
 	// @param offset是写入的偏移位置.
 	// @param size指定了写入的数据缓冲大小.
 	// @返回值为实际写入的字节数, 返回-1表示写入失败.
-	virtual int write(const char *buf, boost::uint64_t offset, int size)
+	virtual std::streamsize write(const char *buf, boost::uint64_t offset, int size)
 	{
 		m_fstream.seekp(offset, ios::beg);
 		m_fstream.write(buf, size);
-		m_fstream.flush();
-		return size;
+		if (m_fstream.good())
+		{
+			m_fstream.flush();
+			return size;
+		}
+		return 0;
 	}
 
 	// 读取数据.
@@ -82,11 +88,15 @@ public:
 	// @param offset是读取的偏移位置.
 	// @param size指定了读取的数据缓冲大小.
 	// @返回值为实际读取的字节数, 返回-1表示读取失败.
-	virtual int read(char *buf, boost::uint64_t offset, int size)
+	virtual std::streamsize read(char *buf, boost::uint64_t offset, int size)
 	{
 		m_fstream.seekg(offset, ios::beg);
 		m_fstream.read(buf, size);
-		return size;
+		if (m_fstream.good())
+		{
+			return m_fstream.gcount();
+		}
+		return 0;
 	}
 
 protected:

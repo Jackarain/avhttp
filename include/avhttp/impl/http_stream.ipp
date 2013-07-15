@@ -18,6 +18,7 @@
 #include "avhttp/logging.hpp"
 #include "avhttp/http_stream.hpp"
 #include "avhttp/detail/handler_type_requirements.hpp"
+#include "avhttp/detail/escape_string.hpp"
 
 namespace avhttp {
 
@@ -467,7 +468,7 @@ void http_stream::async_open(const url &u, BOOST_ASIO_MOVE_ARG(Handler) handler)
 	}
 
 	std::string host;
-	std::string port;
+	std::ostringstream port_string;
 	if (m_proxy.type == proxy_settings::http || m_proxy.type == proxy_settings::http_pw)
 	{
 #ifdef AVHTTP_ENABLE_OPENSSL
@@ -481,17 +482,19 @@ void http_stream::async_open(const url &u, BOOST_ASIO_MOVE_ARG(Handler) handler)
 #endif
 		{
 			host = m_proxy.hostname;
-			port = boost::lexical_cast<std::string>(m_proxy.port);
+			port_string.imbue(std::locale("C"));
+			port_string << m_proxy.port;
 		}
 	}
 	else
 	{
 		host = m_url.host();
-		port = boost::lexical_cast<std::string>(m_url.port());
+		port_string.imbue(std::locale("C"));
+		port_string << m_url.port();
 	}
 
 	// 构造异步查询HOST.
-	tcp::resolver::query query(host, port);
+	tcp::resolver::query query(host, port_string.str());
 
 	// 开始异步查询HOST信息.
 	typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
@@ -590,16 +593,6 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 			ss << std::hex << hex_chunked_size;
 			ss >> m_chunked_size;
 
-#ifdef AVHTTP_ENABLE_ZLIB
-			if (!m_stream.zalloc)
-			{
-				if (inflateInit2(&m_stream, 32+15 ) != Z_OK)
-				{
-					ec = boost::asio::error::operation_not_supported;
-					return 0;
-				}
-			}
-#endif
 			// chunked_size不包括数据尾的crlf, 所以置数据尾的crlf为false状态.
 			m_skip_crlf = false;
 		}
@@ -657,6 +650,7 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 				}
 
 				bytes_transferred = 0;
+				std::size_t buffer_size = 0;
 
 				{
 					typename MutableBufferSequence::const_iterator iter = buffers.begin();
@@ -667,6 +661,11 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 						boost::asio::mutable_buffer buffer(*iter);
 						m_stream.next_in = (z_const Bytef *)(&m_zlib_buffer[0] + m_zlib_buffer_size - m_stream.avail_in);
 						m_stream.avail_out = boost::asio::buffer_size(buffer);
+						if (m_stream.avail_out == 0)
+						{
+							break; // 如果用户提供的缓冲大小为0, 则直接返回.
+						}
+						buffer_size += m_stream.avail_out;
 						m_stream.next_out = boost::asio::buffer_cast<Bytef*>(buffer);
 						int ret = inflate(&m_stream, Z_SYNC_FLUSH);
 						if (ret < 0)
@@ -677,8 +676,16 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 
 						bytes_transferred += (boost::asio::buffer_size(buffer) - m_stream.avail_out);
 						if (bytes_transferred != boost::asio::buffer_size(buffer))
+						{
 							break;
+						}
 					}
+				}
+
+				// 没有解压出数据, 说明解压缓冲太小, 继续读取数据, 以保证有数据返回.
+				if (buffer_size != 0 && bytes_transferred == 0)
+				{
+					return read_some(buffers, ec);
 				}
 
 				return bytes_transferred;
@@ -697,7 +704,10 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 			}
 #endif
 			if (!m_keep_alive)
+			{
 				ec = boost::asio::error::eof;
+			}
+
 			return 0;
 		}
 	}
@@ -706,15 +716,6 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 #ifdef AVHTTP_ENABLE_ZLIB
 	if (m_is_gzip && !m_is_chunked)
 	{
-		if (!m_stream.zalloc)
-		{
-			if (inflateInit2(&m_stream, 32+15 ) != Z_OK)
-			{
-				ec = boost::asio::error::operation_not_supported;
-				return 0;
-			}
-		}
-
 		if (m_stream.avail_in == 0)	// 上一块解压完成.
 		{
 			if (m_keep_alive)
@@ -733,6 +734,7 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 		}
 
 		bytes_transferred = 0;
+		std::size_t buffer_size = 0;
 
 		{
 			typename MutableBufferSequence::const_iterator iter = buffers.begin();
@@ -743,6 +745,11 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 				boost::asio::mutable_buffer buffer(*iter);
 				m_stream.next_in = (z_const Bytef *)(&m_zlib_buffer[0] + m_zlib_buffer_size - m_stream.avail_in);
 				m_stream.avail_out = boost::asio::buffer_size(buffer);
+				if (m_stream.avail_out == 0)
+				{
+					break; // 如果用户提供的缓冲大小为0, 则直接返回.
+				}
+				buffer_size += m_stream.avail_out;
 				m_stream.next_out = boost::asio::buffer_cast<Bytef*>(buffer);
 				int ret = inflate(&m_stream, Z_SYNC_FLUSH);
 				if (ret < 0)
@@ -753,8 +760,16 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 
 				bytes_transferred += (boost::asio::buffer_size(buffer) - m_stream.avail_out);
 				if (bytes_transferred != boost::asio::buffer_size(buffer))
+				{
 					break;
+				}
 			}
+		}
+
+		// 没有解压出数据, 说明解压缓冲太小, 继续读取数据, 以保证有数据返回.
+		if (buffer_size != 0 && bytes_transferred == 0)
+		{
+			return read_some(buffers, ec);
 		}
 
 		return bytes_transferred;
@@ -1084,6 +1099,24 @@ void http_stream::async_request(const request_opts &opt, BOOST_ASIO_MOVE_ARG(Han
 		opts.remove(http_options::user_agent);	// 删除处理过的选项.
 	m_request_opts.insert(http_options::user_agent, user_agent);
 
+	// 如果是认证代理.
+	std::string auth;
+	if ((m_proxy.type == proxy_settings::http_pw || m_proxy.type == proxy_settings::http)
+		&& m_protocol != "https")
+	{
+		if (m_proxy.type == proxy_settings::http_pw)
+		{
+			auth = m_proxy.username + ":" + m_proxy.password;
+			auth = "Basic " + detail::encode_base64(auth);
+			m_request_opts.insert("Proxy-Authorization", auth);
+		}
+		else if (!m_url.user_info().empty())
+		{
+			auth = "Basic " + detail::encode_base64(m_url.user_info());
+			m_request_opts.insert("Proxy-Authorization", auth);
+		}
+	}
+
 	// 默认添加close.
 	std::string connection = "close";
 	if ((m_proxy.type == proxy_settings::http_pw || m_proxy.type == proxy_settings::http)
@@ -1145,12 +1178,20 @@ void http_stream::async_request(const request_opts &opt, BOOST_ASIO_MOVE_ARG(Han
 	request_stream << " " << http_version << "\r\n";
 	request_stream << "Host: " << host << "\r\n";
 	request_stream << "Accept: " << accept << "\r\n";
+	if (!auth.empty())
+	{
+		request_stream << "Proxy-Authorization: " << auth << "\r\n";
+	}
 	request_stream << "User-Agent: " << user_agent << "\r\n";
 	if ((m_proxy.type == proxy_settings::http_pw || m_proxy.type == proxy_settings::http)
 		&& m_protocol != "https")
+	{
 		request_stream << "Proxy-Connection: " << connection << "\r\n";
+	}
 	else
+	{
 		request_stream << "Connection: " << connection << "\r\n";
+	}
 	request_stream << other_option_string << "\r\n";
 	if (!body.empty())
 	{
@@ -1530,7 +1571,19 @@ void http_stream::handle_header(Handler handler, int bytes_transferred, const bo
 	std::string opt_str = m_response_opts.find(http_options::content_encoding);
 #ifdef AVHTTP_ENABLE_ZLIB
 	if (opt_str == "gzip" || opt_str == "x-gzip")
+	{
 		m_is_gzip = true;
+		if (!m_stream.zalloc)
+		{
+			if (inflateInit2(&m_stream, 32+15 ) != Z_OK)	// 初始化ZLIB库, 每次解压每个chunked的时候, 不需要重新初始化.
+			{
+				ec = boost::asio::error::operation_not_supported;
+				LOG_ERROR("Init zlib invalid, error message: \'" << ec.message() << "\'");
+				handler(ec);
+				return;
+			}
+		}
+	}
 #endif
 	// 是否启用了chunked.
 	opt_str = m_response_opts.find(http_options::transfer_encoding);
@@ -1601,6 +1654,7 @@ void http_stream::handle_read(const MutableBufferSequence &buffers, Handler hand
 			}
 
 			bytes_transferred = 0;
+			std::size_t buffer_size = 0;
 
 			{
 				typename MutableBufferSequence::const_iterator iter = buffers.begin();
@@ -1611,6 +1665,11 @@ void http_stream::handle_read(const MutableBufferSequence &buffers, Handler hand
 					boost::asio::mutable_buffer buffer(*iter);
 					m_stream.next_in = (z_const Bytef *)(&m_zlib_buffer[0] + m_zlib_buffer_size - m_stream.avail_in);
 					m_stream.avail_out = boost::asio::buffer_size(buffer);
+					if (m_stream.avail_out == 0)
+					{
+						break; // 如果用户提供的缓冲大小为0, 则直接返回.
+					}
+					buffer_size += m_stream.avail_out;
 					m_stream.next_out = boost::asio::buffer_cast<Bytef*>(buffer);
 					int ret = inflate(&m_stream, Z_SYNC_FLUSH);
 					if (ret < 0)
@@ -1623,12 +1682,23 @@ void http_stream::handle_read(const MutableBufferSequence &buffers, Handler hand
 
 					bytes_transferred += (boost::asio::buffer_size(buffer) - m_stream.avail_out);
 					if (bytes_transferred != boost::asio::buffer_size(buffer))
+					{
 						break;
+					}
 				}
 			}
 
+			// 没有解压出东西, 说明压缩数据过少, 继续读取, 以保证能够解压.
+			if (buffer_size != 0 && bytes_transferred == 0)
+			{
+				async_read_some(buffers, handler);
+				return;
+			}
+
 			if (m_stream.avail_in == 0)
+			{
 				err = ec;	// FIXME!!!
+			}
 
 			handler(err, bytes_transferred);
 			return;
@@ -1720,6 +1790,7 @@ void http_stream::handle_async_read(const MutableBufferSequence &buffers,
 			}
 
 			bytes_transferred = 0;
+			std::size_t buffer_size = 0;
 
 			{
 				typename MutableBufferSequence::const_iterator iter = buffers.begin();
@@ -1730,6 +1801,11 @@ void http_stream::handle_async_read(const MutableBufferSequence &buffers,
 					boost::asio::mutable_buffer buffer(*iter);
 					m_stream.next_in = (z_const Bytef *)(&m_zlib_buffer[0] + m_zlib_buffer_size - m_stream.avail_in);
 					m_stream.avail_out = boost::asio::buffer_size(buffer);
+					if (m_stream.avail_out == 0)
+					{
+						break; // 如果用户提供的缓冲大小为0, 则直接返回.
+					}
+					buffer_size += m_stream.avail_out;
 					m_stream.next_out = boost::asio::buffer_cast<Bytef*>(buffer);
 					int ret = inflate(&m_stream, Z_SYNC_FLUSH);
 					if (ret < 0)
@@ -1742,12 +1818,23 @@ void http_stream::handle_async_read(const MutableBufferSequence &buffers,
 
 					bytes_transferred += (boost::asio::buffer_size(buffer) - m_stream.avail_out);
 					if (bytes_transferred != boost::asio::buffer_size(buffer))
+					{
 						break;
+					}
 				}
 			}
 
+			// 如果用户缓冲区空间不为空, 但没解压出数据, 则继续发起异步读取数据, 以保证能正确返回数据给用户.
+			if (buffer_size != 0 && bytes_transferred == 0)
+			{
+				async_read_some(buffers, handler);
+				return;
+			}
+
 			if (m_chunked_size == 0 && m_stream.avail_in == 0)
+			{
 				err = ec;	// FIXME!!!
+			}
 
 			handler(err, bytes_transferred);
 			return;
@@ -1790,17 +1877,7 @@ void http_stream::handle_chunked_size(const MutableBufferSequence &buffers,
 		ss << std::hex << hex_chunked_size;
 		ss >> m_chunked_size;
 
-#ifdef AVHTTP_ENABLE_ZLIB // 初始化ZLIB库, 每次解压每个chunked的时候, 不需要重新初始化.
-		if (!m_stream.zalloc)
-		{
-			if (inflateInit2(&m_stream, 32+15 ) != Z_OK)
-			{
-				boost::system::error_code err = boost::asio::error::operation_not_supported;
-				handler(err, 0);
-				return;
-			}
-		}
-
+#ifdef AVHTTP_ENABLE_ZLIB
 		if (m_chunked_size == 0 && m_is_gzip)
 		{
 			if (m_stream.avail_in == 0)
@@ -2887,6 +2964,20 @@ void http_stream::handle_connect_https_proxy(Stream &sock, Handler handler,
 	if (opts.find(http_options::host, host))
 		opts.remove(http_options::host);		// 删除处理过的选项.
 
+	// 如果是认证代理.
+	std::string auth;
+	if (m_proxy.type == proxy_settings::http_pw)
+	{
+		std::string user_info = m_proxy.username + ":" + m_proxy.password;
+		user_info = "Basic " + detail::encode_base64(user_info);
+		auth = "Proxy-Authorization:" + user_info;
+	}
+	else if (!m_url.user_info().empty())
+	{
+		std::string user_info = "Basic " + detail::encode_base64(m_url.user_info());
+		auth = "Proxy-Authorization:" + user_info;
+	}
+
 	// 整合各选项到Http请求字符串中.
 	std::string request_string;
 	m_request.consume(m_request.size());
@@ -2895,6 +2986,10 @@ void http_stream::handle_connect_https_proxy(Stream &sock, Handler handler,
 	request_stream << m_url.host() << ":" << m_url.port();
 	request_stream << " " << http_version << "\r\n";
 	request_stream << "Host: " << host << "\r\n";
+	if (!auth.empty())
+	{
+		request_stream << auth << "\r\n";
+	}
 	request_stream << "Accept: " << accept << "\r\n";
 	request_stream << "User-Agent: " << user_agent << "\r\n\r\n";
 
@@ -3277,6 +3372,24 @@ void http_stream::request_impl(Stream &sock, request_opts &opt, boost::system::e
 		opts.remove(http_options::user_agent);	// 删除处理过的选项.
 	m_request_opts.insert(http_options::user_agent, user_agent);
 
+	// 如果是认证代理.
+	std::string auth;
+	if ((m_proxy.type == proxy_settings::http_pw || m_proxy.type == proxy_settings::http)
+		&& m_protocol != "https")
+	{
+		if (m_proxy.type == proxy_settings::http_pw)
+		{
+			auth = m_proxy.username + ":" + m_proxy.password;
+			auth = "Basic " + detail::encode_base64(auth);
+			m_request_opts.insert("Proxy-Authorization", auth);
+		}
+		else if (!m_url.user_info().empty())
+		{
+			auth = "Basic " + detail::encode_base64(m_url.user_info());
+			m_request_opts.insert("Proxy-Authorization", auth);
+		}
+	}
+
 	// 默认添加close.
 	std::string connection = "close";
 	if ((m_proxy.type == proxy_settings::http_pw || m_proxy.type == proxy_settings::http)
@@ -3339,9 +3452,17 @@ void http_stream::request_impl(Stream &sock, request_opts &opt, boost::system::e
 	request_stream << "User-Agent: " << user_agent << "\r\n";
 	if ((m_proxy.type == proxy_settings::http_pw || m_proxy.type == proxy_settings::http)
 		&& m_protocol != "https")
+	{
 		request_stream << "Proxy-Connection: " << connection << "\r\n";
+	}
 	else
+	{
 		request_stream << "Connection: " << connection << "\r\n";
+	}
+	if (!auth.empty())
+	{
+		request_stream << "Proxy-Authorization: " << auth << "\r\n";
+	}
 	request_stream << other_option_string << "\r\n";
 	if (!body.empty())
 	{
@@ -3456,7 +3577,18 @@ void http_stream::request_impl(Stream &sock, request_opts &opt, boost::system::e
 	std::string opt_str = m_response_opts.find(http_options::content_encoding);
 #ifdef AVHTTP_ENABLE_ZLIB
 	if (opt_str == "gzip" || opt_str == "x-gzip")
+	{
 		m_is_gzip = true;
+		if (!m_stream.zalloc)	// 初始化ZLIB库, 每次解压每个chunked的时候, 不需要重新初始化.
+		{
+			if (inflateInit2(&m_stream, 32+15 ) != Z_OK)
+			{
+				ec = boost::asio::error::operation_not_supported;
+				LOG_ERROR("Init zlib invalid, error message: \'" << ec.message() << "\'");
+				return;
+			}
+		}
+	}
 #endif
 	// 是否启用了chunked.
 	opt_str = m_response_opts.find(http_options::transfer_encoding);
