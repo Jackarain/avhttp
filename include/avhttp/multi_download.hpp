@@ -31,7 +31,6 @@
 #include <boost/filesystem/fstream.hpp>
 #include <boost/crc.hpp>  // for boost::crc_32_type
 
-
 #include "avhttp/file.hpp"
 #include "avhttp/http_stream.hpp"
 #include "avhttp/rangefield.hpp"
@@ -368,7 +367,7 @@ public:
 		}
 		if (m_settings.piece_size == -1 && m_file_size != -1)
 		{
-			m_settings.piece_size = default_piece_size;
+			m_settings.piece_size = default_piece_size(m_file_size);
 		}
 
 		// 关闭stream.
@@ -794,26 +793,19 @@ public:
 	///当前已经下载的字节总数.
 	AVHTTP_DECL boost::int64_t bytes_download() const
 	{
-		if (m_file_size != -1)
-		{
-			return m_downlaoded_field.range_size();
-		}
+		boost::int64_t bytes_transferred = 0;
+		boost::condition cond;
+		boost::mutex::scoped_lock lock(m_mutex);
 
-		boost::int64_t bytes_count = 0;
+		// 通知下载位置改变.
+		m_io_service.post(boost::bind(&multi_download::handle_bytes_download,
+			this, boost::ref(cond), boost::ref(bytes_transferred)));
 
-#ifndef AVHTTP_DISABLE_THREAD
-		boost::mutex::scoped_lock lock(m_streams_mutex);
-#endif
-		for (std::size_t i = 0; i < m_streams.size(); i++)
-		{
-			const http_object_ptr &ptr = m_streams[i];
-			if (ptr)
-			{
-				bytes_count += ptr->bytes_downloaded;
-			}
-		}
+		// 等待完成操作.
+		cond.wait(lock);
 
-		return bytes_count;
+		// 得到结果并返回.
+		return bytes_transferred;
 	}
 
 	///当前下载速率, 单位byte/s.
@@ -835,6 +827,37 @@ public:
 	}
 
 protected:
+
+	void handle_bytes_download(boost::condition &cond, boost::int64_t &bytes_transferred) const
+	{
+		boost::mutex::scoped_lock lock(m_mutex);
+		if (m_file_size != -1)
+		{
+			bytes_transferred = m_downlaoded_field.range_size();
+			cond.notify_one();
+			return;
+		}
+
+		bytes_transferred = 0;
+
+		{
+#ifndef AVHTTP_DISABLE_THREAD
+			boost::mutex::scoped_lock l(m_streams_mutex);
+#endif
+
+			for (std::size_t i = 0; i < m_streams.size(); i++)
+			{
+				const http_object_ptr &ptr = m_streams[i];
+				if (ptr)
+				{
+					bytes_transferred += ptr->bytes_downloaded;
+				}
+			}
+		}
+
+		cond.notify_one();
+	}
+
 	void handle_open(const int index,
 		http_object_ptr object_ptr, const boost::system::error_code &ec)
 	{
@@ -1243,7 +1266,7 @@ protected:
 		}
 		if (m_settings.piece_size == -1 && m_file_size != -1)
 		{
-			m_settings.piece_size = default_piece_size;
+			m_settings.piece_size = default_piece_size(m_file_size);
 		}
 
 		// 关闭stream.
@@ -1628,14 +1651,22 @@ protected:
 			std::vector<char> buffer;
 
 			buffer.resize(size);
-			m_file_meta.read(&buffer[0], 0, size);
+			const std::streamsize num = m_file_meta.read(&buffer[0], 0, size);
+			if (num != size)
+			{
+				return false;
+			}
 
 			entry e = bdecode(buffer.begin(), buffer.end());
 
 			// 最终的url.
 			if (m_settings.allow_use_meta_url)
 			{
-				m_final_url = e["final_url"].string();
+				const std::string url = e["final_url"].string();
+				if (!url.empty())
+				{
+					m_final_url = url;
+				}
 			}
 
 			// 文件大小.
@@ -1708,6 +1739,23 @@ private:
 		{
 			m_outstanding--;
 		}
+	}
+
+	// 默认根据文件大小自动计算分片大小.
+	std::size_t default_piece_size(const boost::int64_t &file_size) const
+	{
+		const int target_size = 40 * 1024;
+		std::size_t piece_size = boost::int64_t(file_size / (target_size / 20));
+
+		int i = 16 * 1024;
+		for (; i < 16 * 1024 * 1024; i *= 2)
+		{
+			if (piece_size > i) continue;
+			break;
+		}
+		piece_size = i;
+
+		return piece_size;
 	}
 
 private:
@@ -1785,6 +1833,8 @@ private:
 #ifndef AVHTTP_DISABLE_THREAD
 	mutable boost::mutex m_outstanding_mutex;
 #endif
+
+	mutable boost::mutex m_mutex;
 
 	// 是否中止工作.
 	bool m_abort;

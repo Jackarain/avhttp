@@ -216,7 +216,7 @@ struct proxy_settings
 		socks5_pw,
 		// http代理, 不需要认证.
 		http,
-		// TODO: http代理, 需要认证.
+		// http代理, 需要认证.
 		http_pw,
 	};
 
@@ -227,7 +227,6 @@ struct proxy_settings
 // 一些默认的值.
 static const int default_request_piece_num = 10;
 static const int default_time_out = 11;
-static const int default_piece_size = 32768;
 static const int default_connections_limit = 5;
 static const int default_buffer_size = 1024;
 
@@ -238,7 +237,7 @@ struct settings
 	settings ()
 		: download_rate_limit(-1)
 		, connections_limit(default_connections_limit)
-		, piece_size(default_piece_size)
+		, piece_size(-1)
 		, time_out(default_time_out)
 		, request_piece_num(default_request_piece_num)
 		, allow_use_meta_url(true)

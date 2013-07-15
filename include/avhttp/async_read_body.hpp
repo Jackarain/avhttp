@@ -19,42 +19,10 @@
 BOOST_STATIC_ASSERT_MSG(BOOST_VERSION >= 105400, "You must use boost-1.54 or later!!!");
 
 #include "avhttp/http_stream.hpp"
+#include "avhttp/completion_condition.hpp"
 
 namespace avhttp {
 namespace detail {
-
-// match condition!
-struct read_all_t
-{
-	read_all_t(boost::int64_t content_length)
-		: m_content_length(content_length)
-	{
-	}
-
-	template <typename Error>
-	std::size_t operator()(const Error& err, std::size_t bytes_transferred)
-	{
-		if(err)
-			return 0;
-
-		if(m_content_length > 0 )
-		{
-			// 读取到 content_length 是吧.
-			return m_content_length - bytes_transferred;
-		}
-		else
-		{
-			return 4096;
-		}
-	}
-
-	boost::int64_t m_content_length;
-};
-
-inline read_all_t read_all(boost::int64_t content_length)
-{
-	return read_all_t(content_length);
-}
 
 template <typename AsyncReadStream, typename MutableBufferSequence, typename Handler>
 class read_body_op : boost::asio::coroutine
@@ -92,7 +60,7 @@ public:
 			if(!ec)
 			{
 				BOOST_ASIO_CORO_YIELD boost::asio::async_read(
-					m_stream, m_buffers, read_all(m_stream.content_length()), *this);
+					m_stream, m_buffers, transfer_response_body(m_stream.content_length()), *this);
 			}
 			else
 			{
@@ -100,7 +68,7 @@ public:
 				return;
 			}
 
-			if(ec == boost::asio::error::eof && m_stream.content_length() == 0)
+			if(ec == boost::asio::error::eof && m_stream.content_length() == -1)
 			{
 				m_handler(boost::system::error_code(), bytes_transferred);
 			}

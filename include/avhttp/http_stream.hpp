@@ -18,7 +18,6 @@
 #include <vector>
 #include <cstring>	// for std::strcmp/std::strlen
 
-#include <boost/lexical_cast.hpp>
 #include <boost/shared_array.hpp>
 #include <boost/asio/detail/config.hpp>
 
