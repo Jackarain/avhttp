@@ -735,11 +735,28 @@ public:
 	}
 
 	///等待直接下载完成.
+	// @完成返回true, 否则返回false.
 	AVHTTP_DECL bool wait_for_complete()
 	{
-		if (m_abort)
+		while (!stopped())
 		{
+			if (!m_abort)
+			{
+				boost::mutex::scoped_lock l(m_mutex);
+				m_cond.wait(l);
+			}
 		}
+		// 检查是否下载完成, 完成返回true, 否则返回false.
+		boost::int64_t fs = file_size();
+		if (fs != -1)
+		{
+			if (fs != bytes_download())
+			{
+				return false;	// 未下载完成.
+			}
+		}
+
+		return true; // 下载完成.
 	}
 
 	///设置是否检查证书, 默认检查证书.
@@ -1558,6 +1575,9 @@ protected:
 			boost::system::error_code ignore;
 			m_abort = true;
 			m_timer.cancel(ignore);
+			// 通知wait_for_complete退出.
+			boost::mutex::scoped_lock l(m_mutex);
+			m_cond.notify_one();
 			return;
 		}
 	}
@@ -1823,6 +1843,7 @@ private:
 #endif
 
 	mutable boost::mutex m_mutex;
+	mutable boost::condition m_cond;
 
 	// 是否中止工作.
 	bool m_abort;
