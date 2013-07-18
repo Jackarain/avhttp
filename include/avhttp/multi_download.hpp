@@ -734,6 +734,14 @@ public:
 		return false;
 	}
 
+	///等待直接下载完成.
+	AVHTTP_DECL bool wait_for_complete()
+	{
+		if (m_abort)
+		{
+		}
+	}
+
 	///设置是否检查证书, 默认检查证书.
 	// @param check指定是否检查ssl证书.
 	AVHTTP_DECL void check_certificate(bool check)
@@ -1564,7 +1572,7 @@ protected:
 			}
 		}
 
-		// 检查位图是否已经满以及异步操作是否完成.
+		// 当m_streams中所有连接都done时, 表示已经下载完成.
 		if (done == m_streams.size())
 		{
 			boost::system::error_code ignore;
