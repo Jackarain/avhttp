@@ -801,18 +801,28 @@ public:
 	///当前已经下载的字节总数.
 	AVHTTP_DECL boost::int64_t bytes_download() const
 	{
+		if (m_file_size != -1)
+		{
+			return m_downlaoded_field.range_size();
+		}
+
 		boost::int64_t bytes_transferred = 0;
-		boost::condition cond;
-		boost::mutex::scoped_lock lock(m_mutex);
 
-		// 通知下载位置改变.
-		m_io_service.post(boost::bind(&multi_download::handle_bytes_download,
-			this, boost::ref(cond), boost::ref(bytes_transferred)));
+		{
+#ifndef AVHTTP_DISABLE_THREAD
+			boost::mutex::scoped_lock l(m_streams_mutex);
+#endif
 
-		// 等待完成操作.
-		cond.wait(lock);
+			for (std::size_t i = 0; i < m_streams.size(); i++)
+			{
+				const http_object_ptr &ptr = m_streams[i];
+				if (ptr)
+				{
+					bytes_transferred += ptr->bytes_downloaded;
+				}
+			}
+		}
 
-		// 得到结果并返回.
 		return bytes_transferred;
 	}
 
@@ -835,36 +845,6 @@ public:
 	}
 
 protected:
-
-	void handle_bytes_download(boost::condition &cond, boost::int64_t &bytes_transferred) const
-	{
-		boost::mutex::scoped_lock lock(m_mutex);
-		if (m_file_size != -1)
-		{
-			bytes_transferred = m_downlaoded_field.range_size();
-			cond.notify_one();
-			return;
-		}
-
-		bytes_transferred = 0;
-
-		{
-#ifndef AVHTTP_DISABLE_THREAD
-			boost::mutex::scoped_lock l(m_streams_mutex);
-#endif
-
-			for (std::size_t i = 0; i < m_streams.size(); i++)
-			{
-				const http_object_ptr &ptr = m_streams[i];
-				if (ptr)
-				{
-					bytes_transferred += ptr->bytes_downloaded;
-				}
-			}
-		}
-
-		cond.notify_one();
-	}
 
 	void handle_open(const int index,
 		http_object_ptr object_ptr, const boost::system::error_code &ec)

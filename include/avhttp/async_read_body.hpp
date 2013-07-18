@@ -68,7 +68,7 @@ public:
 				return;
 			}
 
-			if(ec == boost::asio::error::eof && m_stream.content_length() == 0)
+			if(ec == boost::asio::error::eof && m_stream.content_length() == -1)
 			{
 				m_handler(boost::system::error_code(), bytes_transferred);
 			}
