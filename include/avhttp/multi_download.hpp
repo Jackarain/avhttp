@@ -734,6 +734,31 @@ public:
 		return false;
 	}
 
+	///等待直接下载完成.
+	// @完成返回true, 否则返回false.
+	AVHTTP_DECL bool wait_for_complete()
+	{
+		while (!stopped())
+		{
+			if (!m_abort)
+			{
+				boost::mutex::scoped_lock l(m_mutex);
+				m_cond.wait(l);
+			}
+		}
+		// 检查是否下载完成, 完成返回true, 否则返回false.
+		boost::int64_t fs = file_size();
+		if (fs != -1)
+		{
+			if (fs != bytes_download())
+			{
+				return false;	// 未下载完成.
+			}
+		}
+
+		return true; // 下载完成.
+	}
+
 	///设置是否检查证书, 默认检查证书.
 	// @param check指定是否检查ssl证书.
 	AVHTTP_DECL void check_certificate(bool check)
@@ -793,18 +818,28 @@ public:
 	///当前已经下载的字节总数.
 	AVHTTP_DECL boost::int64_t bytes_download() const
 	{
+		if (m_file_size != -1)
+		{
+			return m_downlaoded_field.range_size();
+		}
+
 		boost::int64_t bytes_transferred = 0;
-		boost::condition cond;
-		boost::mutex::scoped_lock lock(m_mutex);
 
-		// 通知下载位置改变.
-		m_io_service.post(boost::bind(&multi_download::handle_bytes_download,
-			this, boost::ref(cond), boost::ref(bytes_transferred)));
+		{
+#ifndef AVHTTP_DISABLE_THREAD
+			boost::mutex::scoped_lock l(m_streams_mutex);
+#endif
 
-		// 等待完成操作.
-		cond.wait(lock);
+			for (std::size_t i = 0; i < m_streams.size(); i++)
+			{
+				const http_object_ptr &ptr = m_streams[i];
+				if (ptr)
+				{
+					bytes_transferred += ptr->bytes_downloaded;
+				}
+			}
+		}
 
-		// 得到结果并返回.
 		return bytes_transferred;
 	}
 
@@ -827,36 +862,6 @@ public:
 	}
 
 protected:
-
-	void handle_bytes_download(boost::condition &cond, boost::int64_t &bytes_transferred) const
-	{
-		boost::mutex::scoped_lock lock(m_mutex);
-		if (m_file_size != -1)
-		{
-			bytes_transferred = m_downlaoded_field.range_size();
-			cond.notify_one();
-			return;
-		}
-
-		bytes_transferred = 0;
-
-		{
-#ifndef AVHTTP_DISABLE_THREAD
-			boost::mutex::scoped_lock l(m_streams_mutex);
-#endif
-
-			for (std::size_t i = 0; i < m_streams.size(); i++)
-			{
-				const http_object_ptr &ptr = m_streams[i];
-				if (ptr)
-				{
-					bytes_transferred += ptr->bytes_downloaded;
-				}
-			}
-		}
-
-		cond.notify_one();
-	}
 
 	void handle_open(const int index,
 		http_object_ptr object_ptr, const boost::system::error_code &ec)
@@ -1564,12 +1569,15 @@ protected:
 			}
 		}
 
-		// 检查位图是否已经满以及异步操作是否完成.
+		// 当m_streams中所有连接都done时, 表示已经下载完成.
 		if (done == m_streams.size())
 		{
 			boost::system::error_code ignore;
 			m_abort = true;
 			m_timer.cancel(ignore);
+			// 通知wait_for_complete退出.
+			boost::mutex::scoped_lock l(m_mutex);
+			m_cond.notify_one();
 			return;
 		}
 	}
@@ -1835,6 +1843,7 @@ private:
 #endif
 
 	mutable boost::mutex m_mutex;
+	mutable boost::condition m_cond;
 
 	// 是否中止工作.
 	bool m_abort;
