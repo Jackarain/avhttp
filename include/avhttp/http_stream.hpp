@@ -19,7 +19,6 @@
 #include <cstring>	// for std::strcmp/std::strlen
 
 #include <boost/shared_array.hpp>
-#include <boost/asio/detail/config.hpp>
 
 #include "avhttp/url.hpp"
 #include "avhttp/settings.hpp"
