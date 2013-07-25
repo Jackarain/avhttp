@@ -20,6 +20,10 @@
 #include <boost/system/system_error.hpp>
 #include <boost/system/error_code.hpp>
 
+#ifndef BOOST_SYSTEM_NOEXCEPT
+#define BOOST_SYSTEM_NOEXCEPT BOOST_NOEXCEPT
+#endif
+
 namespace avhttp {
 
 namespace detail {
