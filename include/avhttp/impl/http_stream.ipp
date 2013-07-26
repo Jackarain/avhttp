@@ -152,8 +152,15 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 			port_string.imbue(std::locale("C"));
 			port_string << m_url.port();
 			tcp::resolver::query query(m_url.host(), port_string.str());
-			tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
+			tcp::resolver::iterator endpoint_iterator = resolver.resolve(query, ec);
 			tcp::resolver::iterator end;
+
+			if (ec)	// 解析域名出错, 直接返回相关错误信息.
+			{
+				LOG_ERROR("Resolve DNS error \'" << m_url.host() <<
+					"\', error message \'" << ec.message() << "\'");
+				return ;
+			}
 
 			// 尝试连接解析出来的服务器地址.
 			ec = boost::asio::error::host_not_found;
@@ -264,8 +271,15 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 				port_string.imbue(std::locale("C"));
 				port_string << m_proxy.port;
 				tcp::resolver::query query(m_proxy.hostname, port_string.str());
-				tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
+				tcp::resolver::iterator endpoint_iterator = resolver.resolve(query, ec);
 				tcp::resolver::iterator end;
+
+				if (ec)	// 解析域名出错, 直接返回相关错误信息.
+				{
+					LOG_ERROR("Resolve DNS error \'" << m_proxy.hostname <<
+						"\', error message \'" << ec.message() << "\'");
+					return ;
+				}
 
 				// 尝试连接解析出来的代理服务器地址.
 				ec = boost::asio::error::host_not_found;
@@ -1951,9 +1965,12 @@ void http_stream::socks_proxy_connect(Stream &sock, boost::system::error_code &e
 	tcp::resolver::iterator endpoint_iterator = resolver.resolve(query, ec);
 	tcp::resolver::iterator end;
 
-	// 如果解析失败, 则返回.
-	if (ec)
-		return;
+	if (ec)	// 解析域名出错, 直接返回相关错误信息.
+	{
+		LOG_ERROR("Resolve DNS error \'" << s.hostname <<
+			"\', error message \'" << ec.message() << "\'");
+		return ;
+	}
 
 	// 尝试连接解析出来的服务器地址.
 	ec = boost::asio::error::host_not_found;
@@ -2120,7 +2137,14 @@ void http_stream::socks_proxy_handshake(Stream &sock, boost::system::error_code 
 		port_string << u.port();
 		tcp::resolver::query query(host.c_str(), port_string.str());
 		// 解析出域名中的ip地址.
-		unsigned long ip = resolver.resolve(query, ec)->endpoint().address().to_v4().to_ulong();
+		tcp::resolver::iterator endpoint_iterator = resolver.resolve(query, ec);
+		if (ec)	// 解析域名出错, 直接返回相关错误信息.
+		{
+			LOG_ERROR("Resolve DNS error \'" << host <<
+				"\', error message \'" << ec.message() << "\'");
+			return;
+		}
+		unsigned long ip = endpoint_iterator->endpoint().address().to_v4().to_ulong();
 		write_uint16(u.port(), wp);	// port.
 		write_uint32(ip, wp);		// ip address.
 		// username.
@@ -3168,8 +3192,15 @@ void http_stream::https_proxy_connect(Stream &sock, boost::system::error_code &e
 	port_string.imbue(std::locale("C"));
 	port_string << m_proxy.port;
 	tcp::resolver::query query(m_proxy.hostname, port_string.str());
-	tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
+	tcp::resolver::iterator endpoint_iterator = resolver.resolve(query, ec);
 	tcp::resolver::iterator end;
+
+	if (ec)	// 解析域名出错, 直接返回相关错误信息.
+	{
+		LOG_ERROR("Resolve DNS error \'" << m_proxy.hostname <<
+			"\', error message \'" << ec.message() << "\'");
+		return ;
+	}
 
 	// 尝试连接解析出来的代理服务器地址.
 	ec = boost::asio::error::host_not_found;
