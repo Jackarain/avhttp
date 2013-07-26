@@ -86,7 +86,7 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 	// 判断获得请求的url类型.
 	if (m_protocol != "http"
 #ifdef AVHTTP_ENABLE_OPENSSL
-		|| m_protocol != "https"
+		&& m_protocol != "https"
 #endif
 		)
 	{
@@ -378,7 +378,7 @@ void http_stream::async_open(const url &u, BOOST_ASIO_MOVE_ARG(Handler) handler)
 	// 判断获得请求的url类型.
 	if (m_protocol != "http"
 #ifdef AVHTTP_ENABLE_OPENSSL
-		|| m_protocol != "https"
+		&& m_protocol != "https"
 #endif
 		)
 	{
