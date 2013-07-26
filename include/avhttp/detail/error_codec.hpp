@@ -248,7 +248,7 @@ namespace detail {
 class error_category_impl
   : public boost::system::error_category
 {
-	virtual const char* name() const
+	virtual const char* name() const BOOST_SYSTEM_NOEXCEPT
 	{
 		return "HTTP";
 	}
@@ -368,7 +368,7 @@ class error_category_impl
 		}
 	}
 
-	virtual boost::system::error_condition default_error_condition(int e) const
+	virtual boost::system::error_condition default_error_condition(int e) const BOOST_SYSTEM_NOEXCEPT
 	{
 		switch (e)
 		{
