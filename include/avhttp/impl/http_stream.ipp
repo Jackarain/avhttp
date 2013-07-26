@@ -67,9 +67,8 @@ void http_stream::open(const url &u)
 
 void http_stream::open(const url &u, boost::system::error_code &ec)
 {
-	const std::string protocol = u.protocol();
-
-	// 保存url.
+	// 保存url相关的信息.
+	m_protocol = u.protocol();
 	m_url = u;
 
 	LOG_DEBUG("Sync open url \'" << u.to_string() << "\'");
@@ -82,21 +81,14 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 	m_content_type = "";
 	m_request.consume(m_request.size());
 	m_response.consume(m_response.size());
-	m_protocol = "";
 	m_skip_crlf = true;
 
-	// 获得请求的url类型.
-	if (protocol == "http")
-	{
-		m_protocol = "http";
-	}
+	// 判断获得请求的url类型.
+	if (m_protocol != "http"
 #ifdef AVHTTP_ENABLE_OPENSSL
-	else if (protocol == "https")
-	{
-		m_protocol = "https";
-	}
+		|| m_protocol != "https"
 #endif
-	else
+		)
 	{
 		LOG_ERROR("Unsupported scheme \'" << m_protocol << "\'");
 		ec = boost::asio::error::operation_not_supported;
@@ -104,12 +96,12 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 	}
 
 	// 构造socket.
-	if (protocol == "http")
+	if (m_protocol == "http")
 	{
 		m_sock.instantiate<nossl_socket>(m_io_service);
 	}
 #ifdef AVHTTP_ENABLE_OPENSSL
-	else if (protocol == "https")
+	else if (m_protocol == "https")
 	{
 		m_sock.instantiate<ssl_socket>(m_nossl_socket);
 
@@ -185,7 +177,7 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 			m_proxy.type == proxy_settings::socks4 ||
 			m_proxy.type == proxy_settings::socks5_pw)	// socks代理.
 		{
-			if (protocol == "http")
+			if (m_protocol == "http")
 			{
 				socks_proxy_connect(m_sock, ec);
 				if (ec)
@@ -200,7 +192,7 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 				}
 			}
 #ifdef AVHTTP_ENABLE_OPENSSL
-			else if (protocol == "https")
+			else if (m_protocol == "https")
 			{
 				socks_proxy_connect(m_nossl_socket, ec);
 				if (ec)
@@ -352,9 +344,9 @@ void http_stream::async_open(const url &u, BOOST_ASIO_MOVE_ARG(Handler) handler)
 	AVHTTP_OPEN_HANDLER_CHECK(Handler, handler) type_check;
 
 	boost::system::error_code ec;
-	const std::string protocol = u.protocol();
 
-	// 保存url.
+	// 保存url相关的信息.
+	m_protocol = u.protocol();
 	m_url = u;
 
 	LOG_DEBUG("Async open url \'" << u.to_string() << "\'");
@@ -367,21 +359,14 @@ void http_stream::async_open(const url &u, BOOST_ASIO_MOVE_ARG(Handler) handler)
 	m_content_type = "";
 	m_request.consume(m_request.size());
 	m_response.consume(m_response.size());
-	m_protocol = "";
 	m_skip_crlf = true;
 
-	// 获得请求的url类型.
-	if (protocol == "http")
-	{
-		m_protocol = "http";
-	}
+	// 判断获得请求的url类型.
+	if (m_protocol != "http"
 #ifdef AVHTTP_ENABLE_OPENSSL
-	else if (protocol == "https")
-	{
-		m_protocol = "https";
-	}
+		|| m_protocol != "https"
 #endif
-	else
+		)
 	{
 		LOG_ERROR("Unsupported scheme \'" << m_protocol << "\'");
 		m_io_service.post(boost::asio::detail::bind_handler(
@@ -390,12 +375,12 @@ void http_stream::async_open(const url &u, BOOST_ASIO_MOVE_ARG(Handler) handler)
 	}
 
 	// 构造socket.
-	if (protocol == "http")
+	if (m_protocol == "http")
 	{
 		m_sock.instantiate<nossl_socket>(m_io_service);
 	}
 #ifdef AVHTTP_ENABLE_OPENSSL
-	else if (protocol == "https")
+	else if (m_protocol == "https")
 	{
 		m_sock.instantiate<ssl_socket>(m_nossl_socket);
 
@@ -454,12 +439,12 @@ void http_stream::async_open(const url &u, BOOST_ASIO_MOVE_ARG(Handler) handler)
 	if (m_proxy.type == proxy_settings::socks4 || m_proxy.type == proxy_settings::socks5
 		|| m_proxy.type == proxy_settings::socks5_pw)
 	{
-		if (protocol == "http")
+		if (m_protocol == "http")
 		{
 			async_socks_proxy_connect(m_sock, handler);
 		}
 #ifdef AVHTTP_ENABLE_OPENSSL
-		else if (protocol == "https")
+		else if (m_protocol == "https")
 		{
 			async_socks_proxy_connect(m_nossl_socket, handler);
 		}
