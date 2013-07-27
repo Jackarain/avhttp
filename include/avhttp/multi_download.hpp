@@ -1360,7 +1360,7 @@ protected:
 				}
 
 				// 保存请求区间.
-				obj->request_range = req_range;
+				object_ptr->request_range = req_range;
 
 				// 设置请求区间到请求选项中.
 				req_opt.remove(http_options::range);
@@ -1368,7 +1368,7 @@ protected:
 					boost::format("bytes=%lld-%lld", std::locale("C")) % req_range.left % req_range.right));
 
 				// 保存最后请求时间, 用于检查超时重置.
-				obj->last_request_time = boost::posix_time::microsec_clock::local_time();
+				object_ptr->last_request_time = boost::posix_time::microsec_clock::local_time();
 
 				// 添加代理设置.
 				h.proxy(m_settings.proxy);
