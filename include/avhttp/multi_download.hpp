@@ -1381,9 +1381,10 @@ protected:
 
 				if (need_reopen)
 				{
-					h.close(ec);	// 关闭原来的连接, 需要请求新的区间.
-					if (ec)
+					h.close(err);	// 关闭原来的连接, 需要请求新的区间.
+					if (err)
 					{
+						handler(err);
 						return;
 					}
 
