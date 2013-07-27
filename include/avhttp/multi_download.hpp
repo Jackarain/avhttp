@@ -1338,7 +1338,7 @@ protected:
 #ifndef AVHTTP_DISABLE_THREAD
 			boost::mutex::scoped_lock lock(m_streams_mutex);
 #endif
-			m_streams.push_back(obj);
+			m_streams.push_back(object_ptr);
 		}
 
 		// 为第1个连接请求的buffer大小.
@@ -1392,7 +1392,7 @@ protected:
 					h.async_open(m_final_url,
 						boost::bind(&multi_download::handle_open,
 							this,
-							0, obj,
+							0, object_ptr,
 							boost::asio::placeholders::error
 						)
 					);
@@ -1405,7 +1405,7 @@ protected:
 					h.async_read_some(boost::asio::buffer(obj->buffer, available_bytes),
 						boost::bind(&multi_download::handle_read,
 							this,
-							0, obj,
+							0, object_ptr,
 							boost::asio::placeholders::bytes_transferred,
 							boost::asio::placeholders::error
 						)
@@ -1416,7 +1416,7 @@ protected:
 			{
 				// 分配空间失败, 说明可能已经没有空闲的空间提供
 				// 给这个stream进行下载了直接跳过好了.
-				obj->done = true;
+				object_ptr->done = true;
 			}
 		}
 		else	// 服务器不支持多点下载模式, 继续从第1个连接下载.
@@ -1427,7 +1427,7 @@ protected:
 			h.async_read_some(boost::asio::buffer(obj->buffer, available_bytes),
 				boost::bind(&multi_download::handle_read,
 					this,
-					0, obj,
+					0, object_ptr,
 					boost::asio::placeholders::bytes_transferred,
 					boost::asio::placeholders::error
 				)
