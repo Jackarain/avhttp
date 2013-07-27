@@ -370,20 +370,6 @@ public:
 			m_settings.piece_size = default_piece_size(m_file_size);
 		}
 
-		// 关闭stream.
-		h.close(ec);
-		if (ec)
-		{
-			return;
-		}
-
-		{
-#ifndef AVHTTP_DISABLE_THREAD
-			boost::mutex::scoped_lock lock(m_streams_mutex);
-#endif
-			m_streams.push_back(obj);
-		}
-
 		// 根据第1个连接返回的信息, 重新设置请求选项.
 		req_opt = m_settings.opts;
 		if (m_keep_alive)
@@ -398,8 +384,109 @@ public:
 		// 修改终止状态.
 		m_abort = false;
 
-		// 连接计数清0.
-		m_number_of_connections = 0;
+		// 连接计数置为1.
+		m_number_of_connections = 1;
+
+		// 添加第一个连接到连接容器.
+		{
+#ifndef AVHTTP_DISABLE_THREAD
+			boost::mutex::scoped_lock lock(m_streams_mutex);
+#endif
+			m_streams.push_back(obj);
+		}
+
+		// 为第1个连接请求的buffer大小.
+		int available_bytes = default_buffer_size;
+
+		// 设置第1个连接下载范围.
+		if (m_accept_multi)
+		{
+			range req_range;
+			bool need_reopen = false;
+
+			// 从文件区间中获得一段空间, 这是第一次分配给obj下载的任务.
+			if (allocate_range(req_range))
+			{
+				// 分配到的起始边界不是0, 需要重新open这个obj.
+				if (req_range.left != 0)
+				{
+					need_reopen = true;
+				}
+
+				// 保存请求区间.
+				obj->request_range = req_range;
+
+				// 设置请求区间到请求选项中.
+				req_opt.remove(http_options::range);
+				req_opt.insert(http_options::range, boost::str(
+					boost::format("bytes=%lld-%lld", std::locale("C")) % req_range.left % req_range.right));
+
+				// 保存最后请求时间, 用于检查超时重置.
+				obj->last_request_time = boost::posix_time::microsec_clock::local_time();
+
+				// 添加代理设置.
+				h.proxy(m_settings.proxy);
+				// 设置请求选项.
+				h.request_options(req_opt);
+				// 如果是ssl连接, 默认为检查证书.
+				h.check_certificate(m_settings.check_certificate);
+				// 禁用重定向.
+				h.max_redirects(0);
+
+				if (need_reopen)
+				{
+					h.close(ec);	// 关闭原来的连接, 需要请求新的区间.
+					if (ec)
+					{
+						return;
+					}
+
+					change_outstranding(true);
+					// 开始异步打开.
+					h.async_open(m_final_url,
+						boost::bind(&multi_download::handle_open,
+							this,
+							0, obj,
+							boost::asio::placeholders::error
+						)
+					);
+				}
+				else
+				{
+					// 发起数据读取请求.
+					change_outstranding(true);
+					// 传入指针obj, 以确保多线程安全.
+					h.async_read_some(boost::asio::buffer(obj->buffer, available_bytes),
+						boost::bind(&multi_download::handle_read,
+							this,
+							0, obj,
+							boost::asio::placeholders::bytes_transferred,
+							boost::asio::placeholders::error
+						)
+					);
+				}
+			}
+			else
+			{
+				// 分配空间失败, 说明可能已经没有空闲的空间提供
+				// 给这个stream进行下载了直接跳过好了.
+				obj->done = true;
+			}
+		}
+		else	// 服务器不支持多点下载模式, 继续从第1个连接下载.
+		{
+			// 发起数据读取请求.
+			change_outstranding(true);
+			// 传入指针obj, 以确保多线程安全.
+			h.async_read_some(boost::asio::buffer(obj->buffer, available_bytes),
+				boost::bind(&multi_download::handle_read,
+					this,
+					0, obj,
+					boost::asio::placeholders::bytes_transferred,
+					boost::asio::placeholders::error
+				)
+			);
+		}
 
 		// 如果支持多点下载, 按设置创建其它http_stream.
 		if (m_accept_multi)
@@ -457,52 +544,6 @@ public:
 					i, p, boost::asio::placeholders::error));
 			}
 		}
-
-		// 为已经第1个已经打开的http_stream发起异步数据请求, index标识为0.
-		do
-		{
-			if (m_accept_multi)
-			{
-				range req_range;
-
-				// 从文件间区中得到一段空间.
-				if (!allocate_range(req_range))
-				{
-					// 分配空间失败, 说明可能已经没有空闲的空间提供给这个stream进行下载了直接跳过好了.
-					obj->done = true;
-					break;
-				}
-
-				// 保存请求区间.
-				obj->request_range = req_range;
-
-				// 设置请求区间到请求选项中.
-				req_opt.remove(http_options::range);
-				req_opt.insert(http_options::range, boost::str(
-					boost::format("bytes=%lld-%lld", std::locale("C")) % req_range.left % req_range.right));
-			}
-
-			// 保存最后请求时间, 方便检查超时重置.
-			obj->last_request_time = boost::posix_time::microsec_clock::local_time();
-
-			m_number_of_connections++;
-
-			// 添加代理设置.
-			h.proxy(m_settings.proxy);
-			// 设置请求选项.
-			h.request_options(req_opt);
-			// 如果是ssl连接, 默认为检查证书.
-			h.check_certificate(m_settings.check_certificate);
-			// 禁用重定向.
-			h.max_redirects(0);
-
-			change_outstranding(true);
-			// 开始异步打开.
-			h.async_open(m_final_url,
-				boost::bind(&multi_download::handle_open, this,
-				0, obj, boost::asio::placeholders::error));
-
-		} while (0);
 
 		change_outstranding(true);
 		// 开启定时器, 执行任务.
