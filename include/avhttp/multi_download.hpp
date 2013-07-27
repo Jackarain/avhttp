@@ -1402,7 +1402,7 @@ protected:
 					// 发起数据读取请求.
 					change_outstranding(true);
 					// 传入指针obj, 以确保多线程安全.
-					h.async_read_some(boost::asio::buffer(obj->buffer, available_bytes),
+					h.async_read_some(boost::asio::buffer(object_ptr->buffer, available_bytes),
 						boost::bind(&multi_download::handle_read,
 							this,
 							0, object_ptr,
@@ -1424,7 +1424,7 @@ protected:
 			// 发起数据读取请求.
 			change_outstranding(true);
 			// 传入指针obj, 以确保多线程安全.
-			h.async_read_some(boost::asio::buffer(obj->buffer, available_bytes),
+			h.async_read_some(boost::asio::buffer(object_ptr->buffer, available_bytes),
 				boost::bind(&multi_download::handle_read,
 					this,
 					0, object_ptr,
