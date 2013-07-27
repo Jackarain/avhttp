@@ -540,8 +540,12 @@ public:
 
 				// 开始异步打开, 传入指针http_object_ptr, 以确保多线程安全.
 				p->stream->async_open(m_final_url,
-					boost::bind(&multi_download::handle_open, this,
-					i, p, boost::asio::placeholders::error));
+					boost::bind(&multi_download::handle_open,
+						this,
+						i, p,
+						boost::asio::placeholders::error
+					)
+				);
 			}
 		}
 
@@ -650,8 +654,13 @@ public:
 
 		change_outstranding(true);
 		typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
-		h.async_open(m_final_url, boost::bind(&multi_download::handle_start<HandlerWrapper>, this,
-			HandlerWrapper(handler), obj, boost::asio::placeholders::error));
+		h.async_open(m_final_url,
+			boost::bind(&multi_download::handle_start<HandlerWrapper>,
+				this,
+				HandlerWrapper(handler), obj,
+				boost::asio::placeholders::error
+			)
+		);
 
 		return;
 	}
@@ -783,8 +792,8 @@ public:
 		{
 			if (!m_abort)
 			{
-				boost::mutex::scoped_lock l(m_mutex);
-				m_cond.wait(l);
+				boost::mutex::scoped_lock l(m_quit_mtx);
+				m_quit_cond.wait(l);
 			}
 		}
 		// 检查是否下载完成, 完成返回true, 否则返回false.
@@ -959,10 +968,13 @@ protected:
 		change_outstranding(true);
 		// 传入指针http_object_ptr, 以确保多线程安全.
 		stream_ptr->async_read_some(boost::asio::buffer(object.buffer, available_bytes),
-			boost::bind(&multi_download::handle_read, this,
-			index, object_ptr,
-			boost::asio::placeholders::bytes_transferred,
-			boost::asio::placeholders::error));
+			boost::bind(&multi_download::handle_read,
+				this,
+				index, object_ptr,
+				boost::asio::placeholders::bytes_transferred,
+				boost::asio::placeholders::error
+			)
+		);
 	}
 
 	void handle_read(const int index,
@@ -1065,13 +1077,23 @@ protected:
 			// 发起异步http数据请求, 传入指针http_object_ptr, 以确保多线程安全.
 			if (!m_keep_alive)
 			{
-				stream.async_open(m_final_url, boost::bind(&multi_download::handle_open, this,
-					index, object_ptr, boost::asio::placeholders::error));
+				stream.async_open(m_final_url,
+					boost::bind(&multi_download::handle_open,
+						this,
+						index, object_ptr,
+						boost::asio::placeholders::error
+					)
+				);
 			}
 			else
 			{
-				stream.async_request(req_opt, boost::bind(&multi_download::handle_request, this,
-					index, object_ptr, boost::asio::placeholders::error));
+				stream.async_request(req_opt,
+					boost::bind(&multi_download::handle_request,
+						this,
+						index, object_ptr,
+						boost::asio::placeholders::error
+					)
+				);
 			}
 		}
 		else
@@ -1105,10 +1127,13 @@ protected:
 			change_outstranding(true);
 			// 继续读取数据, 传入指针http_object_ptr, 以确保多线程安全.
 			object.stream->async_read_some(boost::asio::buffer(object.buffer, available_bytes),
-				boost::bind(&multi_download::handle_read, this,
-				index, object_ptr,
-				boost::asio::placeholders::bytes_transferred,
-				boost::asio::placeholders::error));
+				boost::bind(&multi_download::handle_read,
+					this,
+					index, object_ptr,
+					boost::asio::placeholders::bytes_transferred,
+					boost::asio::placeholders::error
+				)
+			);
 		}
 	}
 
@@ -1153,10 +1178,13 @@ protected:
 		change_outstranding(true);
 		// 发起数据读取请求, 传入指针http_object_ptr, 以确保多线程安全.
 		object_ptr->stream->async_read_some(boost::asio::buffer(object.buffer, available_bytes),
-			boost::bind(&multi_download::handle_read, this,
-			index, object_ptr,
-			boost::asio::placeholders::bytes_transferred,
-			boost::asio::placeholders::error));
+			boost::bind(&multi_download::handle_read,
+				this,
+				index, object_ptr,
+				boost::asio::placeholders::bytes_transferred,
+				boost::asio::placeholders::error
+			)
+		);
 	}
 
 	template <typename Handler>
@@ -1487,8 +1515,12 @@ protected:
 
 				// 开始异步打开, 传入指针http_object_ptr, 以确保多线程安全.
 				p->stream->async_open(m_final_url,
-					boost::bind(&multi_download::handle_open, this,
-					i, p, boost::asio::placeholders::error));
+					boost::bind(&multi_download::handle_open,
+						this,
+						i, p,
+						boost::asio::placeholders::error
+					)
+				);
 			}
 		}
 
@@ -1599,7 +1631,9 @@ protected:
 
 				// 设置是否为长连接.
 				if (m_keep_alive)
+				{
 					req_opt.insert(http_options::connection, "keep-alive");
+				}
 
 				// 继续从上次未完成的位置开始请求.
 				if (m_accept_multi)
@@ -1640,8 +1674,13 @@ protected:
 
 				change_outstranding(true);
 				// 重新发起异步请求, 传入object_item_ptr指针, 以确保线程安全.
-				stream.async_open(m_final_url, boost::bind(&multi_download::handle_open, this,
-					i, object_item_ptr, boost::asio::placeholders::error));
+				stream.async_open(m_final_url,
+					boost::bind(&multi_download::handle_open,
+						this,
+						i, object_item_ptr,
+						boost::asio::placeholders::error
+					)
+				);
 			}
 		}
 
@@ -1663,8 +1702,8 @@ protected:
 			m_abort = true;
 			m_timer.cancel(ignore);
 			// 通知wait_for_complete退出.
-			boost::mutex::scoped_lock l(m_mutex);
-			m_cond.notify_one();
+			boost::mutex::scoped_lock l(m_quit_mtx);
+			m_quit_cond.notify_one();
 			return;
 		}
 	}
@@ -1929,8 +1968,9 @@ private:
 	mutable boost::mutex m_outstanding_mutex;
 #endif
 
-	mutable boost::mutex m_mutex;
-	mutable boost::condition m_cond;
+	// 用于通知wait_for_complete退出.
+	mutable boost::mutex m_quit_mtx;
+	mutable boost::condition m_quit_cond;
 
 	// 是否中止工作.
 	bool m_abort;
