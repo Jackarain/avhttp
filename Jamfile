@@ -9,7 +9,9 @@ import virtual-target ;
 BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
 OS = [ os.name ] ;
 
-#显示BOOST_ROOT.
+#使用bjam编译, 必须设置BOOST_ROOT和BOOST_BUILD_PATH这两个环境变量.
+#BOOST_ROOT是boost的所在目录, 比如d:\boost_1_54这样子.
+#BOOST_BUILD_PATH指向比如d:\boost_1_54\tools\build\v2这个路径.
 ECHO "BOOST_ROOT =" $(BOOST_ROOT) ;
 ECHO "OS =" [ os.name ] ;
 
