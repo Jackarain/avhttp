@@ -171,7 +171,7 @@ namespace avhttp {
 //
 // 		return 0;
 // 	}
-// end example
+// @end example
 
 
 using boost::asio::ip::tcp;
