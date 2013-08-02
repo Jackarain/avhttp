@@ -68,6 +68,11 @@ void http_stream::open(const url &u)
 void http_stream::open(const url &u, boost::system::error_code &ec)
 {
 	// 保存url相关的信息.
+	if (m_url.to_string() == "")
+	{
+		m_entry_url = u;
+	}
+
 	m_protocol = u.protocol();
 	m_url = u;
 
@@ -360,6 +365,11 @@ void http_stream::async_open(const url &u, BOOST_ASIO_MOVE_ARG(Handler) handler)
 	boost::system::error_code ec;
 
 	// 保存url相关的信息.
+	if (m_url.to_string() == "")
+	{
+		m_entry_url = u;
+	}
+
 	m_protocol = u.protocol();
 	m_url = u;
 
@@ -1295,6 +1305,11 @@ const std::string& http_stream::location() const
 const std::string http_stream::final_url() const
 {
 	return m_url.to_string();
+}
+
+const std::string http_stream::entry_url() const
+{
+	return m_entry_url.to_string();
 }
 
 boost::int64_t http_stream::content_length()

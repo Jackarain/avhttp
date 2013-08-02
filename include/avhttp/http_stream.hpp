@@ -467,6 +467,9 @@ public:
 	///返回最终请求的url信息.
 	AVHTTP_DECL const std::string final_url() const;
 
+	///用户请求的入口url.
+	AVHTTP_DECL const std::string entry_url() const;
+
 	///返回content_length.
 	// @content_length信息, 如果没有则为-1.
 	AVHTTP_DECL boost::int64_t content_length();
@@ -644,6 +647,7 @@ private:
 	tcp::endpoint m_remote_endp;					// 用于socks4代理中.
 	std::string m_protocol;							// 协议类型(http/https).
 	url m_url;										// 保存当前请求的url.
+	url m_entry_url;								// 保存用户请求的入口url.
 	bool m_keep_alive;								// 获得connection选项, 同时受m_response_opts影响.
 	int m_status_code;								// http返回状态码.
 	std::size_t m_redirects;						// 重定向次数计数.
