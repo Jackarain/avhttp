@@ -99,16 +99,17 @@ public:
 	}
 
 	// 删除选项.
-	void remove(const std::string &key)
+	option & remove(const std::string &key)
 	{
 		for (option_item_list::iterator i = m_opts.begin(); i != m_opts.end(); i++)
 		{
 			if (i->first == key)
 			{
 				m_opts.erase(i);
-				return;
+				return *this;
 			}
 		}
+		return *this;
 	}
 
 	// 查找指定key的value.
