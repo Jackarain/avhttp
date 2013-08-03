@@ -629,7 +629,7 @@ protected:
 	void request_impl(Stream &sock, request_opts &opt, boost::system::error_code &ec);
 
 	// for support streambuf.
-	std::streambuf::int_type underflow();
+	inline std::streambuf::int_type underflow();
 
 protected:
 
