@@ -38,7 +38,11 @@ namespace
 // 仅限于header only, 如果avhttp支持单独编译时或编译成动态库, AVHTTP_DECL应该
 // 相应支持其它定义.
 #ifndef AVHTTP_DECL
-# define AVHTTP_DECL inline
+# ifndef AVHTTP_SEPARATE_COMPILATION
+#  define AVHTTP_DECL inline
+# else
+#  define AVHTTP_DECL
+# endif
 #endif
 
 #include "avhttp/version.hpp"
