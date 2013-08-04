@@ -37,22 +37,6 @@ public:
 		m_stream.async_open(url, *this);
 	}
 
-#if defined(BOOST_ASIO_HAS_MOVE)
-    read_body_op(const read_body_op &other)
-      : m_stream(other.m_stream)
-	  , m_buffers(other.m_buffers)
-	  , m_handler(other.m_handler)
-    {
-    }
-
-    read_body_op(read_body_op &&other)
-      : m_stream(other.m_stream)
-	  , m_buffers(other.m_buffers)
-	  , m_handler(BOOST_ASIO_MOVE_CAST(Handler)(other.m_handler))
-    {
-    }
-#endif // defined(BOOST_ASIO_HAS_MOVE)
-
 	void operator()(const boost::system::error_code &ec, std::size_t bytes_transferred = 0)
 	{
 		BOOST_ASIO_CORO_REENTER(this)
