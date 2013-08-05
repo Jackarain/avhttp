@@ -48,13 +48,15 @@ namespace
 #include "avhttp/version.hpp"
 #include "avhttp/logging.hpp"
 #include "avhttp/detail/error_codec.hpp"
-#include "avhttp/entry.hpp"
-#include "avhttp/bencode.hpp"
 #include "avhttp/url.hpp"
 #include "avhttp/http_stream.hpp"
+#ifndef AVHTTP_DISABLE_MULTI_DOWNLOAD
+#include "avhttp/entry.hpp"
+#include "avhttp/bencode.hpp"
 #include "avhttp/rangefield.hpp"
 #include "avhttp/bitfield.hpp"
 #include "avhttp/multi_download.hpp"
+#endif
 #if (BOOST_VERSION >= 105400)
 #include "avhttp/async_read_body.hpp"
 #endif
