@@ -23,7 +23,7 @@
 
 namespace avhttp {
 
-namespace detail{
+namespace detail {
 // match condition!
 struct transfer_response_body_t
 {
