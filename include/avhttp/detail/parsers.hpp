@@ -33,7 +33,7 @@ namespace avhttp {
 namespace detail {
 
 #ifndef atoi64
-# ifdef WIN32
+# ifdef _MSC_VER
 #  define atoi64 _atoi64
 # else
 #  define atoi64(x) strtoll(x, (char**)NULL, 10)

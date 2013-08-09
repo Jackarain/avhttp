@@ -68,6 +68,11 @@ void http_stream::open(const url &u)
 void http_stream::open(const url &u, boost::system::error_code &ec)
 {
 	// 保存url相关的信息.
+	if (m_url.to_string() == "")
+	{
+		m_entry_url = u;
+	}
+
 	m_protocol = u.protocol();
 	m_url = u;
 
@@ -360,6 +365,11 @@ void http_stream::async_open(const url &u, BOOST_ASIO_MOVE_ARG(Handler) handler)
 	boost::system::error_code ec;
 
 	// 保存url相关的信息.
+	if (m_url.to_string() == "")
+	{
+		m_entry_url = u;
+	}
+
 	m_protocol = u.protocol();
 	m_url = u;
 
@@ -1295,6 +1305,11 @@ const std::string& http_stream::location() const
 const std::string http_stream::final_url() const
 {
 	return m_url.to_string();
+}
+
+const std::string http_stream::entry_url() const
+{
+	return m_entry_url.to_string();
 }
 
 boost::int64_t http_stream::content_length()
@@ -3616,6 +3631,58 @@ void http_stream::request_impl(Stream &sock, request_opts &opt, boost::system::e
 	opt_str = m_response_opts.find(http_options::connection);
 	if (opt_str == "close")
 		m_keep_alive = false;
+}
+
+std::streambuf::int_type http_stream::underflow()
+{
+	if (gptr() < egptr())	// 缓冲区未读完.
+	{
+		return traits_type::to_int_type(*gptr());
+	}
+	if (gptr() == egptr())	// 到了读取缓冲尾.
+	{
+		// 如果上次已经是错误状态, 则检查错误并返回.
+		if (m_last_error)
+		{
+			if (m_last_error != boost::asio::error::eof)
+			{
+				boost::throw_exception(boost::system::system_error(m_last_error));
+			}
+			else
+			{
+				return traits_type::eof();
+			}
+		}
+
+		// 从http服务器同步读取数据.
+		boost::system::error_code ec;
+		std::size_t bytes_transferred = read_some(
+			boost::asio::buffer(boost::asio::buffer(m_get_buffer) + putback_max), ec);
+		if (bytes_transferred == 0)
+		{
+			if (ec == boost::asio::error::eof)
+			{
+				return traits_type::eof();
+			}
+			// 读取到0字节, 抛出错误异常.
+			boost::throw_exception(boost::system::system_error(m_last_error));
+		}
+		if (ec)
+		{
+			// 因为末尾有数据, 保存当前错误状态, 并不返回错误.
+			m_last_error = ec;
+		}
+
+		// 设置各缓冲指针.
+		setg(m_get_buffer.begin(), m_get_buffer.begin() + putback_max,
+			m_get_buffer.begin() + putback_max + bytes_transferred);
+
+		return traits_type::to_int_type(*gptr());
+	}
+	else
+	{
+		return traits_type::eof();
+	}
 }
 
 }

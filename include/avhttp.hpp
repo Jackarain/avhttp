@@ -38,19 +38,25 @@ namespace
 // 仅限于header only, 如果avhttp支持单独编译时或编译成动态库, AVHTTP_DECL应该
 // 相应支持其它定义.
 #ifndef AVHTTP_DECL
-# define AVHTTP_DECL inline
+# ifndef AVHTTP_SEPARATE_COMPILATION
+#  define AVHTTP_DECL inline
+# else
+#  define AVHTTP_DECL
+# endif
 #endif
 
 #include "avhttp/version.hpp"
 #include "avhttp/logging.hpp"
 #include "avhttp/detail/error_codec.hpp"
-#include "avhttp/entry.hpp"
-#include "avhttp/bencode.hpp"
 #include "avhttp/url.hpp"
 #include "avhttp/http_stream.hpp"
+#ifndef AVHTTP_DISABLE_MULTI_DOWNLOAD
+#include "avhttp/entry.hpp"
+#include "avhttp/bencode.hpp"
 #include "avhttp/rangefield.hpp"
 #include "avhttp/bitfield.hpp"
 #include "avhttp/multi_download.hpp"
+#endif
 #if (BOOST_VERSION >= 105400)
 #include "avhttp/async_read_body.hpp"
 #endif

@@ -16,8 +16,10 @@
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 #include <vector>
-#include <cstring>	// for std::strcmp/std::strlen
+#include <cstring>		// for std::strcmp/std::strlen
+#include <streambuf>	// support streambuf.
 
+#include <boost/array.hpp>
 #include <boost/shared_array.hpp>
 
 #include "avhttp/url.hpp"
@@ -139,11 +141,44 @@ namespace avhttp {
 //		return 0;
 //  }
 // @end example
+//
+// 以下是通过标准流方式访问http的示例.
+// @begin example
+// 	int main(int argc, char* argv[])
+// 	{
+// 		boost::asio::io_service io;
+// 		avhttp::http_stream h(io);
+//
+// 		h.open("http://www.boost.org/LICENSE_1_0.txt");
+// 		std::istream in(&h);
+// 		std::string s;
+// 		while (in >> s)
+// 			std::cout << s;
+//
+// 		return 0;
+// 	}
+// @end example
+//
+// 另一种通过非字符串流方式直接访问.
+// @begin example
+// 	int main(int argc, char* argv[])
+// 	{
+// 		boost::asio::io_service io;
+// 		avhttp::http_stream h(io);
+//
+// 		h.open("http://www.boost.org/LICENSE_1_0.txt");
+// 		std::cout << &h;
+//
+// 		return 0;
+// 	}
+// @end example
 
 
 using boost::asio::ip::tcp;
 
-class http_stream : public boost::noncopyable
+class http_stream
+	: public std::streambuf
+	, public boost::noncopyable
 {
 public:
 
@@ -467,6 +502,9 @@ public:
 	///返回最终请求的url信息.
 	AVHTTP_DECL const std::string final_url() const;
 
+	///用户请求的入口url.
+	AVHTTP_DECL const std::string entry_url() const;
+
 	///返回content_length.
 	// @content_length信息, 如果没有则为-1.
 	AVHTTP_DECL boost::int64_t content_length();
@@ -590,6 +628,8 @@ protected:
 	template <typename Stream>
 	void request_impl(Stream &sock, request_opts &opt, boost::system::error_code &ec);
 
+	// for support streambuf.
+	AVHTTP_DECL std::streambuf::int_type underflow();
 
 protected:
 
@@ -627,6 +667,10 @@ protected:
 #endif
 	};
 
+	// for support streambuf.
+	enum { putback_max = 8 };
+	enum { buffer_size = 16 };
+
 private:
 
 	boost::asio::io_service &m_io_service;			// io_service引用.
@@ -644,6 +688,7 @@ private:
 	tcp::endpoint m_remote_endp;					// 用于socks4代理中.
 	std::string m_protocol;							// 协议类型(http/https).
 	url m_url;										// 保存当前请求的url.
+	url m_entry_url;								// 保存用户请求的入口url.
 	bool m_keep_alive;								// 获得connection选项, 同时受m_response_opts影响.
 	int m_status_code;								// http返回状态码.
 	std::size_t m_redirects;						// 重定向次数计数.
@@ -664,6 +709,8 @@ private:
 	bool m_skip_crlf;								// 跳过crlf.
 	bool m_is_chunked_end;							// 跳过chunked footer.
 	std::size_t m_chunked_size;						// chunked大小.
+	boost::array<char, buffer_size> m_get_buffer;	// 用于stream形式的读取缓冲.
+	boost::system::error_code m_last_error;			// 用于记录最后错误信息.
 };
 
 }
