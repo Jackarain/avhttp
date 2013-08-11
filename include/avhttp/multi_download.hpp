@@ -1881,7 +1881,7 @@ private:
 		const int target_size = 40 * 1024;
 		std::size_t piece_size = boost::int64_t(file_size / (target_size / 20));
 
-		int i = 16 * 1024;
+		std::size_t i = 16 * 1024;
 		for (; i < 16 * 1024 * 1024; i *= 2)
 		{
 			if (piece_size > i) continue;
