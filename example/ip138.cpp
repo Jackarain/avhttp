@@ -27,16 +27,14 @@ int main(int argc, char* argv[])
 
 	std::string result;
 	boost::asio::streambuf response;
-	while (!ec)
+	std::istream is(&h);
+
+	try
 	{
-		// 每次读取一行.
-		std::size_t bytes_transferred = boost::asio::read_until(h, response, "\r\n", ec);
-		if (bytes_transferred > 0)
+		while (is.good())
 		{
 			std::string s;
-			// 查找是否有ul1的标签.
-			s.resize(response.size());
-			response.sgetn(&s[0], bytes_transferred);
+			std::getline(is, s);
 			std::size_t pos = s.find("<ul class=\"ul1\"><li>");
 			if (pos == std::string::npos)
 				continue;
@@ -56,6 +54,11 @@ int main(int argc, char* argv[])
 				break;
 			}
 		}
+	}
+	catch (std::exception& e)
+	{
+		std::cerr << e.what() << std::endl;
+		return -1;
 	}
 
 	// 输出地址信息.
