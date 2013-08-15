@@ -999,6 +999,12 @@ protected:
 			m_storage->write(object.buffer.c_array(), offset, bytes_transferred);
 		}
 
+		// 统计本次已经下载的总字节数.
+		object.bytes_transferred += bytes_transferred;
+
+		// 统计总下载字节数.
+		object.bytes_downloaded += bytes_transferred;
+
 		// 如果发生错误或终止.
 		if (ec || m_abort)
 		{
@@ -1010,14 +1016,10 @@ protected:
 				m_timer.cancel(ignore);
 			}
 
+			// 如果没有终止下载, 那么遇到错误, 这里返回将会在on_tick中计算
+			// 超时, 一旦超时将尝试重新发起连接进行请求.
 			return;
 		}
-
-		// 统计本次已经下载的总字节数.
-		object.bytes_transferred += bytes_transferred;
-
-		// 统计总下载字节数.
-		object.bytes_downloaded += bytes_transferred;
 
 		// 用于计算下载速率.
 		m_byte_rate.last_byte_rate[m_byte_rate.index] += bytes_transferred;
@@ -1585,23 +1587,22 @@ protected:
 #endif
 		for (std::size_t i = 0; i < m_streams.size(); i++)
 		{
-			http_object_ptr& object_item_ptr = m_streams[i];
+			http_object_ptr& object_ptr = m_streams[i];
 			boost::posix_time::time_duration duration =
-				boost::posix_time::microsec_clock::local_time() - object_item_ptr->last_request_time;
-
-			if (!object_item_ptr->done && (duration > boost::posix_time::seconds(m_settings.time_out)
-				|| object_item_ptr->direct_reconnect))
+				boost::posix_time::microsec_clock::local_time() - object_ptr->last_request_time;
+			bool expire = duration > boost::posix_time::seconds(m_settings.time_out);
+			if (!object_ptr->done && (expire || object_ptr->direct_reconnect))
 			{
 				// 超时或出错, 关闭并重新创建连接.
 				boost::system::error_code ec;
-				object_item_ptr->stream->close(ec);
+				object_ptr->stream->close(ec);
 
 				// 出现下列之一的错误, 将不再尝试连接服务器, 因为重试也是没有意义的.
-				if (object_item_ptr->ec == avhttp::errc::forbidden
-					|| object_item_ptr->ec == avhttp::errc::not_found
-					|| object_item_ptr->ec == avhttp::errc::method_not_allowed)
+				if (object_ptr->ec == avhttp::errc::forbidden
+					|| object_ptr->ec == avhttp::errc::not_found
+					|| object_ptr->ec == avhttp::errc::method_not_allowed)
 				{
-					object_item_ptr->done = true;
+					object_ptr->done = true;
 					continue;
 				}
 
@@ -1609,17 +1610,17 @@ protected:
 				if (!m_accept_multi)
 				{
 					m_abort = true;
-					object_item_ptr->done = true;
+					object_ptr->done = true;
 					m_number_of_connections--;
 					continue;
 				}
 
 				// 重置重连标识.
-				object_item_ptr->direct_reconnect = false;
+				object_ptr->direct_reconnect = false;
 
 				// 重新创建http_object和http_stream.
-				object_item_ptr.reset(new http_stream_object(*object_item_ptr));
-				http_stream_object& object = *object_item_ptr;
+				object_ptr.reset(new http_stream_object(*object_ptr));
+				http_stream_object& object = *object_ptr;
 
 				// 使用新的http_stream对象.
 				object.stream.reset(new http_stream(m_io_service));
@@ -1677,7 +1678,7 @@ protected:
 				stream.async_open(m_final_url,
 					boost::bind(&multi_download::handle_open,
 						this,
-						i, object_item_ptr,
+						i, object_ptr,
 						boost::asio::placeholders::error
 					)
 				);
