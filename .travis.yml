@@ -17,7 +17,7 @@ script:
     - make
     - ./avhttp http://www.boost.org/LICENSE_1_0.txt
     - ./avhttp https://github.com/blog
-    - ./avhttp https://github.com/avplayer/avplayer/archive/master.zip
+    - ./avhttp http://ncu.dl.sourceforge.net/project/boost/boost/1.54.0/boost_1_54_0.7z
     - cat ./multi_download.log
 
 branches:
