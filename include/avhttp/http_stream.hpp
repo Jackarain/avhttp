@@ -72,7 +72,7 @@ namespace avhttp {
 //  		std::cout.write(data, bytes_transferred);
 //  	}
 //  }
-//  catch (std::exception &e)
+//  catch (std::exception& e)
 //  {
 //  	std::cerr << "Exception: " << e.what() << std::endl;
 //  }
@@ -83,7 +83,7 @@ namespace avhttp {
 //  class downloader
 //  {
 //  public:
-//  	downloader(boost::asio::io_service &io)
+//  	downloader(boost::asio::io_service& io)
 //  		: m_io_service(io)
 //  		, m_stream(io)
 //  	{
@@ -99,7 +99,7 @@ namespace avhttp {
 //  	{}
 //  
 //  public:
-//  	void handle_open(const boost::system::error_code &ec)
+//  	void handle_open(const boost::system::error_code& ec)
 //  	{
 //  		if (!ec)
 //  		{
@@ -115,7 +115,7 @@ namespace avhttp {
 //  		}
 //  	}
 //  
-//  	void handle_read(int bytes_transferred, const boost::system::error_code &ec)
+//  	void handle_read(int bytes_transferred, const boost::system::error_code& ec)
 //  	{
 //  		if (!ec)
 //  		{
@@ -128,7 +128,7 @@ namespace avhttp {
 //  	}
 //  
 //  private:
-//  	boost::asio::io_service &m_io_service;
+//  	boost::asio::io_service& m_io_service;
 //  	avhttp::http_stream m_stream;
 //  	boost::array<char, 1024> m_buffer;
 //  };
@@ -167,7 +167,7 @@ namespace avhttp {
 // 		avhttp::http_stream h(io);
 //
 // 		h.open("http://www.boost.org/LICENSE_1_0.txt");
-// 		std::cout << &h;
+// 		std::cout <<& h;
 //
 // 		return 0;
 // 	}
@@ -183,7 +183,7 @@ class http_stream
 public:
 
 	/// Constructor.
-	AVHTTP_DECL explicit http_stream(boost::asio::io_service &io);
+	AVHTTP_DECL explicit http_stream(boost::asio::io_service& io);
 
 	/// Destructor.
 	AVHTTP_DECL virtual ~http_stream();
@@ -197,12 +197,12 @@ public:
 	//   {
 	//     h.open("http://www.boost.org");
 	//   }
-	//   catch (boost::system::system_error &e)
+	//   catch (boost::system::system_error& e)
 	//   {
 	//     std::cerr << e.waht() << std::endl;
 	//   }
 	// @end example
-	AVHTTP_DECL void open(const url &u);
+	AVHTTP_DECL void open(const url& u);
 
 	///打开一个指定的url.
 	// @param u 将要打开的URL.
@@ -216,18 +216,18 @@ public:
 	//     std::cerr << e.waht() << std::endl;
 	//   }
 	// @end example
-	AVHTTP_DECL void open(const url &u, boost::system::error_code &ec);
+	AVHTTP_DECL void open(const url& u, boost::system::error_code& ec);
 
 	///异步打开一个指定的URL.
 	// @param u 将要打开的URL.
 	// @param handler 将被调用在打开完成时. 它必须满足以下条件:
 	// @begin code
 	//  void handler(
-	//    const boost::system::error_code &ec // 用于返回操作状态.
+	//    const boost::system::error_code& ec // 用于返回操作状态.
 	//  );
 	// @end code
 	// @begin example
-	//  void open_handler(const boost::system::error_code &ec)
+	//  void open_handler(const boost::system::error_code& ec)
 	//  {
 	//    if (!ec)
 	//    {
@@ -241,7 +241,7 @@ public:
 	// @备注: handler也可以使用boost.bind来绑定一个符合规定的函数作
 	// 为async_open的参数handler.
 	template <typename Handler>
-	void async_open(const url &u, BOOST_ASIO_MOVE_ARG(Handler) handler);
+	void async_open(const url& u, BOOST_ASIO_MOVE_ARG(Handler) handler);
 
 	///从这个http_stream中读取一些数据.
 	// @param buffers一个或多个读取数据的缓冲区, 这个类型必须满足MutableBufferSequence,
@@ -254,14 +254,14 @@ public:
 	//  try
 	//  {
 	//    std::size bytes_transferred = s.read_some(boost::asio::buffer(data, size));
-	//  } catch (boost::asio::system_error &e)
+	//  } catch (boost::asio::system_error& e)
 	//  {
 	//    std::cerr << e.what() << std::endl;
 	//  }
 	//  ...
 	// @end example
 	template <typename MutableBufferSequence>
-	std::size_t read_some(const MutableBufferSequence &buffers);
+	std::size_t read_some(const MutableBufferSequence& buffers);
 
 	///从这个http_stream读取一些数据.
 	// @param buffers一个或多个用于读取数据的缓冲区, 这个类型必须满足
@@ -279,8 +279,8 @@ public:
 	// 关于示例中的boost::asio::buffer用法可以参考boost中的文档. 它可以接受一个
 	// boost.array或std.vector作为数据容器.
 	template <typename MutableBufferSequence>
-	std::size_t read_some(const MutableBufferSequence &buffers,
-		boost::system::error_code &ec);
+	std::size_t read_some(const MutableBufferSequence& buffers,
+		boost::system::error_code& ec);
 
 	///从这个http_stream异步读取一些数据.
 	// @param buffers一个或多个用于读取数据的缓冲区, 这个类型必须满足MutableBufferSequence,
@@ -289,12 +289,12 @@ public:
 	// @param handler在读取操作完成或出现错误时, 将被回调, 它满足以下条件:
 	// @begin code
 	//  void handler(
-	//    const boost::system::error_code &ec,	// 用于返回操作状态.
+	//    const boost::system::error_code& ec,	// 用于返回操作状态.
 	//    std::size_t bytes_transferred			// 返回读取的数据字节数.
 	//  );
 	// @end code
 	// @begin example
-	//   void handler(const boost::system::error_code &ec, std::size_t bytes_transferred)
+	//   void handler(const boost::system::error_code& ec, std::size_t bytes_transferred)
 	//   {
 	//		// 处理异步回调.
 	//   }
@@ -307,7 +307,7 @@ public:
 	// 关于示例中的boost::asio::buffer用法可以参考boost中的文档. 它可以接受一个
 	// boost.array或std.vector作为数据容器.
 	template <typename MutableBufferSequence, typename Handler>
-	void async_read_some(const MutableBufferSequence &buffers, BOOST_ASIO_MOVE_ARG(Handler) handler);
+	void async_read_some(const MutableBufferSequence& buffers, BOOST_ASIO_MOVE_ARG(Handler) handler);
 
 	///向这个http_stream中发送一些数据.
 	// @param buffers是一个或多个用于发送数据缓冲. 这个类型必须满足ConstBufferSequence, 参考文档:
@@ -320,7 +320,7 @@ public:
 	//  {
 	//    std::size bytes_transferred = s.write_some(boost::asio::buffer(data, size));
 	//  }
-	//  catch (boost::asio::system_error &e)
+	//  catch (boost::asio::system_error& e)
 	//  {
 	//    std::cerr << e.what() << std::endl;
 	//  }
@@ -329,7 +329,7 @@ public:
 	// 关于示例中的boost::asio::buffer用法可以参考boost中的文档. 它可以接受一个
 	// boost.array或std.vector作为数据容器.
 	template <typename ConstBufferSequence>
-	std::size_t write_some(const ConstBufferSequence &buffers);
+	std::size_t write_some(const ConstBufferSequence& buffers);
 
 	///向这个http_stream中发送一些数据.
 	// @param buffers是一个或多个用于发送数据缓冲. 这个类型必须满足ConstBufferSequence, 参考文档:
@@ -345,8 +345,8 @@ public:
 	// 关于示例中的boost::asio::buffer用法可以参考boost中的文档. 它可以接受一个
 	// boost.array或std.vector作为数据容器.
 	template <typename ConstBufferSequence>
-	std::size_t write_some(const ConstBufferSequence &buffers,
-		boost::system::error_code &ec);
+	std::size_t write_some(const ConstBufferSequence& buffers,
+		boost::system::error_code& ec);
 
 	///从这个http_stream异步发送一些数据.
 	// @param buffers一个或多个用于读取数据的缓冲区, 这个类型必须满足ConstBufferSequence,
@@ -356,11 +356,11 @@ public:
 	// @begin code
 	//  void handler(
 	//    int bytes_transferred,				// 返回发送的数据字节数.
-	//    const boost::system::error_code &ec	// 用于返回操作状态.
+	//    const boost::system::error_code& ec	// 用于返回操作状态.
 	//  );
 	// @end code
 	// @begin example
-	//   void handler(int bytes_transferred, const boost::system::error_code &ec)
+	//   void handler(int bytes_transferred, const boost::system::error_code& ec)
 	//   {
 	//		// 处理异步回调.
 	//   }
@@ -372,7 +372,7 @@ public:
 	// 关于示例中的boost::asio::buffer用法可以参考boost中的文档. 它可以接受一个
 	// boost.array或std.vector作为数据容器.
 	template <typename ConstBufferSequence, typename Handler>
-	void async_write_some(const ConstBufferSequence &buffers, BOOST_ASIO_MOVE_ARG(Handler) handler);
+	void async_write_some(const ConstBufferSequence& buffers, BOOST_ASIO_MOVE_ARG(Handler) handler);
 
 	///向http服务器发起一个请求.
 	// @向http服务器发起一个请求, 如果失败抛出异常.
@@ -385,7 +385,7 @@ public:
 	//  ...
 	//  h.request(opt);
 	// @end example
-	AVHTTP_DECL void request(request_opts &opt);
+	AVHTTP_DECL void request(request_opts& opt);
 
 	///向http服务器发起一个请求.
 	// @param opt是向服务器发起请求的选项信息.
@@ -400,18 +400,18 @@ public:
 	//  h.request(opt, ec);
 	//  ...
 	// @end example
-	AVHTTP_DECL void request(request_opts &opt, boost::system::error_code &ec);
+	AVHTTP_DECL void request(request_opts& opt, boost::system::error_code& ec);
 
 	///向http服务器发起一个异步请求.
 	// @param opt指定的http请求选项.
 	// @param handler 将被调用在打开完成时. 它必须满足以下条件:
 	// @begin code
 	//  void handler(
-	//    const boost::system::error_code &ec	// 用于返回操作状态.
+	//    const boost::system::error_code& ec	// 用于返回操作状态.
 	//  );
 	// @end code
 	// @begin example
-	//  void request_handler(const boost::system::error_code &ec)
+	//  void request_handler(const boost::system::error_code& ec)
 	//  {
 	//    if (!ec)
 	//    {
@@ -426,7 +426,7 @@ public:
 	//  h.async_request(opt, boost::bind(&request_handler, boost::asio::placeholders::error));
 	// @end example
 	template <typename Handler>
-	void async_request(const request_opts &opt, BOOST_ASIO_MOVE_ARG(Handler) handler);
+	void async_request(const request_opts& opt, BOOST_ASIO_MOVE_ARG(Handler) handler);
 
 	///清除读写缓冲区数据.
 	// @备注: 非线程安全! 不应在正在进行读写操作时进行该操作!
@@ -442,7 +442,7 @@ public:
 	// @param ec保存失败信息.
 	// @备注: 停止所有正在进行的读写操作, 正在进行的异步调用将回调
 	// boost::asio::error::operation_aborted错误.
-	AVHTTP_DECL void close(boost::system::error_code &ec);
+	AVHTTP_DECL void close(boost::system::error_code& ec);
 
 	///判断是否打开.
 	// @返回是否打开.
@@ -466,7 +466,7 @@ public:
 	//  h.proxy(s);
 	//  ...
 	// @end example
-	AVHTTP_DECL void proxy(const proxy_settings &s);
+	AVHTTP_DECL void proxy(const proxy_settings& s);
 
 	///设置请求时的http选项.
 	// @param options 为http的选项. 目前有以下几项特定选项:
@@ -480,7 +480,7 @@ public:
 	//  h.request_options(options);
 	//  ...
 	// @end example
-	AVHTTP_DECL void request_options(const request_opts &options);
+	AVHTTP_DECL void request_options(const request_opts& options);
 
 	///返回请求时的http选项.
 	// @begin example
@@ -516,11 +516,11 @@ public:
 
 	///添加证书路径.
 	// @param path证书路径.
-	AVHTTP_DECL void add_verify_path(const std::string &path);
+	AVHTTP_DECL void add_verify_path(const std::string& path);
 
 	///加载证书文件.
 	// @param filename指定的证书文件名.
-	AVHTTP_DECL void load_verify_file(const std::string &filename);
+	AVHTTP_DECL void load_verify_file(const std::string& filename);
 
 
 protected:
@@ -528,105 +528,105 @@ protected:
 	// 内部相关实现, 非外部接口.
 
 	template <typename MutableBufferSequence>
-	std::size_t read_some_impl(const MutableBufferSequence &buffers,
-		boost::system::error_code &ec);
+	std::size_t read_some_impl(const MutableBufferSequence& buffers,
+		boost::system::error_code& ec);
 
 	// 异步处理模板成员的相关实现.
 
 	template <typename Handler>
-	void handle_resolve(const boost::system::error_code &err,
+	void handle_resolve(const boost::system::error_code& err,
 		tcp::resolver::iterator endpoint_iterator, Handler handler);
 
 	template <typename Handler>
 	void handle_connect(Handler handler,
-		tcp::resolver::iterator endpoint_iterator, const boost::system::error_code &err);
+		tcp::resolver::iterator endpoint_iterator, const boost::system::error_code& err);
 
 	template <typename Handler>
-	void handle_request(Handler handler, const boost::system::error_code &err);
+	void handle_request(Handler handler, const boost::system::error_code& err);
 
 	template <typename Handler>
-	void handle_status(Handler handler, const boost::system::error_code &err);
+	void handle_status(Handler handler, const boost::system::error_code& err);
 
 	template <typename Handler>
-	void handle_header(Handler handler, int bytes_transferred, const boost::system::error_code &err);
+	void handle_header(Handler handler, int bytes_transferred, const boost::system::error_code& err);
 
 	template <typename MutableBufferSequence, typename Handler>
-	void handle_read(const MutableBufferSequence &buffers,
-		Handler handler, const boost::system::error_code &ec, std::size_t bytes_transferred);
+	void handle_read(const MutableBufferSequence& buffers,
+		Handler handler, const boost::system::error_code& ec, std::size_t bytes_transferred);
 
 	template <typename MutableBufferSequence, typename Handler>
-	void handle_skip_crlf(const MutableBufferSequence &buffers,
+	void handle_skip_crlf(const MutableBufferSequence& buffers,
 		Handler handler, boost::shared_array<char> crlf,
-		const boost::system::error_code &ec, std::size_t bytes_transferred);
+		const boost::system::error_code& ec, std::size_t bytes_transferred);
 
 	template <typename MutableBufferSequence, typename Handler>
-	void handle_async_read(const MutableBufferSequence &buffers,
-		Handler handler, const boost::system::error_code &ec, std::size_t bytes_transferred);
+	void handle_async_read(const MutableBufferSequence& buffers,
+		Handler handler, const boost::system::error_code& ec, std::size_t bytes_transferred);
 
 	template <typename MutableBufferSequence, typename Handler>
-	void handle_chunked_size(const MutableBufferSequence &buffers,
-		Handler handler, const boost::system::error_code &ec, std::size_t bytes_transferred);
+	void handle_chunked_size(const MutableBufferSequence& buffers,
+		Handler handler, const boost::system::error_code& ec, std::size_t bytes_transferred);
 
 	// 连接到socks代理, 在这一步中完成和socks的信息交换过程, 出错信息在ec中.
 	template <typename Stream>
-	void socks_proxy_connect(Stream &sock, boost::system::error_code &ec);
+	void socks_proxy_connect(Stream& sock, boost::system::error_code& ec);
 
 	template <typename Stream>
-	void socks_proxy_handshake(Stream &sock, boost::system::error_code &ec);
+	void socks_proxy_handshake(Stream& sock, boost::system::error_code& ec);
 
 	// socks代理进行异步连接.
 	template <typename Stream, typename Handler>
-	void async_socks_proxy_connect(Stream &sock, Handler handler);
+	void async_socks_proxy_connect(Stream& sock, Handler handler);
 
 	// 异步代理查询回调.
 	template <typename Stream, typename Handler>
-	void async_socks_proxy_resolve(const boost::system::error_code &err,
-		tcp::resolver::iterator endpoint_iterator, Stream &sock, Handler handler);
+	void async_socks_proxy_resolve(const boost::system::error_code& err,
+		tcp::resolver::iterator endpoint_iterator, Stream& sock, Handler handler);
 
 	template <typename Stream, typename Handler>
-	void handle_connect_socks(Stream &sock, Handler handler,
-		tcp::resolver::iterator endpoint_iterator, const boost::system::error_code &err);
+	void handle_connect_socks(Stream& sock, Handler handler,
+		tcp::resolver::iterator endpoint_iterator, const boost::system::error_code& err);
 
 	template <typename Stream, typename Handler>
-	void handle_socks_process(Stream &sock, Handler handler,
-		int bytes_transferred, const boost::system::error_code &err);
+	void handle_socks_process(Stream& sock, Handler handler,
+		int bytes_transferred, const boost::system::error_code& err);
 
 #ifdef AVHTTP_ENABLE_OPENSSL
 	// 实现CONNECT指令, 用于请求目标为https主机时使用.
 	template <typename Stream, typename Handler>
-	void async_https_proxy_connect(Stream &sock, Handler handler);
+	void async_https_proxy_connect(Stream& sock, Handler handler);
 
 	template <typename Stream, typename Handler>
-	void async_https_proxy_resolve(const boost::system::error_code &err,
-		tcp::resolver::iterator endpoint_iterator, Stream &sock, Handler handler);
+	void async_https_proxy_resolve(const boost::system::error_code& err,
+		tcp::resolver::iterator endpoint_iterator, Stream& sock, Handler handler);
 
 	template <typename Stream, typename Handler>
-	void handle_connect_https_proxy(Stream &sock, Handler handler,
-		tcp::resolver::iterator endpoint_iterator, const boost::system::error_code &err);
+	void handle_connect_https_proxy(Stream& sock, Handler handler,
+		tcp::resolver::iterator endpoint_iterator, const boost::system::error_code& err);
 
 	template <typename Stream, typename Handler>
-	void handle_https_proxy_request(Stream &sock, Handler handler,
-		const boost::system::error_code &err);
+	void handle_https_proxy_request(Stream& sock, Handler handler,
+		const boost::system::error_code& err);
 
 	template <typename Stream, typename Handler>
-	void handle_https_proxy_status(Stream &sock, Handler handler,
-		const boost::system::error_code &err);
+	void handle_https_proxy_status(Stream& sock, Handler handler,
+		const boost::system::error_code& err);
 
 	template <typename Stream, typename Handler>
-	void handle_https_proxy_header(Stream &sock, Handler handler,
-		int bytes_transferred, const boost::system::error_code &err);
+	void handle_https_proxy_header(Stream& sock, Handler handler,
+		int bytes_transferred, const boost::system::error_code& err);
 
 	template <typename Stream, typename Handler>
-	void handle_https_proxy_handshake(Stream &sock, Handler handler,
-		const boost::system::error_code &err);
+	void handle_https_proxy_handshake(Stream& sock, Handler handler,
+		const boost::system::error_code& err);
 
 	// 实现CONNECT指令, 用于请求目标为https主机时使用.
 	template <typename Stream>
-	void https_proxy_connect(Stream &sock, boost::system::error_code &ec);
+	void https_proxy_connect(Stream& sock, boost::system::error_code& ec);
 #endif
 
 	template <typename Stream>
-	void request_impl(Stream &sock, request_opts &opt, boost::system::error_code &ec);
+	void request_impl(Stream& sock, request_opts& opt, boost::system::error_code& ec);
 
 	// for support streambuf.
 	AVHTTP_DECL std::streambuf::int_type underflow();
@@ -673,7 +673,7 @@ protected:
 
 private:
 
-	boost::asio::io_service &m_io_service;			// io_service引用.
+	boost::asio::io_service& m_io_service;			// io_service引用.
 	tcp::resolver m_resolver;						// 解析HOST.
 	socket_type m_sock;								// socket.
 	nossl_socket m_nossl_socket;					// 非ssl socket, 只用于https的proxy实现.

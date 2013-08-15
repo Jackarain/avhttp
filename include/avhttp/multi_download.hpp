@@ -123,7 +123,7 @@ class multi_download : public boost::noncopyable
 	};
 
 public:
-	AVHTTP_DECL explicit multi_download(boost::asio::io_service &io)
+	AVHTTP_DECL explicit multi_download(boost::asio::io_service& io)
 		: m_io_service(io)
 		, m_accept_multi(false)
 		, m_keep_alive(false)
@@ -146,7 +146,7 @@ public:
 	// @param ec当发生错误时, 包含详细的错误信息.
 	// @备注: 直接使用内部的file.hpp下载数据到文件, 若想自己指定数据下载到指定的地方
 	// 可以通过调用另一个open来完成, 具体见另一个open的详细说明.
-	AVHTTP_DECL void start(const std::string &u, boost::system::error_code &ec)
+	AVHTTP_DECL void start(const std::string& u, boost::system::error_code& ec)
 	{
 		settings s;
 		start(u, s, ec);
@@ -156,7 +156,7 @@ public:
 	// @param u指定的url.
 	// @备注: 直接使用内部的file.hpp下载数据到文件, 若想自己指定数据下载到指定的地方
 	// 可以通过调用另一个open来完成, 具体见另一个open的详细说明.
-	AVHTTP_DECL void start(const std::string &u)
+	AVHTTP_DECL void start(const std::string& u)
 	{
 		settings s;
 		boost::system::error_code ec;
@@ -171,7 +171,7 @@ public:
 	// @param u指定的url.
 	// @param s指定的设置信息.
 	// @失败抛出一个boost::system::system_error异常, 包含详细的错误信息.
-	AVHTTP_DECL void start(const std::string &u, const settings &s)
+	AVHTTP_DECL void start(const std::string& u, const settings& s)
 	{
 		boost::system::error_code ec;
 		start(u, s, ec);
@@ -185,7 +185,7 @@ public:
 	// @param u指定的url.
 	// @param s指定的设置信息.
 	// @返回error_code, 包含详细的错误信息.
-	AVHTTP_DECL void start(const std::string &u, const settings &s, boost::system::error_code &ec)
+	AVHTTP_DECL void start(const std::string& u, const settings& s, boost::system::error_code& ec)
 	{
 		// 清空所有连接.
 		{
@@ -216,7 +216,7 @@ public:
 
 		// 创建http_stream并同步打开, 检查返回状态码是否为206, 如果非206则表示该http服务器不支持多点下载.
 		obj->stream.reset(new http_stream(m_io_service));
-		http_stream &h = *obj->stream;
+		http_stream& h = *obj->stream;
 		// 添加代理设置.
 		h.proxy(m_settings.proxy);
 		// 添加请求设置.
@@ -286,7 +286,7 @@ public:
 			{
 				file_size = boost::lexical_cast<boost::int64_t>(length);
 			}
-			catch (boost::bad_lexical_cast &)
+			catch (boost::bad_lexical_cast&)
 			{
 				// 得不到正确的文件长度, 设置为不支持多下载模式.
 				m_accept_multi = false;
@@ -562,11 +562,11 @@ public:
 	// @param handler 将被调用在启动完成时. 它必须满足以下条件:
 	// @begin code
 	//  void handler(
-	//    const boost::system::error_code &ec // 用于返回操作状态.
+	//    const boost::system::error_code& ec // 用于返回操作状态.
 	//  );
 	// @end code
 	// @begin example
-	//  void start_handler(const boost::system::error_code &ec)
+	//  void start_handler(const boost::system::error_code& ec)
 	//  {
 	//    if (!ec)
 	//    {
@@ -580,7 +580,7 @@ public:
 	// @备注: handler也可以使用boost.bind来绑定一个符合规定的函数作
 	// 为async_start的参数handler.
 	template <typename Handler>
-	void async_start(const std::string &u, Handler handler)
+	void async_start(const std::string& u, Handler handler)
 	{
 		settings s;
 		async_start(u, s, handler);
@@ -592,11 +592,11 @@ public:
 	// @param handler 将被调用在启动完成时. 它必须满足以下条件:
 	// @begin code
 	//  void handler(
-	//    const boost::system::error_code &ec // 用于返回操作状态.
+	//    const boost::system::error_code& ec // 用于返回操作状态.
 	//  );
 	// @end code
 	// @begin example
-	//  void start_handler(const boost::system::error_code &ec)
+	//  void start_handler(const boost::system::error_code& ec)
 	//  {
 	//    if (!ec)
 	//    {
@@ -611,7 +611,7 @@ public:
 	// @备注: handler也可以使用boost.bind来绑定一个符合规定的函数作
 	// 为async_start的参数handler.
 	template <typename Handler>
-	void async_start(const std::string &u, const settings &s, Handler handler)
+	void async_start(const std::string& u, const settings& s, Handler handler)
 	{
 		// 清空所有连接.
 		{
@@ -643,7 +643,7 @@ public:
 
 		// 创建http_stream并同步打开, 检查返回状态码是否为206, 如果非206则表示该http服务器不支持多点下载.
 		obj->stream.reset(new http_stream(m_io_service));
-		http_stream &h = *obj->stream;
+		http_stream& h = *obj->stream;
 
 		// 设置请求选项.
 		h.request_options(req_opt);
@@ -678,7 +678,7 @@ public:
 #endif
 		for (std::size_t i = 0; i < m_streams.size(); i++)
 		{
-			const http_object_ptr &ptr = m_streams[i];
+			const http_object_ptr& ptr = m_streams[i];
 			if (ptr && ptr->stream)
 			{
 				ptr->stream->close(ignore);
@@ -692,7 +692,7 @@ public:
 	// @param offset 读取数据的指定偏移位置, 注意: offset影响内部下载位置从offset开始下载.
 	// 返回读取数据的大小.
 	template <typename MutableBufferSequence>
-	std::size_t fetch_data(const MutableBufferSequence &buffers,
+	std::size_t fetch_data(const MutableBufferSequence& buffers,
 		boost::int64_t offset)
 	{
 		if (!m_storage) // 没有存储设备, 无法获得数据.
@@ -826,7 +826,7 @@ public:
 	///根据url计算出对应的meta文件名.
 	// @param url是指定的url地址.
 	// @返回一串由crc32编码url后的16进制字符串meta文件名.
-	AVHTTP_DECL std::string meta_name(const std::string &url) const
+	AVHTTP_DECL std::string meta_name(const std::string& url) const
 	{
 		// 使用url的crc作为文件名, 这样只要url是确定的, 那么就不会找错meta文件.
 		boost::crc_32_type result;
@@ -882,7 +882,7 @@ public:
 
 			for (std::size_t i = 0; i < m_streams.size(); i++)
 			{
-				const http_object_ptr &ptr = m_streams[i];
+				const http_object_ptr& ptr = m_streams[i];
 				if (ptr)
 				{
 					bytes_transferred += ptr->bytes_downloaded;
@@ -914,10 +914,10 @@ public:
 protected:
 
 	void handle_open(const int index,
-		http_object_ptr object_ptr, const boost::system::error_code &ec)
+		http_object_ptr object_ptr, const boost::system::error_code& ec)
 	{
 		change_outstranding(false);
-		http_stream_object &object = *object_ptr;
+		http_stream_object& object = *object_ptr;
 		if (ec || m_abort)
 		{
 			// 保存最后的错误信息, 避免一些过期无效或没有允可的链接不断的尝试.
@@ -963,7 +963,7 @@ protected:
 		}
 
 		// 发起数据读取请求.
-		http_stream_ptr &stream_ptr = object.stream;
+		http_stream_ptr& stream_ptr = object.stream;
 
 		change_outstranding(true);
 		// 传入指针http_object_ptr, 以确保多线程安全.
@@ -978,10 +978,10 @@ protected:
 	}
 
 	void handle_read(const int index,
-		http_object_ptr object_ptr, int bytes_transferred, const boost::system::error_code &ec)
+		http_object_ptr object_ptr, int bytes_transferred, const boost::system::error_code& ec)
 	{
 		change_outstranding(false);
-		http_stream_object &object = *object_ptr;
+		http_stream_object& object = *object_ptr;
 
 		// 保存数据, 当远程服务器断开时, ec为eof, 保证数据全部写入.
 		if (m_storage && bytes_transferred != 0 && (!ec || ec == boost::asio::error::eof))
@@ -1034,7 +1034,7 @@ protected:
 				return;
 			}
 
-			http_stream &stream = *object.stream;
+			http_stream& stream = *object.stream;
 
 			// 配置请求选项.
 			request_opts req_opt = m_settings.opts;
@@ -1138,10 +1138,10 @@ protected:
 	}
 
 	void handle_request(const int index,
-		http_object_ptr object_ptr, const boost::system::error_code &ec)
+		http_object_ptr object_ptr, const boost::system::error_code& ec)
 	{
 		change_outstranding(false);
-		http_stream_object &object = *object_ptr;
+		http_stream_object& object = *object_ptr;
 		object.request_count++;
 		if (ec || m_abort)
 		{
@@ -1188,7 +1188,7 @@ protected:
 	}
 
 	template <typename Handler>
-	void handle_start(Handler handler, http_object_ptr object_ptr, const boost::system::error_code &ec)
+	void handle_start(Handler handler, http_object_ptr object_ptr, const boost::system::error_code& ec)
 	{
 		change_outstranding(false);
 
@@ -1202,10 +1202,10 @@ protected:
 		boost::system::error_code err;
 
 		// 下面使用引用http_stream_object对象.
-		http_stream_object &object = *object_ptr;
+		http_stream_object& object = *object_ptr;
 
 		// 同样引用http_stream对象.
-		http_stream &h = *object.stream;
+		http_stream& h = *object.stream;
 
 		// 保存最终url信息.
 		std::string location = h.location();
@@ -1262,7 +1262,7 @@ protected:
 			{
 				file_size = boost::lexical_cast<boost::int64_t>(length);
 			}
-			catch (boost::bad_lexical_cast &)
+			catch (boost::bad_lexical_cast&)
 			{
 				// 得不到正确的文件长度, 设置为不支持多下载模式.
 				m_accept_multi = false;
@@ -1536,7 +1536,7 @@ protected:
 		return;
 	}
 
-	void on_tick(const boost::system::error_code &e)
+	void on_tick(const boost::system::error_code& e)
 	{
 		change_outstranding(false);
 		m_time_total++;
@@ -1585,7 +1585,7 @@ protected:
 #endif
 		for (std::size_t i = 0; i < m_streams.size(); i++)
 		{
-			http_object_ptr &object_item_ptr = m_streams[i];
+			http_object_ptr& object_item_ptr = m_streams[i];
 			boost::posix_time::time_duration duration =
 				boost::posix_time::microsec_clock::local_time() - object_item_ptr->last_request_time;
 
@@ -1619,12 +1619,12 @@ protected:
 
 				// 重新创建http_object和http_stream.
 				object_item_ptr.reset(new http_stream_object(*object_item_ptr));
-				http_stream_object &object = *object_item_ptr;
+				http_stream_object& object = *object_item_ptr;
 
 				// 使用新的http_stream对象.
 				object.stream.reset(new http_stream(m_io_service));
 
-				http_stream &stream = *object.stream;
+				http_stream& stream = *object.stream;
 
 				// 配置请求选项.
 				request_opts req_opt = m_settings.opts;
@@ -1688,7 +1688,7 @@ protected:
 		int done = 0;
 		for (std::size_t i = 0; i < m_streams.size(); i++)
 		{
-			http_object_ptr &object_item_ptr = m_streams[i];
+			http_object_ptr& object_item_ptr = m_streams[i];
 			if (object_item_ptr->done)
 			{
 				done++;
@@ -1708,7 +1708,7 @@ protected:
 		}
 	}
 
-	bool allocate_range(range &r)
+	bool allocate_range(range& r)
 	{
 #ifndef AVHTTP_DISABLE_THREAD
 		// 在多线程运行io_service时, 必须加锁, 避免重入时多次重复分配相同区域.
@@ -1760,7 +1760,7 @@ protected:
 		return true;
 	}
 
-	bool open_meta(const fs::path &file_path)
+	bool open_meta(const fs::path& file_path)
 	{
 		boost::system::error_code ec;
 
@@ -1876,7 +1876,7 @@ private:
 	}
 
 	// 默认根据文件大小自动计算分片大小.
-	std::size_t default_piece_size(const boost::int64_t &file_size) const
+	std::size_t default_piece_size(const boost::int64_t& file_size) const
 	{
 		const int target_size = 40 * 1024;
 		std::size_t piece_size = boost::int64_t(file_size / (target_size / 20));
@@ -1894,7 +1894,7 @@ private:
 
 private:
 	// io_service引用.
-	boost::asio::io_service &m_io_service;
+	boost::asio::io_service& m_io_service;
 
 	// 每一个http_stream_obj是一个http连接.
 	// 注意: 容器中的http_object_ptr只能在on_tick一处进行写操作, 并且确保其它地方

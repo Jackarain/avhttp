@@ -46,14 +46,14 @@ struct range
 		return right - left + 1;	// 注意: 由于http请求带右边界, 所以必须把右边界计算进去!!!
 	}
 
-	inline bool operator ==(const range &r) const
+	inline bool operator ==(const range& r) const
 	{
 		if (left == r.left && right == r.right)
 			return true;
 		return false;
 	}
 
-	inline bool operator!=(const range &r) const
+	inline bool operator!=(const range& r) const
 	{
 		if (left == r.left && right == r.right)
 			return false;
@@ -127,7 +127,7 @@ public:
 	///添加或更新range, 区间为[r.left, r.right)
 	// @param r区间, 不包含右边界处.
 	// @备注: 添加一个区间到range中, 可以重叠添加, 成功返回true.
-	inline bool update(const range &r)
+	inline bool update(const range& r)
 	{
 		return update(r.left, r.right);
 	}
@@ -136,7 +136,7 @@ public:
 	// @param left左边边界.
 	// @param right右边边界, 不包含边界处.
 	// @备注: 添加一个区间到range中, 可以重叠添加, 成功返回true.
-	inline bool update(const boost::int64_t &left, const boost::int64_t &right)
+	inline bool update(const boost::int64_t& left, const boost::int64_t& right)
 	{
 		BOOST_ASSERT((left >= 0 && left < right) && right <= m_size);
 
@@ -155,7 +155,7 @@ public:
 	// @param r区间, 不包含右边界处.
 	// @返回这个range这个区间是否完整的被包含在range中.
 	// @备注: 检查的区间是一个半开区间[left, right), 即不包含右边界.
-	inline bool check_range(const range &r)
+	inline bool check_range(const range& r)
 	{
 		return check_range(r.left, r.right);
 	}
@@ -165,7 +165,7 @@ public:
 	// @param right右边边界, 不包含边界处.
 	// @返回这个[left, right)这个区间是否完整的被包含在range中.
 	// @备注: 检查的区间是一个半开区间[left, right), 即不包含右边界.
-	inline bool check_range(const boost::int64_t &left, const boost::int64_t &right)
+	inline bool check_range(const boost::int64_t& left, const boost::int64_t& right)
 	{
 		BOOST_ASSERT((left >= 0 && left < right) && right <= m_size);
 
@@ -192,7 +192,7 @@ public:
 	// @param right右边边界, 不包含边界处, 同为输出参数.
 	// @返回false表示所请求的空间是空的.
 	// @备注: 请求的区间是一个半开区间[left, right), 即不包含右边界.
-	inline bool get_range(boost::int64_t &left, boost::int64_t &right)
+	inline bool get_range(boost::int64_t& left, boost::int64_t& right)
 	{
 		BOOST_ASSERT((left >= 0 && left < right) && right <= m_size);
 
@@ -226,7 +226,7 @@ public:
 	// @param r区间, 不包含右边界处.
 	// @返回false表示没有空间或失败.
 	// @备注: 输出的区间是一个半开区间[left, right), 即不包含右边界.
-	inline bool out_space(range &r)
+	inline bool out_space(range& r)
 	{
 		return out_space(r.left, r.right);
 	}
@@ -236,7 +236,7 @@ public:
 	// @param right 表示右边的边界, 不包括边界处.
 	// @返回false表示没有空间或失败.
 	// @备注: 输出的区间是一个半开区间[left, right), 即不包含右边界.
-	inline bool out_space(boost::int64_t &left, boost::int64_t &right)
+	inline bool out_space(boost::int64_t& left, boost::int64_t& right)
 	{
 		// 先整理.
 		if (m_need_merge)
@@ -250,7 +250,7 @@ public:
 	// @param right 表示右边的边界, 不包括边界处.
 	// @返回false表示没有空间或失败.
 	// @备注: 输出的区间是一个半开区间[left, right), 即不包含右边界.
-	inline bool out_space(boost::int64_t offset, boost::int64_t &left, boost::int64_t &right)
+	inline bool out_space(boost::int64_t offset, boost::int64_t& left, boost::int64_t& right)
 	{
 		// 先整理.
 		if (m_need_merge)
@@ -335,7 +335,7 @@ public:
 	///按指定大小输出为位图块.
 	// @param bitfield以int为单位的位图数组, 每个元素表示1个piece, 为0表示空, 为1表示满.
 	// @param piece_size指定的piece大小.
-	inline void range_to_bitfield(bitfield &bf, int piece_size)
+	inline void range_to_bitfield(bitfield& bf, int piece_size)
 	{
 		// 先整理连续的空间, 将连续的区间合并为一个区间.
 		if (m_need_merge)
@@ -399,7 +399,7 @@ public:
 	///按指定的分片大小bitfield更新rangefield.
 	// @param bf为指定的bitfield.
 	// @param piece_size是指定的分片大小.
-	inline void bitfield_to_range(const bitfield &bf, int piece_size)
+	inline void bitfield_to_range(const bitfield& bf, int piece_size)
 	{
 #ifndef AVHTTP_DISABLE_THREAD
 		boost::mutex::scoped_lock lock(*m_mutex);

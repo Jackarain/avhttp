@@ -80,26 +80,26 @@ public:
 	// 这样就允许这样的应用:
 	// http_stream s;
 	// s.request_options(request_opts()("cookie","XXXXXX"));
-	option & operator()(const std::string &key, const std::string &val)
+	option& operator()(const std::string& key, const std::string& val)
 	{
 		insert(key, val);
 		return *this;
 	}
 
 	// 添加选项, 由key/value形式添加.
-	void insert(const std::string &key, const std::string &val)
+	void insert(const std::string& key, const std::string& val)
 	{
 		m_opts.push_back(option_item(key, val));
 	}
 
 	// 添加选项，由 std::part 形式.
-	void insert(value_type & item)
+	void insert(value_type& item)
 	{
 		m_opts.push_back(item);
 	}
 
 	// 删除选项.
-	option & remove(const std::string &key)
+	option& remove(const std::string& key)
 	{
 		for (option_item_list::iterator i = m_opts.begin(); i != m_opts.end(); i++)
 		{
@@ -113,7 +113,7 @@ public:
 	}
 
 	// 查找指定key的value.
-	bool find(const std::string &key, std::string &val) const
+	bool find(const std::string& key, std::string& val) const
 	{
 		std::string s = key;
 		boost::to_lower(s);
@@ -131,7 +131,7 @@ public:
 	}
 
 	// 查找指定的 key 的 value. 没找到返回 ""，　这是个偷懒的帮助.
-	std::string find(const std::string & key) const
+	std::string find(const std::string& key) const
 	{
 		std::string v;
 		find(key,v);

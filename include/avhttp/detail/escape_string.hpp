@@ -58,7 +58,7 @@ inline bool is_tspecial(int c)
 	}
 }
 
-inline std::string to_hex(std::string const &s)
+inline std::string to_hex(std::string const& s)
 {
 	std::string ret;
 	for (std::string::const_iterator i = s.begin(); i != s.end(); ++i)
@@ -69,9 +69,9 @@ inline std::string to_hex(std::string const &s)
 	return ret;
 }
 
-inline void to_hex(char const *in, int len, char *out)
+inline void to_hex(char const* in, int len, char* out)
 {
-	for (char const *end = in + len; in < end; ++in)
+	for (char const* end = in + len; in < end; ++in)
 	{
 		*out++ = hex_chars[((unsigned char)*in) >> 4];
 		*out++ = hex_chars[((unsigned char)*in) & 0xf];
@@ -89,7 +89,7 @@ inline bool tolower_compare(char a, char b)
 	return std::tolower(a) == std::tolower(b);
 }
 
-inline std::string escape_path(const std::string &s)
+inline std::string escape_path(const std::string& s)
 {
 	std::string ret;
 	std::string h;
@@ -105,7 +105,7 @@ inline std::string escape_path(const std::string &s)
 	return ret;
 }
 
-inline bool unescape_path(const std::string &in, std::string &out)
+inline bool unescape_path(const std::string& in, std::string& out)
 {
 	out.clear();
 	out.reserve(in.size());
@@ -159,7 +159,7 @@ inline bool unescape_path(const std::string &in, std::string &out)
 }
 
 template <typename Source>
-std::string encode_base64(const Source &s)
+std::string encode_base64(const Source& s)
 {
 	using namespace boost::archive::iterators;
 	typedef typename Source::const_iterator source_const_iterator;

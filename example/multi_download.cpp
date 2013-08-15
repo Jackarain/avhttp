@@ -84,7 +84,7 @@ int main(int argc, char* argv[])
 			std::cout << "file \'" << d.file_name().c_str() <<
 			"\' size is: " << "(" << d.file_size() << " bytes) " << add_suffix((float)d.file_size()).c_str() << std::endl;
 
-		boost::thread t(boost::bind(&boost::asio::io_service::run, &io));
+		boost::thread t(boost::bind(&boost::asio::io_service::run,& io));
 
 		if (d.file_size() != -1)
 		{
@@ -115,7 +115,7 @@ int main(int argc, char* argv[])
 
 		std::cout << "\n*** download completed! ***\n";
 	}
-	catch (std::exception &e)
+	catch (std::exception& e)
 	{
 		std::cerr << e.what() << std::endl;
 		return -1;

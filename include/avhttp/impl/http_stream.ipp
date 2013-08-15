@@ -22,7 +22,7 @@
 
 namespace avhttp {
 
-http_stream::http_stream(boost::asio::io_service &io)
+http_stream::http_stream(boost::asio::io_service& io)
 	: m_io_service(io)
 	, m_resolver(io)
 	, m_sock(io)
@@ -55,7 +55,7 @@ http_stream::~http_stream()
 #endif
 }
 
-void http_stream::open(const url &u)
+void http_stream::open(const url& u)
 {
 	boost::system::error_code ec;
 	open(u, ec);
@@ -65,7 +65,7 @@ void http_stream::open(const url &u)
 	}
 }
 
-void http_stream::open(const url &u, boost::system::error_code &ec)
+void http_stream::open(const url& u, boost::system::error_code& ec)
 {
 	// 保存url相关的信息.
 	if (m_url.to_string() == "")
@@ -111,7 +111,7 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 		m_sock.instantiate<ssl_socket>(m_nossl_socket);
 
 		// 加载证书路径或证书.
-		ssl_socket *ssl_sock = m_sock.get<ssl_socket>();
+		ssl_socket* ssl_sock = m_sock.get<ssl_socket>();
 		if (!m_ca_directory.empty())
 		{
 			ssl_sock->add_verify_path(m_ca_directory, ec);
@@ -253,7 +253,7 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 					LOG_DEBUG("Connect to http proxy \'" << m_proxy.hostname << ":" << m_proxy.port << "\'.");
 				}
 				// 开始握手.
-				ssl_socket *ssl_sock = m_sock.get<ssl_socket>();
+				ssl_socket* ssl_sock = m_sock.get<ssl_socket>();
 				ssl_sock->handshake(ec);
 				if (ec)
 				{
@@ -358,7 +358,7 @@ void http_stream::open(const url &u, boost::system::error_code &ec)
 }
 
 template <typename Handler>
-void http_stream::async_open(const url &u, BOOST_ASIO_MOVE_ARG(Handler) handler)
+void http_stream::async_open(const url& u, BOOST_ASIO_MOVE_ARG(Handler) handler)
 {
 	AVHTTP_OPEN_HANDLER_CHECK(Handler, handler) type_check;
 
@@ -409,7 +409,7 @@ void http_stream::async_open(const url &u, BOOST_ASIO_MOVE_ARG(Handler) handler)
 		m_sock.instantiate<ssl_socket>(m_nossl_socket);
 
 		// 加载证书路径或证书.
-		ssl_socket *ssl_sock = m_sock.get<ssl_socket>();
+		ssl_socket* ssl_sock = m_sock.get<ssl_socket>();
 		if (!m_ca_directory.empty())
 		{
 			ssl_sock->add_verify_path(m_ca_directory, ec);
@@ -519,7 +519,7 @@ void http_stream::async_open(const url &u, BOOST_ASIO_MOVE_ARG(Handler) handler)
 }
 
 template <typename MutableBufferSequence>
-std::size_t http_stream::read_some(const MutableBufferSequence &buffers)
+std::size_t http_stream::read_some(const MutableBufferSequence& buffers)
 {
 	boost::system::error_code ec;
 	std::size_t bytes_transferred = read_some(buffers, ec);
@@ -531,8 +531,8 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers)
 }
 
 template <typename MutableBufferSequence>
-std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
-	boost::system::error_code &ec)
+std::size_t http_stream::read_some(const MutableBufferSequence& buffers,
+	boost::system::error_code& ec)
 {
 	std::size_t bytes_transferred = 0;
 	if (m_is_chunked)	// 如果启用了分块传输模式, 则解析块大小, 并读取小于块大小的数据.
@@ -803,7 +803,7 @@ std::size_t http_stream::read_some(const MutableBufferSequence &buffers,
 }
 
 template <typename MutableBufferSequence, typename Handler>
-void http_stream::async_read_some(const MutableBufferSequence &buffers, BOOST_ASIO_MOVE_ARG(Handler) handler)
+void http_stream::async_read_some(const MutableBufferSequence& buffers, BOOST_ASIO_MOVE_ARG(Handler) handler)
 {
 	AVHTTP_READ_HANDLER_CHECK(Handler, handler) type_check;
 
@@ -998,7 +998,7 @@ void http_stream::async_read_some(const MutableBufferSequence &buffers, BOOST_AS
 }
 
 template <typename ConstBufferSequence>
-std::size_t http_stream::write_some(const ConstBufferSequence &buffers)
+std::size_t http_stream::write_some(const ConstBufferSequence& buffers)
 {
 	boost::system::error_code ec;
 	std::size_t bytes_transferred = write_some(buffers, ec);
@@ -1010,8 +1010,8 @@ std::size_t http_stream::write_some(const ConstBufferSequence &buffers)
 }
 
 template <typename ConstBufferSequence>
-std::size_t http_stream::write_some(const ConstBufferSequence &buffers,
-	boost::system::error_code &ec)
+std::size_t http_stream::write_some(const ConstBufferSequence& buffers,
+	boost::system::error_code& ec)
 {
 	std::size_t bytes_transferred = m_sock.write_some(buffers, ec);
 	if (ec == boost::asio::error::shut_down)
@@ -1020,14 +1020,14 @@ std::size_t http_stream::write_some(const ConstBufferSequence &buffers,
 }
 
 template <typename ConstBufferSequence, typename Handler>
-void http_stream::async_write_some(const ConstBufferSequence &buffers, BOOST_ASIO_MOVE_ARG(Handler) handler)
+void http_stream::async_write_some(const ConstBufferSequence& buffers, BOOST_ASIO_MOVE_ARG(Handler) handler)
 {
 	AVHTTP_WRITE_HANDLER_CHECK(Handler, handler) type_check;
 
 	m_sock.async_write_some(buffers, handler);
 }
 
-void http_stream::request(request_opts &opt)
+void http_stream::request(request_opts& opt)
 {
 	boost::system::error_code ec;
 	request(opt, ec);
@@ -1037,13 +1037,13 @@ void http_stream::request(request_opts &opt)
 	}
 }
 
-void http_stream::request(request_opts &opt, boost::system::error_code &ec)
+void http_stream::request(request_opts& opt, boost::system::error_code& ec)
 {
 	request_impl<socket_type>(m_sock, opt, ec);
 }
 
 template <typename Handler>
-void http_stream::async_request(const request_opts &opt, BOOST_ASIO_MOVE_ARG(Handler) handler)
+void http_stream::async_request(const request_opts& opt, BOOST_ASIO_MOVE_ARG(Handler) handler)
 {
 	AVHTTP_REQUEST_HANDLER_CHECK(Handler, handler) type_check;
 
@@ -1152,7 +1152,7 @@ void http_stream::async_request(const request_opts &opt, BOOST_ASIO_MOVE_ARG(Han
 
 	// 循环构造其它选项.
 	std::string other_option_string;
-	request_opts::option_item_list &list = opts.option_all();
+	request_opts::option_item_list& list = opts.option_all();
 	for (request_opts::option_item_list::iterator val = list.begin(); val != list.end(); val++)
 	{
 		if (val->first == http_options::path ||
@@ -1242,7 +1242,7 @@ void http_stream::close()
 	}
 }
 
-void http_stream::close(boost::system::error_code &ec)
+void http_stream::close(boost::system::error_code& ec)
 {
 	ec = boost::system::error_code();
 
@@ -1275,12 +1275,12 @@ void http_stream::max_redirects(int n)
 	m_max_redirects = n;
 }
 
-void http_stream::proxy(const proxy_settings &s)
+void http_stream::proxy(const proxy_settings& s)
 {
 	m_proxy = s;
 }
 
-void http_stream::request_options(const request_opts &options)
+void http_stream::request_options(const request_opts& options)
 {
 	m_request_opts_priv = options;
 }
@@ -1324,13 +1324,13 @@ void http_stream::check_certificate(bool is_check)
 #endif
 }
 
-void http_stream::add_verify_path(const std::string &path)
+void http_stream::add_verify_path(const std::string& path)
 {
 	m_ca_directory = path;
 	return;
 }
 
-void http_stream::load_verify_file(const std::string &filename)
+void http_stream::load_verify_file(const std::string& filename)
 {
 	m_ca_cert = filename;
 	return;
@@ -1340,8 +1340,8 @@ void http_stream::load_verify_file(const std::string &filename)
 // 以下为内部相关实现, 非接口.
 
 template <typename MutableBufferSequence>
-std::size_t http_stream::read_some_impl(const MutableBufferSequence &buffers,
-	boost::system::error_code &ec)
+std::size_t http_stream::read_some_impl(const MutableBufferSequence& buffers,
+	boost::system::error_code& ec)
 {
 	// 如果还有数据在m_response中, 先读取m_response中的数据.
 	if (m_response.size() > 0)
@@ -1371,7 +1371,7 @@ std::size_t http_stream::read_some_impl(const MutableBufferSequence &buffers,
 }
 
 template <typename Handler>
-void http_stream::handle_resolve(const boost::system::error_code &err,
+void http_stream::handle_resolve(const boost::system::error_code& err,
 	tcp::resolver::iterator endpoint_iterator, Handler handler)
 {
 	if (!err)
@@ -1398,7 +1398,7 @@ void http_stream::handle_resolve(const boost::system::error_code &err,
 
 template <typename Handler>
 void http_stream::handle_connect(Handler handler,
-	tcp::resolver::iterator endpoint_iterator, const boost::system::error_code &err)
+	tcp::resolver::iterator endpoint_iterator, const boost::system::error_code& err)
 {
 	if (!err)
 	{
@@ -1432,7 +1432,7 @@ void http_stream::handle_connect(Handler handler,
 }
 
 template <typename Handler>
-void http_stream::handle_request(Handler handler, const boost::system::error_code &err)
+void http_stream::handle_request(Handler handler, const boost::system::error_code& err)
 {
 	// 发生错误.
 	if (err)
@@ -1452,7 +1452,7 @@ void http_stream::handle_request(Handler handler, const boost::system::error_cod
 }
 
 template <typename Handler>
-void http_stream::handle_status(Handler handler, const boost::system::error_code &err)
+void http_stream::handle_status(Handler handler, const boost::system::error_code& err)
 {
 	// 发生错误.
 	if (err)
@@ -1518,7 +1518,7 @@ void http_stream::handle_status(Handler handler, const boost::system::error_code
 }
 
 template <typename Handler>
-void http_stream::handle_header(Handler handler, int bytes_transferred, const boost::system::error_code &err)
+void http_stream::handle_header(Handler handler, int bytes_transferred, const boost::system::error_code& err)
 {
 	if (err)
 	{
@@ -1616,8 +1616,8 @@ void http_stream::handle_header(Handler handler, int bytes_transferred, const bo
 }
 
 template <typename MutableBufferSequence, typename Handler>
-void http_stream::handle_read(const MutableBufferSequence &buffers, Handler handler,
-	const boost::system::error_code &ec, std::size_t bytes_transferred)
+void http_stream::handle_read(const MutableBufferSequence& buffers, Handler handler,
+	const boost::system::error_code& ec, std::size_t bytes_transferred)
 {
 	boost::system::error_code err;
 	if (!ec || m_response.size() > 0
@@ -1726,9 +1726,9 @@ void http_stream::handle_read(const MutableBufferSequence &buffers, Handler hand
 }
 
 template <typename MutableBufferSequence, typename Handler>
-void http_stream::handle_skip_crlf(const MutableBufferSequence &buffers,
+void http_stream::handle_skip_crlf(const MutableBufferSequence& buffers,
 	Handler handler, boost::shared_array<char> crlf,
-	const boost::system::error_code &ec, std::size_t bytes_transferred)
+	const boost::system::error_code& ec, std::size_t bytes_transferred)
 {
 	if (!ec)
 	{
@@ -1771,8 +1771,8 @@ void http_stream::handle_skip_crlf(const MutableBufferSequence &buffers,
 }
 
 template <typename MutableBufferSequence, typename Handler>
-void http_stream::handle_async_read(const MutableBufferSequence &buffers,
-	Handler handler, const boost::system::error_code &ec, std::size_t bytes_transferred)
+void http_stream::handle_async_read(const MutableBufferSequence& buffers,
+	Handler handler, const boost::system::error_code& ec, std::size_t bytes_transferred)
 {
 	boost::system::error_code err;
 
@@ -1862,8 +1862,8 @@ void http_stream::handle_async_read(const MutableBufferSequence &buffers,
 }
 
 template <typename MutableBufferSequence, typename Handler>
-void http_stream::handle_chunked_size(const MutableBufferSequence &buffers,
-	Handler handler, const boost::system::error_code &ec, std::size_t bytes_transferred)
+void http_stream::handle_chunked_size(const MutableBufferSequence& buffers,
+	Handler handler, const boost::system::error_code& ec, std::size_t bytes_transferred)
 {
 	if (!ec)
 	{
@@ -1965,11 +1965,11 @@ void http_stream::handle_chunked_size(const MutableBufferSequence &buffers,
 }
 
 template <typename Stream>
-void http_stream::socks_proxy_connect(Stream &sock, boost::system::error_code &ec)
+void http_stream::socks_proxy_connect(Stream& sock, boost::system::error_code& ec)
 {
 	using namespace avhttp::detail;
 
-	const proxy_settings &s = m_proxy;
+	const proxy_settings& s = m_proxy;
 
 	// 开始解析代理的端口和主机名.
 	tcp::resolver resolver(m_io_service);
@@ -2007,7 +2007,7 @@ void http_stream::socks_proxy_connect(Stream &sock, boost::system::error_code &e
 
 			std::size_t bytes_to_write = s.username.empty() ? 3 : 4;
 			boost::asio::mutable_buffer b = m_request.prepare(bytes_to_write);
-			char *p = boost::asio::buffer_cast<char*>(b);
+			char* p = boost::asio::buffer_cast<char*>(b);
 			write_uint8(5, p); // SOCKS VERSION 5.
 			if (s.username.empty())
 			{
@@ -2035,7 +2035,7 @@ void http_stream::socks_proxy_connect(Stream &sock, boost::system::error_code &e
 		int version, method;
 		{
 			boost::asio::const_buffer b = m_response.data();
-			const char *p = boost::asio::buffer_cast<const char*>(b);
+			const char* p = boost::asio::buffer_cast<const char*>(b);
 			version = read_uint8(p);
 			method = read_uint8(p);
 			if (version != 5)	// 版本不等于5, 不支持socks5.
@@ -2056,7 +2056,7 @@ void http_stream::socks_proxy_connect(Stream &sock, boost::system::error_code &e
 			m_request.consume(m_request.size());
 			std::size_t bytes_to_write = s.username.size() + s.password.size() + 3;
 			boost::asio::mutable_buffer b = m_request.prepare(bytes_to_write);
-			char *p = boost::asio::buffer_cast<char*>(b);
+			char* p = boost::asio::buffer_cast<char*>(b);
 			write_uint8(1, p);
 			write_uint8(s.username.size(), p);
 			write_string(s.username, p);
@@ -2084,7 +2084,7 @@ void http_stream::socks_proxy_connect(Stream &sock, boost::system::error_code &e
 		{
 			// 读取版本状态.
 			boost::asio::const_buffer b = m_response.data();
-			const char *p = boost::asio::buffer_cast<const char*>(b);
+			const char* p = boost::asio::buffer_cast<const char*>(b);
 
 			int version = read_uint8(p);
 			int status = read_uint8(p);
@@ -2113,12 +2113,12 @@ void http_stream::socks_proxy_connect(Stream &sock, boost::system::error_code &e
 }
 
 template <typename Stream>
-void http_stream::socks_proxy_handshake(Stream &sock, boost::system::error_code &ec)
+void http_stream::socks_proxy_handshake(Stream& sock, boost::system::error_code& ec)
 {
 	using namespace avhttp::detail;
 
-	const url &u = m_url;
-	const proxy_settings &s = m_proxy;
+	const url& u = m_url;
+	const proxy_settings& s = m_proxy;
 
 	m_request.consume(m_request.size());
 	std::string host = u.host();
@@ -2126,7 +2126,7 @@ void http_stream::socks_proxy_handshake(Stream &sock, boost::system::error_code 
 	if (s.type == proxy_settings::socks4)
 		bytes_to_write = 9 + s.username.size();
 	boost::asio::mutable_buffer mb = m_request.prepare(bytes_to_write);
-	char *wp = boost::asio::buffer_cast<char*>(mb);
+	char* wp = boost::asio::buffer_cast<char*>(mb);
 
 	if (s.type == proxy_settings::socks5 || s.type == proxy_settings::socks5_pw)
 	{
@@ -2198,7 +2198,7 @@ void http_stream::socks_proxy_handshake(Stream &sock, boost::system::error_code 
 
 	// 分析服务器返回.
 	boost::asio::const_buffer cb = m_response.data();
-	const char *rp = boost::asio::buffer_cast<const char*>(cb);
+	const char* rp = boost::asio::buffer_cast<const char*>(cb);
 	int version = read_uint8(rp);
 	int response = read_uint8(rp);
 
@@ -2299,7 +2299,7 @@ void http_stream::socks_proxy_handshake(Stream &sock, boost::system::error_code 
 
 // socks代理进行异步连接.
 template <typename Stream, typename Handler>
-void http_stream::async_socks_proxy_connect(Stream &sock, Handler handler)
+void http_stream::async_socks_proxy_connect(Stream& sock, Handler handler)
 {
 	// 构造异步查询proxy主机信息.
 	std::ostringstream port_string;
@@ -2323,8 +2323,8 @@ void http_stream::async_socks_proxy_connect(Stream &sock, Handler handler)
 
 // 异步代理查询回调.
 template <typename Stream, typename Handler>
-void http_stream::async_socks_proxy_resolve(const boost::system::error_code &err,
-	tcp::resolver::iterator endpoint_iterator, Stream &sock, Handler handler)
+void http_stream::async_socks_proxy_resolve(const boost::system::error_code& err,
+	tcp::resolver::iterator endpoint_iterator, Stream& sock, Handler handler)
 {
 	if (err)
 	{
@@ -2360,8 +2360,8 @@ void http_stream::async_socks_proxy_resolve(const boost::system::error_code &err
 }
 
 template <typename Stream, typename Handler>
-void http_stream::handle_connect_socks(Stream &sock, Handler handler,
-	tcp::resolver::iterator endpoint_iterator, const boost::system::error_code &err)
+void http_stream::handle_connect_socks(Stream& sock, Handler handler,
+	tcp::resolver::iterator endpoint_iterator, const boost::system::error_code& err)
 {
 	using namespace avhttp::detail;
 
@@ -2398,7 +2398,7 @@ void http_stream::handle_connect_socks(Stream &sock, Handler handler,
 
 		std::size_t bytes_to_write = m_proxy.username.empty() ? 3 : 4;
 		boost::asio::mutable_buffer b = m_request.prepare(bytes_to_write);
-		char *p = boost::asio::buffer_cast<char*>(b);
+		char* p = boost::asio::buffer_cast<char*>(b);
 		write_uint8(5, p);		// SOCKS VERSION 5.
 		if (m_proxy.username.empty())
 		{
@@ -2449,8 +2449,8 @@ void http_stream::handle_connect_socks(Stream &sock, Handler handler,
 }
 
 template <typename Stream, typename Handler>
-void http_stream::handle_socks_process(Stream &sock, Handler handler,
-	int bytes_transferred, const boost::system::error_code &err)
+void http_stream::handle_socks_process(Stream& sock, Handler handler,
+	int bytes_transferred, const boost::system::error_code& err)
 {
 	using namespace avhttp::detail;
 
@@ -2515,7 +2515,7 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 			m_request.consume(m_request.size());
 			std::size_t bytes_to_write = 9 + m_proxy.username.size();
 			boost::asio::mutable_buffer mb = m_request.prepare(bytes_to_write);
-			char *wp = boost::asio::buffer_cast<char*>(mb);
+			char* wp = boost::asio::buffer_cast<char*>(mb);
 
 			write_uint8(4, wp); // SOCKS VERSION 4.
 			write_uint8(1, wp); // CONNECT command.
@@ -2570,7 +2570,7 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 			std::string host = m_url.host();
 			std::size_t bytes_to_write = 7 + host.size();
 			boost::asio::mutable_buffer mb = m_request.prepare(bytes_to_write);
-			char *wp = boost::asio::buffer_cast<char*>(mb);
+			char* wp = boost::asio::buffer_cast<char*>(mb);
 			// 发送socks5连接命令.
 			write_uint8(5, wp); // SOCKS VERSION 5.
 			write_uint8(1, wp); // CONNECT command.
@@ -2610,7 +2610,7 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 		{
 			// 分析服务器返回.
 			boost::asio::const_buffer cb = m_response.data();
-			const char *rp = boost::asio::buffer_cast<const char*>(cb);
+			const char* rp = boost::asio::buffer_cast<const char*>(cb);
 			/*int version = */read_uint8(rp);
 			int response = read_uint8(rp);
 
@@ -2671,7 +2671,7 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 	case socks5_response_version:
 		{
 			boost::asio::const_buffer cb = m_response.data();
-			const char *rp = boost::asio::buffer_cast<const char*>(cb);
+			const char* rp = boost::asio::buffer_cast<const char*>(cb);
 			int version = read_uint8(rp);
 			int method = read_uint8(rp);
 			if (version != 5)	// 版本不等于5, 不支持socks5.
@@ -2683,7 +2683,7 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 				return;
 			}
 
-			const proxy_settings &s = m_proxy;
+			const proxy_settings& s = m_proxy;
 
 			if (method == 2)
 			{
@@ -2700,7 +2700,7 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 				m_request.consume(m_request.size());
 				std::size_t bytes_to_write = m_proxy.username.size() + m_proxy.password.size() + 3;
 				boost::asio::mutable_buffer mb = m_request.prepare(bytes_to_write);
-				char *wp = boost::asio::buffer_cast<char*>(mb);
+				char* wp = boost::asio::buffer_cast<char*>(mb);
 				write_uint8(1, wp);
 				write_uint8(s.username.size(), wp);
 				write_string(s.username, wp);
@@ -2735,7 +2735,7 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 	case socks5_auth_status:
 		{
 			boost::asio::const_buffer cb = m_response.data();
-			const char *rp = boost::asio::buffer_cast<const char*>(cb);
+			const char* rp = boost::asio::buffer_cast<const char*>(cb);
 
 			int version = read_uint8(rp);
 			int status = read_uint8(rp);
@@ -2767,7 +2767,7 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 		{
 			// 分析服务器返回.
 			boost::asio::const_buffer cb = m_response.data();
-			const char *rp = boost::asio::buffer_cast<const char*>(cb);
+			const char* rp = boost::asio::buffer_cast<const char*>(cb);
 			int version = read_uint8(rp);
 			int response = read_uint8(rp);
 
@@ -2871,7 +2871,7 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 				LOG_DEBUG("Connect to socks5 proxy \'" << m_proxy.hostname << ":" << m_proxy.port << "\'.");
 				// 开始握手.
 				m_proxy_status = ssl_handshake;
-				ssl_socket *ssl_sock = m_sock.get<ssl_socket>();
+				ssl_socket* ssl_sock = m_sock.get<ssl_socket>();
 				ssl_sock->async_handshake(boost::bind(&http_stream::handle_socks_process<Stream, Handler>, this,
 					boost::ref(sock), handler,
 					0,
@@ -2896,7 +2896,7 @@ void http_stream::handle_socks_process(Stream &sock, Handler handler,
 
 // 实现CONNECT指令, 用于请求目标为https主机时使用.
 template <typename Stream, typename Handler>
-void http_stream::async_https_proxy_connect(Stream &sock, Handler handler)
+void http_stream::async_https_proxy_connect(Stream& sock, Handler handler)
 {
 	// 构造异步查询proxy主机信息.
 	std::ostringstream port_string;
@@ -2917,8 +2917,8 @@ void http_stream::async_https_proxy_connect(Stream &sock, Handler handler)
 }
 
 template <typename Stream, typename Handler>
-void http_stream::async_https_proxy_resolve(const boost::system::error_code &err,
-	tcp::resolver::iterator endpoint_iterator, Stream &sock, Handler handler)
+void http_stream::async_https_proxy_resolve(const boost::system::error_code& err,
+	tcp::resolver::iterator endpoint_iterator, Stream& sock, Handler handler)
 {
 	if (err)
 	{
@@ -2938,8 +2938,8 @@ void http_stream::async_https_proxy_resolve(const boost::system::error_code &err
 }
 
 template <typename Stream, typename Handler>
-void http_stream::handle_connect_https_proxy(Stream &sock, Handler handler,
-	tcp::resolver::iterator endpoint_iterator, const boost::system::error_code &err)
+void http_stream::handle_connect_https_proxy(Stream& sock, Handler handler,
+	tcp::resolver::iterator endpoint_iterator, const boost::system::error_code& err)
 {
 	if (err)
 	{
@@ -3038,8 +3038,8 @@ void http_stream::handle_connect_https_proxy(Stream &sock, Handler handler,
 }
 
 template <typename Stream, typename Handler>
-void http_stream::handle_https_proxy_request(Stream &sock, Handler handler,
-	const boost::system::error_code &err)
+void http_stream::handle_https_proxy_request(Stream& sock, Handler handler,
+	const boost::system::error_code& err)
 {
 	// 发生错误.
 	if (err)
@@ -3061,8 +3061,8 @@ void http_stream::handle_https_proxy_request(Stream &sock, Handler handler,
 }
 
 template <typename Stream, typename Handler>
-void http_stream::handle_https_proxy_status(Stream &sock, Handler handler,
-	const boost::system::error_code &err)
+void http_stream::handle_https_proxy_status(Stream& sock, Handler handler,
+	const boost::system::error_code& err)
 {
 	// 发生错误.
 	if (err)
@@ -3123,8 +3123,8 @@ void http_stream::handle_https_proxy_status(Stream &sock, Handler handler,
 }
 
 template <typename Stream, typename Handler>
-void http_stream::handle_https_proxy_header(Stream &sock, Handler handler,
-	int bytes_transferred, const boost::system::error_code &err)
+void http_stream::handle_https_proxy_header(Stream& sock, Handler handler,
+	int bytes_transferred, const boost::system::error_code& err)
 {
 	if (err)
 	{
@@ -3163,7 +3163,7 @@ void http_stream::handle_https_proxy_header(Stream &sock, Handler handler,
 	LOG_DEBUG("Connect to http proxy \'" << m_proxy.hostname << ":" << m_proxy.port << "\'.");
 
 	// 开始异步握手.
-	ssl_socket *ssl_sock = m_sock.get<ssl_socket>();
+	ssl_socket* ssl_sock = m_sock.get<ssl_socket>();
 	ssl_sock->async_handshake(
 		boost::bind(&http_stream::handle_https_proxy_handshake<Stream, Handler>,
 			this,
@@ -3176,8 +3176,8 @@ void http_stream::handle_https_proxy_header(Stream &sock, Handler handler,
 }
 
 template <typename Stream, typename Handler>
-void http_stream::handle_https_proxy_handshake(Stream &sock, Handler handler,
-	const boost::system::error_code &err)
+void http_stream::handle_https_proxy_handshake(Stream& sock, Handler handler,
+	const boost::system::error_code& err)
 {
 	if (err)
 	{
@@ -3199,7 +3199,7 @@ void http_stream::handle_https_proxy_handshake(Stream &sock, Handler handler,
 
 // 实现CONNECT指令, 用于请求目标为https主机时使用.
 template <typename Stream>
-void http_stream::https_proxy_connect(Stream &sock, boost::system::error_code &ec)
+void http_stream::https_proxy_connect(Stream& sock, boost::system::error_code& ec)
 {
 	// 开始解析端口和主机名.
 	tcp::resolver resolver(m_io_service);
@@ -3343,7 +3343,7 @@ void http_stream::https_proxy_connect(Stream &sock, boost::system::error_code &e
 #endif
 
 template <typename Stream>
-void http_stream::request_impl(Stream &sock, request_opts &opt, boost::system::error_code &ec)
+void http_stream::request_impl(Stream& sock, request_opts& opt, boost::system::error_code& ec)
 {
 	// 判断socket是否打开.
 	if (!sock.is_open())
@@ -3445,7 +3445,7 @@ void http_stream::request_impl(Stream &sock, request_opts &opt, boost::system::e
 
 	// 循环构造其它选项.
 	std::string other_option_string;
-	request_opts::option_item_list &list = opts.option_all();
+	request_opts::option_item_list& list = opts.option_all();
 	for (request_opts::option_item_list::iterator val = list.begin(); val != list.end(); val++)
 	{
 		if (val->first == http_options::path ||
