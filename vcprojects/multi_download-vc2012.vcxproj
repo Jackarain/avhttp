@@ -93,11 +93,16 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\avhttp.hpp" />
+    <ClInclude Include="..\include\avhttp\async_read_body.hpp" />
     <ClInclude Include="..\include\avhttp\bencode.hpp" />
     <ClInclude Include="..\include\avhttp\bitfield.hpp" />
+    <ClInclude Include="..\include\avhttp\completion_condition.hpp" />
+    <ClInclude Include="..\include\avhttp\detail\handler_type_requirements.hpp" />
+    <ClInclude Include="..\include\avhttp\detail\utf8.hpp" />
     <ClInclude Include="..\include\avhttp\entry.hpp" />
     <ClInclude Include="..\include\avhttp\file.hpp" />
     <ClInclude Include="..\include\avhttp\http_stream.hpp" />
+    <ClInclude Include="..\include\avhttp\logging.hpp" />
     <ClInclude Include="..\include\avhttp\multi_download.hpp" />
     <ClInclude Include="..\include\avhttp\rangefield.hpp" />
     <ClInclude Include="..\include\avhttp\settings.hpp" />
@@ -111,6 +116,7 @@
     <ClInclude Include="..\include\avhttp\detail\parsers.hpp" />
     <ClInclude Include="..\include\avhttp\detail\socket_type.hpp" />
     <ClInclude Include="..\include\avhttp\detail\ssl_stream.hpp" />
+    <ClInclude Include="..\include\avhttp\version.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\include\avhttp\impl\http_stream.ipp" />
