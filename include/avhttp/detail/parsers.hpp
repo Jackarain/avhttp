@@ -485,6 +485,8 @@ bool parse_filename(Iterator begin, Iterator end, std::string& filename)
 			else
 				state = parse_fail;
 			break;
+		case parse_fail:
+			break;
 		}
 	}
 	if (name == "filename" && !value.empty())
