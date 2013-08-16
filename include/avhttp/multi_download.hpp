@@ -122,6 +122,25 @@ class multi_download : public boost::noncopyable
 		int current_byte_rate;
 	};
 
+	// 用于帮助multi_download自动计算outstranding.
+	struct auto_outstanding
+	{
+		auto_outstanding(multi_download &o)
+			: obj(o)
+		{
+			obj.change_outstranding(true);
+		}
+
+		~auto_outstanding()
+		{
+			obj.change_outstranding(false);
+		}
+
+		multi_download &obj;
+	};
+
+	friend struct auto_outstanding;
+
 public:
 	AVHTTP_DECL explicit multi_download(boost::asio::io_service& io)
 		: m_io_service(io)
@@ -187,6 +206,7 @@ public:
 	// @返回error_code, 包含详细的错误信息.
 	AVHTTP_DECL void start(const std::string& u, const settings& s, boost::system::error_code& ec)
 	{
+		auto_outstanding ao(*this);
 		// 清空所有连接.
 		{
 #ifndef AVHTTP_DISABLE_THREAD
@@ -299,6 +319,19 @@ public:
 			m_file_size = file_size;
 			m_rangefield.reset(m_file_size);
 			m_downlaoded_field.reset(m_file_size);
+		}
+
+		// 是否有指定的文件名, 检查Content-Disposition: attachment; filename="file.zip"
+		std::string filename;
+		h.response_options().find("Content-Disposition", filename);
+		if (!filename.empty())
+		{
+			std::string value;
+			detail::parse_filename(filename.begin(), filename.end(), value);
+			if (!value.empty())
+			{
+				m_file_name = value;
+			}
 		}
 
 		// 是否支持长连接模式, 不支持多点下载, 长连接也没有意义.
@@ -916,6 +949,7 @@ protected:
 	void handle_open(const int index,
 		http_object_ptr object_ptr, const boost::system::error_code& ec)
 	{
+		auto_outstanding ao(*this);
 		change_outstranding(false);
 		http_stream_object& object = *object_ptr;
 		if (ec || m_abort)
@@ -980,6 +1014,7 @@ protected:
 	void handle_read(const int index,
 		http_object_ptr object_ptr, int bytes_transferred, const boost::system::error_code& ec)
 	{
+		auto_outstanding ao(*this);
 		change_outstranding(false);
 		http_stream_object& object = *object_ptr;
 
@@ -1075,7 +1110,6 @@ protected:
 			object.last_request_time = boost::posix_time::microsec_clock::local_time();
 
 			change_outstranding(true);
-
 			// 发起异步http数据请求, 传入指针http_object_ptr, 以确保多线程安全.
 			if (!m_keep_alive)
 			{
@@ -1142,6 +1176,7 @@ protected:
 	void handle_request(const int index,
 		http_object_ptr object_ptr, const boost::system::error_code& ec)
 	{
+		auto_outstanding ao(*this);
 		change_outstranding(false);
 		http_stream_object& object = *object_ptr;
 		object.request_count++;
@@ -1192,6 +1227,7 @@ protected:
 	template <typename Handler>
 	void handle_start(Handler handler, http_object_ptr object_ptr, const boost::system::error_code& ec)
 	{
+		auto_outstanding ao(*this);
 		change_outstranding(false);
 
 		// 打开失败则退出.
@@ -1277,6 +1313,19 @@ protected:
 			m_file_size = file_size;
 			m_rangefield.reset(m_file_size);
 			m_downlaoded_field.reset(m_file_size);
+		}
+
+		// 是否有指定的文件名, 检查Content-Disposition: attachment; filename="file.zip"
+		std::string filename;
+		h.response_options().find("Content-Disposition", filename);
+		if (!filename.empty())
+		{
+			std::string value;
+			detail::parse_filename(filename.begin(), filename.end(), value);
+			if (!value.empty())
+			{
+				m_file_name = value;
+			}
 		}
 
 		// 是否支持长连接模式, 不支持多点下载, 长连接也没有意义.
@@ -1540,6 +1589,7 @@ protected:
 
 	void on_tick(const boost::system::error_code& e)
 	{
+		auto_outstanding ao(*this);
 		change_outstranding(false);
 		m_time_total++;
 

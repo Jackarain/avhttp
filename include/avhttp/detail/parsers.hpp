@@ -407,6 +407,93 @@ bool parse_http_headers(Iterator begin, Iterator end,
 	return false;
 }
 
+// 从Content-Disposition解析filename字段, 示例:
+// attachment=other; filename="file.zip"; 这样的字符串中匹配到
+// filename项, 将它的value保存到filename变量.
+template <typename Iterator>
+bool parse_filename(Iterator begin, Iterator end, std::string& filename)
+{
+	enum
+	{
+		parse_key_start,
+		parse_key,
+		parse_value_start,
+		parse_value,
+		parse_fail
+	} state = parse_key_start;
+
+	Iterator iter = begin;
+	std::string name;
+	std::string value;
+	char c;
+
+	while (iter != end && state != parse_fail)
+	{
+		c = *iter++;
+		switch (state)
+		{
+		case parse_key_start:
+			if (c == ' ')
+				continue;
+			if (is_char(c))
+			{
+				name.push_back(c);
+				state = parse_key;
+			}
+			else
+				state = parse_fail;
+			break;
+		case parse_key:
+			if (c == ';')
+			{
+				name = "";
+				state = parse_key_start;
+			}
+			else if (c == '=')
+			{
+				value = "";
+				state = parse_value_start;
+			}
+			else if (is_tspecial(c) || c == ':')
+			{
+				name = "";
+				state = parse_key_start;
+			}
+			else if (is_char(c) || c == '_')
+				name.push_back(c);
+			break;
+		case parse_value_start:
+			if (c == ';' || c == '\"' || c == '\'')
+				continue;
+			if (is_char(c))
+			{
+				value.push_back(c);
+				state = parse_value;
+			}
+			else
+				state = parse_fail;
+			break;
+		case parse_value:
+			if (c == ';' || c == '\"' || c == '\'')
+			{
+				if (name == "filename")
+					filename = value;
+				state = parse_key_start;
+			}
+			else if (is_char(c))
+				value.push_back(c);
+			else
+				state = parse_fail;
+			break;
+		}
+	}
+	if (name == "filename" && !value.empty())
+		filename = value;
+	if (filename.empty())
+		return false;
+	return true;
+}
+
 #ifdef atoi64
 #undef atoi64
 #endif
