@@ -417,7 +417,7 @@ bool parse_http_headers(Iterator begin, Iterator end,
 // attachment=other; filename="file.zip"; 这样的字符串中匹配到
 // filename项, 将它的value保存到filename变量.
 template <typename Iterator>
-bool parse_filename(Iterator begin, Iterator end, std::string& filename)
+bool content_disposition_filename(Iterator begin, Iterator end, std::string& filename)
 {
 	enum
 	{
