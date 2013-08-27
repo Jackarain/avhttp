@@ -512,30 +512,37 @@ time_t ptime_to_time_t(const boost::posix_time::ptime& pt)
 // 解析http-date字符串.
 // 注: 根据RFC2616规定HTTP-date 格式是 rfc1123-date | rfc850-date | asctime-date之一.
 // 参数s 指定了需要解析的字符串.
-// 参数t 返回解析出的UTC time.
+// 参数t 返回解析出的time.
 // 返回true表示解析成功, 返回false表示解析失败.
-bool parse_http_date(const std::string& s, time_t& t)
+bool parse_http_date(const std::string& s, boost::posix_time::ptime& t)
 {
-	boost::posix_time::ptime pt;
 	std::stringstream ss(s);
 	boost::posix_time::time_input_facet* rfc1123_date =
 		new boost::posix_time::time_input_facet("%a, %d %b %Y %H:%M:%S GMT");
 	ss.imbue(std::locale(ss.getloc(), rfc1123_date));
-	ss >> pt;
-	if (pt != boost::posix_time::not_a_date_time)
+	ss >> t;
+	if (t != boost::posix_time::not_a_date_time)
 	{
-		t = ptime_to_time_t(pt);
 		return true;
 	}
 	ss.clear();
 	ss.str(s);
 	boost::posix_time::time_input_facet* rfc850_date =
-		new boost::posix_time::time_input_facet("%A, %d-%b-%Y %H:%M:%S GMT");
+		new boost::posix_time::time_input_facet("%A, %d-%b-%y %H:%M:%S GMT");
 	ss.imbue(std::locale(ss.getloc(), rfc850_date));
-	ss >> pt;
-	if (pt != boost::posix_time::not_a_date_time)
+	ss >> t;
+	if (t != boost::posix_time::not_a_date_time)
 	{
-		t = ptime_to_time_t(pt);
+		return true;
+	}
+	ss.clear();
+	ss.str(s);
+	boost::posix_time::time_input_facet* rfc850_date_workarround =
+		new boost::posix_time::time_input_facet("%a, %d-%b-%y %H:%M:%S GMT");
+	ss.imbue(std::locale(ss.getloc(), rfc850_date_workarround));
+	ss >> t;
+	if (t != boost::posix_time::not_a_date_time)
+	{
 		return true;
 	}
 	ss.clear();
@@ -543,14 +550,29 @@ bool parse_http_date(const std::string& s, time_t& t)
 	boost::posix_time::time_input_facet* asctime_date =
 		new boost::posix_time::time_input_facet("%a %b %d %H:%M:%S %Y");
 	ss.imbue(std::locale(ss.getloc(), asctime_date));
-	ss >> pt;
-	if (pt != boost::posix_time::not_a_date_time)
+	ss >> t;
+	if (t != boost::posix_time::not_a_date_time)
 	{
-		t = ptime_to_time_t(pt);
 		return true;
 	}
 
 	return false;
+}
+
+// 解析http-date字符串.
+// 注: 根据RFC2616规定HTTP-date 格式是 rfc1123-date | rfc850-date | asctime-date之一.
+// 参数s 指定了需要解析的字符串.
+// 参数t 返回解析出的UTC time.
+// 返回true表示解析成功, 返回false表示解析失败.
+bool parse_http_date(const std::string& s, time_t& t)
+{
+	boost::posix_time::ptime pt;
+	if (!parse_http_date(s, pt))
+	{
+		return false;
+	}
+	t = ptime_to_time_t(pt);
+	return true;
 }
 
 } // namespace detail
