@@ -23,7 +23,9 @@
 #include <cctype>
 #include <cstdlib>
 #include <string>
+#include <ctime>
 
+#include <boost/date_time.hpp>
 #include <boost/algorithm/string.hpp>
 
 #include "avhttp/settings.hpp"
@@ -58,6 +60,10 @@ inline void check_header(const std::string& name, const std::string& value,
 	else if (headers_equal(name, "Location"))
 		location = value;
 }
+
+#ifdef atoi64
+#undef atoi64
+#endif
 
 template <typename Iterator>
 bool parse_http_status_line(Iterator begin, Iterator end,
@@ -496,9 +502,56 @@ bool parse_filename(Iterator begin, Iterator end, std::string& filename)
 	return true;
 }
 
-#ifdef atoi64
-#undef atoi64
-#endif
+// 转换ptime到time_t.
+time_t ptime_to_time_t(const boost::posix_time::ptime& pt)
+{
+	struct tm tm = boost::posix_time::to_tm(pt);
+	return mktime(&tm);
+}
+
+// 解析http-date字符串.
+// 注: 根据RFC2616规定HTTP-date 格式是 rfc1123-date | rfc850-date | asctime-date之一.
+// 参数s 指定了需要解析的字符串.
+// 参数t 返回解析出的UTC time.
+// 返回true表示解析成功, 返回false表示解析失败.
+bool parse_http_date(const std::string& s, time_t& t)
+{
+	boost::posix_time::ptime pt;
+	std::stringstream ss(s);
+	boost::posix_time::time_input_facet* rfc1123_date =
+		new boost::posix_time::time_input_facet("%a, %d %b %Y %H:%M:%S GMT");
+	ss.imbue(std::locale(ss.getloc(), rfc1123_date));
+	ss >> pt;
+	if (pt != boost::posix_time::not_a_date_time)
+	{
+		t = ptime_to_time_t(pt);
+		return true;
+	}
+	ss.clear();
+	ss.str(s);
+	boost::posix_time::time_input_facet* rfc850_date =
+		new boost::posix_time::time_input_facet("%A, %d-%b-%Y %H:%M:%S GMT");
+	ss.imbue(std::locale(ss.getloc(), rfc850_date));
+	ss >> pt;
+	if (pt != boost::posix_time::not_a_date_time)
+	{
+		t = ptime_to_time_t(pt);
+		return true;
+	}
+	ss.clear();
+	ss.str(s);
+	boost::posix_time::time_input_facet* asctime_date =
+		new boost::posix_time::time_input_facet("%a %b %d %H:%M:%S %Y");
+	ss.imbue(std::locale(ss.getloc(), asctime_date));
+	ss >> pt;
+	if (pt != boost::posix_time::not_a_date_time)
+	{
+		t = ptime_to_time_t(pt);
+		return true;
+	}
+
+	return false;
+}
 
 } // namespace detail
 } // namespace avhttp
