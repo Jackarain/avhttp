@@ -503,10 +503,10 @@ bool parse_filename(Iterator begin, Iterator end, std::string& filename)
 }
 
 // 转换ptime到time_t.
-time_t ptime_to_time_t(const boost::posix_time::ptime& pt)
+inline time_t ptime_to_time_t(const boost::posix_time::ptime& pt)
 {
 	struct tm tm = boost::posix_time::to_tm(pt);
-	return mktime(&tm);
+	return std::mktime(&tm);
 }
 
 // 解析http-date字符串.
@@ -514,7 +514,7 @@ time_t ptime_to_time_t(const boost::posix_time::ptime& pt)
 // 参数s 指定了需要解析的字符串.
 // 参数t 返回解析出的time.
 // 返回true表示解析成功, 返回false表示解析失败.
-bool parse_http_date(const std::string& s, boost::posix_time::ptime& t)
+inline bool parse_http_date(const std::string& s, boost::posix_time::ptime& t)
 {
 	std::stringstream ss(s);
 	boost::posix_time::time_input_facet* rfc1123_date =
@@ -564,7 +564,7 @@ bool parse_http_date(const std::string& s, boost::posix_time::ptime& t)
 // 参数s 指定了需要解析的字符串.
 // 参数t 返回解析出的UTC time.
 // 返回true表示解析成功, 返回false表示解析失败.
-bool parse_http_date(const std::string& s, time_t& t)
+inline bool parse_http_date(const std::string& s, time_t& t)
 {
 	boost::posix_time::ptime pt;
 	if (!parse_http_date(s, pt))
