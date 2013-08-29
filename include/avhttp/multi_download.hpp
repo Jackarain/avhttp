@@ -327,7 +327,7 @@ public:
 		if (!filename.empty())
 		{
 			std::string value;
-			detail::parse_filename(filename.begin(), filename.end(), value);
+			detail::content_disposition_filename(filename.begin(), filename.end(), value);
 			if (!value.empty())
 			{
 				m_file_name = value;
@@ -1321,7 +1321,7 @@ protected:
 		if (!filename.empty())
 		{
 			std::string value;
-			detail::parse_filename(filename.begin(), filename.end(), value);
+			detail::content_disposition_filename(filename.begin(), filename.end(), value);
 			if (!value.empty())
 			{
 				m_file_name = value;

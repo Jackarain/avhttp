@@ -199,7 +199,7 @@ public:
 	//   }
 	//   catch (boost::system::system_error& e)
 	//   {
-	//     std::cerr << e.waht() << std::endl;
+	//     std::cerr << e.what() << std::endl;
 	//   }
 	// @end example
 	AVHTTP_DECL void open(const url& u);
@@ -213,7 +213,7 @@ public:
 	//   h.open("http://www.boost.org", ec);
 	//   if (ec)
 	//   {
-	//     std::cerr << e.waht() << std::endl;
+	//     std::cerr << e.what() << std::endl;
 	//   }
 	// @end example
 	AVHTTP_DECL void open(const url& u, boost::system::error_code& ec);
