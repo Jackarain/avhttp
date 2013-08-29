@@ -21,6 +21,7 @@
 
 #include <boost/thread/mutex.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/make_shared.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/filesystem.hpp>
 
@@ -139,7 +140,7 @@ template<class Log, class Logger_ptr>
 Logger_ptr& logger_single(std::string path = ".",
 	std::string filename = "avhttp.log", bool append = true, bool binit = false)
 {
-	static Logger_ptr logger_instance(new Log(path, filename, append, binit));
+	static Logger_ptr logger_instance(boost::make_shared<Log>(path, filename, append, binit));
 	if (logger_instance && !binit)
 		return logger_instance;
 	if (logger_instance)
@@ -147,7 +148,7 @@ Logger_ptr& logger_single(std::string path = ".",
 		if (logger_instance->inited())
 			return logger_instance;
 	}
-	logger_instance.reset(new Log(path, filename, append, binit));
+	logger_instance = boost::make_shared<Log>(path, filename, append, binit);
 	return logger_instance;
 }
 

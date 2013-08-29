@@ -23,6 +23,7 @@
 #include <boost/noncopyable.hpp>
 #include <boost/cstdint.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/make_shared.hpp>
 #include <boost/thread.hpp>
 #include <boost/thread/condition.hpp>
 #include <boost/lexical_cast.hpp>
@@ -228,14 +229,14 @@ public:
 		m_file_name = "";
 
 		// 创建一个http_stream对象.
-		http_object_ptr obj(new http_stream_object);
+		http_object_ptr obj = boost::make_shared<http_stream_object>();
 
 		request_opts req_opt = m_settings.opts;
 		req_opt.insert(http_options::range, "bytes=0-");
 		req_opt.insert(http_options::connection, "keep-alive");
 
 		// 创建http_stream并同步打开, 检查返回状态码是否为206, 如果非206则表示该http服务器不支持多点下载.
-		obj->stream.reset(new http_stream(m_io_service));
+		obj->stream = boost::make_shared<http_stream>(m_io_service);
 		http_stream& h = *obj->stream;
 		// 添加代理设置.
 		h.proxy(m_settings.proxy);
@@ -526,8 +527,8 @@ public:
 		{
 			for (int i = 1; i < m_settings.connections_limit; i++)
 			{
-				http_object_ptr p(new http_stream_object());
-				http_stream_ptr ptr(new http_stream(m_io_service));
+				http_object_ptr p = boost::make_shared<http_stream_object>();
+				http_stream_ptr ptr = boost::make_shared<http_stream>(m_io_service);
 				range req_range;
 
 				// 从文件间区中得到一段空间.
@@ -668,14 +669,14 @@ public:
 		m_abort = false;
 
 		// 创建一个http_stream对象.
-		http_object_ptr obj(new http_stream_object);
+		http_object_ptr obj = boost::make_shared<http_stream_object>();
 
 		request_opts req_opt = m_settings.opts;
 		req_opt.insert(http_options::range, "bytes=0-");
 		req_opt.insert(http_options::connection, "keep-alive");
 
 		// 创建http_stream并同步打开, 检查返回状态码是否为206, 如果非206则表示该http服务器不支持多点下载.
-		obj->stream.reset(new http_stream(m_io_service));
+		obj->stream = boost::make_shared<http_stream>(m_io_service);
 		http_stream& h = *obj->stream;
 
 		// 设置请求选项.
@@ -1519,8 +1520,8 @@ protected:
 		{
 			for (int i = 1; i < m_settings.connections_limit; i++)
 			{
-				http_object_ptr p(new http_stream_object());
-				http_stream_ptr ptr(new http_stream(m_io_service));
+				http_object_ptr p = boost::make_shared<http_stream_object>();
+				http_stream_ptr ptr = boost::make_shared<http_stream>(m_io_service);
 				range req_range;
 
 				// 从文件间区中得到一段空间.
@@ -1669,11 +1670,11 @@ protected:
 				object_ptr->direct_reconnect = false;
 
 				// 重新创建http_object和http_stream.
-				object_ptr.reset(new http_stream_object(*object_ptr));
+				object_ptr = boost::make_shared<http_stream_object>(*object_ptr);
 				http_stream_object& object = *object_ptr;
 
 				// 使用新的http_stream对象.
-				object.stream.reset(new http_stream(m_io_service));
+				object.stream = boost::make_shared<http_stream>(m_io_service);
 
 				http_stream& stream = *object.stream;
 

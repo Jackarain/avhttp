@@ -827,7 +827,7 @@ void http_stream::async_read_some(const MutableBufferSequence& buffers, BOOST_AS
 			if (!m_skip_crlf)
 			{
 				boost::shared_array<char> crlf(new char[2]);
-				memset((void*)crlf.get(), 0, 2);
+				memset((void*)&crlf[0], 0, 2);
 
 				if (response_size > 0)	// 从m_response缓冲中跳过.
 				{
@@ -838,7 +838,7 @@ void http_stream::async_read_some(const MutableBufferSequence& buffers, BOOST_AS
 						// 继续异步读取下一个LF字节.
 						typedef boost::function<void (boost::system::error_code, std::size_t)> HandlerWrapper;
 						HandlerWrapper h(handler);
-						m_sock.async_read_some(boost::asio::buffer(&crlf.get()[1], 1),
+						m_sock.async_read_some(boost::asio::buffer(&crlf[1], 1),
 							boost::bind(&http_stream::handle_skip_crlf<MutableBufferSequence, HandlerWrapper>,
 								this, buffers, h, crlf,
 								boost::asio::placeholders::error,
@@ -1742,10 +1742,10 @@ void http_stream::handle_skip_crlf(const MutableBufferSequence& buffers,
 		}
 
 		// 不是CRLF? 不知道是啥情况, 断言调试bug.
-		BOOST_ASSERT(crlf.get()[0] == '\r' && crlf.get()[1] == '\n');
+		BOOST_ASSERT(crlf[0] == '\r' && crlf[1] == '\n');
 
 		// 在release下, 不确定是不是服务器的回复错误, 暂时假设是服务器的回复错误!!!
-		if(crlf.get()[0] != '\r' || crlf.get()[1] != '\n')
+		if(crlf[0] != '\r' || crlf[1] != '\n')
 		{
 			boost::system::error_code err = errc::invalid_chunked_encoding;
 			handler(err, bytes_transferred);

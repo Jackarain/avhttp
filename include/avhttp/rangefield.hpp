@@ -22,6 +22,8 @@
 #include <boost/cstdint.hpp>
 #include <boost/assert.hpp>
 #include <boost/thread/mutex.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/make_shared.hpp>
 
 #include "avhttp/bitfield.hpp"
 
@@ -75,7 +77,7 @@ public:
 		: m_need_merge(false)
 		, m_size(size)
 #ifndef AVHTTP_DISABLE_THREAD
-		, m_mutex(new boost::mutex())
+		, m_mutex(boost::make_shared<boost::mutex>())
 #endif
 	{}
 
@@ -88,7 +90,7 @@ public:
 		m_ranges = rhs.m_ranges;
 		m_size = rhs.m_size;
 #ifndef AVHTTP_DISABLE_THREAD
-		m_mutex.reset(new boost::mutex());
+		m_mutex = boost::make_shared<boost::mutex>();
 #endif
 	}
 
@@ -98,7 +100,7 @@ public:
 		m_ranges = rhs.m_ranges;
 		m_size = rhs.m_size;
 #ifndef AVHTTP_DISABLE_THREAD
-		m_mutex.reset(new boost::mutex());
+		m_mutex = boost::make_shared<boost::mutex>();
 #endif
 		return *this;
 	}
