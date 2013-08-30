@@ -236,7 +236,7 @@ public:
 		req_opt.insert(http_options::connection, "keep-alive");
 
 		// 创建http_stream并同步打开, 检查返回状态码是否为206, 如果非206则表示该http服务器不支持多点下载.
-		obj->stream = boost::make_shared<http_stream>(m_io_service);
+		obj->stream = boost::make_shared<http_stream>(boost::ref(m_io_service));
 		http_stream& h = *obj->stream;
 		// 添加代理设置.
 		h.proxy(m_settings.proxy);
@@ -528,7 +528,7 @@ public:
 			for (int i = 1; i < m_settings.connections_limit; i++)
 			{
 				http_object_ptr p = boost::make_shared<http_stream_object>();
-				http_stream_ptr ptr = boost::make_shared<http_stream>(m_io_service);
+				http_stream_ptr ptr = boost::make_shared<http_stream>(boost::ref(m_io_service));
 				range req_range;
 
 				// 从文件间区中得到一段空间.
@@ -676,7 +676,7 @@ public:
 		req_opt.insert(http_options::connection, "keep-alive");
 
 		// 创建http_stream并同步打开, 检查返回状态码是否为206, 如果非206则表示该http服务器不支持多点下载.
-		obj->stream = boost::make_shared<http_stream>(m_io_service);
+		obj->stream = boost::make_shared<http_stream>(boost::ref(m_io_service));
 		http_stream& h = *obj->stream;
 
 		// 设置请求选项.
@@ -1521,7 +1521,7 @@ protected:
 			for (int i = 1; i < m_settings.connections_limit; i++)
 			{
 				http_object_ptr p = boost::make_shared<http_stream_object>();
-				http_stream_ptr ptr = boost::make_shared<http_stream>(m_io_service);
+				http_stream_ptr ptr = boost::make_shared<http_stream>(boost::ref(m_io_service));
 				range req_range;
 
 				// 从文件间区中得到一段空间.
@@ -1674,7 +1674,7 @@ protected:
 				http_stream_object& object = *object_ptr;
 
 				// 使用新的http_stream对象.
-				object.stream = boost::make_shared<http_stream>(m_io_service);
+				object.stream = boost::make_shared<http_stream>(boost::ref(m_io_service));
 
 				http_stream& stream = *object.stream;
 
