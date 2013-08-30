@@ -143,6 +143,8 @@ class multi_download : public boost::noncopyable
 	friend struct auto_outstanding;
 
 public:
+
+	/// Constructor.
 	AVHTTP_DECL explicit multi_download(boost::asio::io_service& io)
 		: m_io_service(io)
 		, m_accept_multi(false)
@@ -156,8 +158,12 @@ public:
 		, m_outstanding(0)
 		, m_abort(true)
 	{}
+
+	/// Destructor.
 	AVHTTP_DECL ~multi_download()
-	{}
+	{
+		BOOST_ASSERT(stopped()); // 必须保证在析构前已经处于停止下载的状态.
+	}
 
 public:
 
