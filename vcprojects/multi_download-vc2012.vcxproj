@@ -103,6 +103,7 @@
     <ClInclude Include="..\include\avhttp\bencode.hpp" />
     <ClInclude Include="..\include\avhttp\bitfield.hpp" />
     <ClInclude Include="..\include\avhttp\completion_condition.hpp" />
+    <ClInclude Include="..\include\avhttp\cookie.hpp" />
     <ClInclude Include="..\include\avhttp\detail\handler_type_requirements.hpp" />
     <ClInclude Include="..\include\avhttp\detail\utf8.hpp" />
     <ClInclude Include="..\include\avhttp\entry.hpp" />
