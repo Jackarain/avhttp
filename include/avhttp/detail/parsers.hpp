@@ -537,9 +537,19 @@ inline bool parse_http_date(const std::string& s, boost::posix_time::ptime& t)
 	}
 	ss.clear();
 	ss.str(s);
-	boost::posix_time::time_input_facet* rfc850_date_workarround =
+	boost::posix_time::time_input_facet* rfc850_date_workarround1 =
+		new boost::posix_time::time_input_facet("%A, %d-%b-%Y %H:%M:%S GMT");
+	ss.imbue(std::locale(ss.getloc(), rfc850_date_workarround1));
+	ss >> t;
+	if (t != boost::posix_time::not_a_date_time)
+	{
+		return true;
+	}
+	ss.clear();
+	ss.str(s);
+	boost::posix_time::time_input_facet* rfc850_date_workarround2 =
 		new boost::posix_time::time_input_facet("%a, %d-%b-%y %H:%M:%S GMT");
-	ss.imbue(std::locale(ss.getloc(), rfc850_date_workarround));
+	ss.imbue(std::locale(ss.getloc(), rfc850_date_workarround2));
 	ss >> t;
 	if (t != boost::posix_time::not_a_date_time)
 	{
