@@ -70,8 +70,13 @@ public:
 	~cookies()
 	{}
 
-	struct const_iterator
+	// cookies迭代器实现, 用于访问cookies中的http_cookie.
+	struct iterator
 	{
+		iterator(std::map<std::string, http_cookie>::iterator& iter)
+			: m_iter(iter)
+		{}
+
 		friend class cookies;
 
 		typedef http_cookie value_type;
@@ -82,38 +87,32 @@ public:
 
 		http_cookie& operator*() { return m_iter->second; }
 		http_cookie* operator->() { return &(m_iter->second); }
-		const_iterator& operator++() { m_iter++; return *this; }
-		const_iterator operator++(int)
-		{ const_iterator ret(*this); m_iter++; return ret; }
-		const_iterator& operator--() { m_iter--; return *this; }
-		const_iterator operator--(int)
-		{ const_iterator ret(*this); m_iter--; return ret; }
+		iterator& operator++() { m_iter++; return *this; }
+		iterator operator++(int)
+		{ iterator ret(*this); m_iter++; return ret; }
+		iterator& operator--() { m_iter--; return *this; }
+		iterator operator--(int)
+		{ iterator ret(*this); m_iter--; return ret; }
 
-		bool operator==(const_iterator const& rhs) const
+		bool operator==(iterator const& rhs) const
 		{ return m_iter == rhs.m_iter; }
 
-		bool operator!=(const_iterator const& rhs) const
+		bool operator!=(iterator const& rhs) const
 		{ return m_iter != rhs.m_iter; }
-
-		const_iterator(std::map<std::string, http_cookie>::iterator& iter)
-			: m_iter(iter)
-		{}
 
 	private:
 		std::map<std::string, http_cookie>::iterator m_iter;
 	};
 
-	const_iterator begin() const { return const_iterator(m_cookies.begin()); }
-	const_iterator end() const { return const_iterator(m_cookies.end()); }
+	iterator begin() const { return iterator(m_cookies.begin()); }
+	iterator end() const { return iterator(m_cookies.end()); }
 
-	// 添加一个cookie.
 	cookies& operator()(const std::string& key, const std::string& value)
 	{
 		// m_cookies.insert(std::make_pair(key, value));
 		return *this;
 	}
 
-	// 添加或更新字符串中包含的cookie, 如果cookie过期将被删除.
 	cookies& operator()(const std::string& str)
 	{
 		// m_cookies.insert(std::make_pair(key, value));
