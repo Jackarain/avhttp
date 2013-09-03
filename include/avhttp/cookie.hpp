@@ -65,10 +65,46 @@ class cookies
 
 public:
 
-	cookies()
+	explicit cookies()
 	{}
 	~cookies()
 	{}
+
+	struct const_iterator
+	{
+		friend class cookies;
+
+		typedef http_cookie value_type;
+		typedef ptrdiff_t difference_type;
+		typedef http_cookie const* pointer;
+		typedef http_cookie& reference;
+		typedef std::forward_iterator_tag iterator_category;
+
+		http_cookie& operator*() { return m_iter->second; }
+		http_cookie* operator->() { return &(m_iter->second); }
+		const_iterator& operator++() { m_iter++; return *this; }
+		const_iterator operator++(int)
+		{ const_iterator ret(*this); m_iter++; return ret; }
+		const_iterator& operator--() { m_iter--; return *this; }
+		const_iterator operator--(int)
+		{ const_iterator ret(*this); m_iter--; return ret; }
+
+		bool operator==(const_iterator const& rhs) const
+		{ return m_iter == rhs.m_iter; }
+
+		bool operator!=(const_iterator const& rhs) const
+		{ return m_iter != rhs.m_iter; }
+
+		const_iterator(std::map<std::string, http_cookie>::iterator& iter)
+			: m_iter(iter)
+		{}
+
+	private:
+		std::map<std::string, http_cookie>::iterator m_iter;
+	};
+
+	const_iterator begin() const { return const_iterator(m_cookies.begin()); }
+	const_iterator end() const { return const_iterator(m_cookies.end()); }
 
 	// 添加一个cookie.
 	cookies& operator()(const std::string& key, const std::string& value)
@@ -82,7 +118,27 @@ public:
 	{
 		// m_cookies.insert(std::make_pair(key, value));
 		std::vector<http_cookie> cookie;
-		parse_cookie_string(str, cookie);
+		if (parse_cookie_string(str, cookie))
+		{
+			for (std::vector<http_cookie>::iterator i = cookie.begin();
+				i != cookie.end(); i++)
+			{
+				// 过期的cookie, 删除之.
+				if (i->expires < boost::posix_time::second_clock::local_time())
+				{
+					std::map<std::string, http_cookie>::iterator finder = m_cookies.find(i->name);
+					if (finder != m_cookies.end())
+					{
+						m_cookies.erase(finder);
+					}
+				}
+				else
+				{
+					m_cookies[i->name] = *i;	// 更新或插入cookie.
+				}
+			}
+		}
+
 		return *this;
 	}
 
@@ -93,6 +149,7 @@ public:
 	}
 
 private:
+
 	// 解析cookie字符.
 	// 示例字符串:
 	// gsid=none; expires=Sun, 22-Sep-2013 14:27:43 GMT; path=/; domain=.fidelity.cn; httponly
@@ -240,7 +297,7 @@ private:
 
 private:
 	// 保存所有cookie.
-	std::map<std::string, http_cookie> m_cookies;
+	mutable std::map<std::string, http_cookie> m_cookies;
 };
 
 } // namespace avhttp
