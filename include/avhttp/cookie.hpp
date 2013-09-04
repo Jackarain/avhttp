@@ -92,7 +92,7 @@ public:
 	// cookies迭代器实现, 用于访问cookies中的http_cookie.
 	struct iterator
 	{
-		iterator(std::map<std::string, http_cookie>::iterator& iter)
+		iterator(std::map<std::string, http_cookie>::iterator iter)
 			: m_iter(iter)
 		{}
 
