@@ -1108,6 +1108,33 @@ void http_stream::async_request(const request_opts& opt, BOOST_ASIO_MOVE_ARG(Han
 		opts.remove(http_options::user_agent);	// 删除处理过的选项.
 	m_request_opts.insert(http_options::user_agent, user_agent);
 
+	// 添加cookies.
+	std::string cookie;
+	if (m_cookies.size() != 0)
+	{
+		cookies::iterator i = m_cookies.begin();
+		for (; i != m_cookies.end(); i++)
+		{
+			// 判断是否过期, 小于当前时间表示过期, 不添加到cookie.
+			// 判断是否为空.
+			// 判断secure.
+			// 判断是否是该域? 这里不作判断了, 默认全带上好了， 以兼容使用ip请求http服务器也能带上cookie.
+			if (i->expires < boost::posix_time::second_clock::local_time()
+				|| i->value.empty()
+				|| (i->secure && m_protocol != "https"))
+			{
+				continue;
+			}
+
+			if (!cookie.empty())
+			{
+				cookie += ";";
+			}
+
+			cookie += (i->name + "=" + i->value);
+		}
+	}
+
 	// 如果是认证代理.
 	std::string auth;
 	if ((m_proxy.type == proxy_settings::http_pw || m_proxy.type == proxy_settings::http)
@@ -1192,6 +1219,10 @@ void http_stream::async_request(const request_opts& opt, BOOST_ASIO_MOVE_ARG(Han
 		request_stream << "Proxy-Authorization: " << auth << "\r\n";
 	}
 	request_stream << "User-Agent: " << user_agent << "\r\n";
+	if (!cookie.empty())
+	{
+		request_stream << "Cookie: " << cookie << "\r\n";
+	}
 	if ((m_proxy.type == proxy_settings::http_pw || m_proxy.type == proxy_settings::http)
 		&& m_protocol != "https")
 	{
@@ -1620,6 +1651,19 @@ void http_stream::handle_header(Handler handler, int bytes_transferred, const bo
 	opt_str = m_response_opts.find(http_options::connection);
 	if (opt_str == "close")
 		m_keep_alive = false;
+
+	// 解析cookie到cookie容器.
+	response_opts::option_item_list& option_list = m_response_opts.option_all();
+	response_opts::option_item_list::const_iterator i = option_list.begin();
+	for (; i != option_list.end(); i++)
+	{
+		std::string tmp = i->first;
+		boost::to_lower(tmp);
+		if (tmp == "set-cookie")
+		{
+			m_cookies(i->second);	// 解析cookie字符串, 并保存到m_cookies.
+		}
+	}
 
 	// 回调通知.
 	handler(ec);
@@ -3413,6 +3457,33 @@ void http_stream::request_impl(Stream& sock, request_opts& opt, boost::system::e
 		opts.remove(http_options::user_agent);	// 删除处理过的选项.
 	m_request_opts.insert(http_options::user_agent, user_agent);
 
+	// 添加cookies.
+	std::string cookie;
+	if (m_cookies.size() != 0)
+	{
+		cookies::iterator i = m_cookies.begin();
+		for (; i != m_cookies.end(); i++)
+		{
+			// 判断是否过期, 小于当前时间表示过期, 不添加到cookie.
+			// 判断是否为空.
+			// 判断secure.
+			// 判断是否是该域? 这里不作判断了, 默认全带上好了， 以兼容使用ip请求http服务器也能带上cookie.
+			if (i->expires < boost::posix_time::second_clock::local_time()
+				|| i->value.empty()
+				|| (i->secure && m_protocol != "https"))
+			{
+				continue;
+			}
+
+			if (!cookie.empty())
+			{
+				cookie += ";";
+			}
+
+			cookie += (i->name + "=" + i->value);
+		}
+	}
+
 	// 如果是认证代理.
 	std::string auth;
 	if ((m_proxy.type == proxy_settings::http_pw || m_proxy.type == proxy_settings::http)
@@ -3491,6 +3562,10 @@ void http_stream::request_impl(Stream& sock, request_opts& opt, boost::system::e
 	request_stream << "Host: " << host << "\r\n";
 	request_stream << "Accept: " << accept << "\r\n";
 	request_stream << "User-Agent: " << user_agent << "\r\n";
+	if (!cookie.empty())
+	{
+		request_stream << "Cookie: " << cookie << "\r\n";
+	}
 	if ((m_proxy.type == proxy_settings::http_pw || m_proxy.type == proxy_settings::http)
 		&& m_protocol != "https")
 	{
@@ -3641,6 +3716,19 @@ void http_stream::request_impl(Stream& sock, request_opts& opt, boost::system::e
 	opt_str = m_response_opts.find(http_options::connection);
 	if (opt_str == "close")
 		m_keep_alive = false;
+
+	// 解析cookie到cookie容器.
+	response_opts::option_item_list& option_list = m_response_opts.option_all();
+	response_opts::option_item_list::const_iterator i = option_list.begin();
+	for (; i != option_list.end(); i++)
+	{
+		std::string tmp = i->first;
+		boost::to_lower(tmp);
+		if (tmp == "set-cookie")
+		{
+			m_cookies(i->second);	// 解析cookie字符串, 并保存到m_cookies.
+		}
+	}
 }
 
 std::streambuf::int_type http_stream::underflow()
