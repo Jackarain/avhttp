@@ -29,6 +29,7 @@
 namespace avhttp {
 
 // 用于管理cookie的实现.
+// 请求前设置cookie, 示例如下:.
 // @begin example
 //  http_stream h(io);
 //  ...
@@ -37,6 +38,17 @@ namespace avhttp {
 // 	cookie("cookie_name1", "hahaha");
 //  设置到http_stream.
 // 	h.http_cookies(cookie);
+// @end example
+// 需要访问http服务器返回的cookie, 示例如下:
+// @begin example
+//  http_stream h(io);
+//  ...
+//  cookies cookie = h.http_cookies();
+//  cookies::iterator i = cookie.begin();
+//  for (; i != cookie.end(); i++)
+//  {
+//    std::cout <<　i->name << ":" << i->value << std::endl;
+//  }
 // @end example
 class cookies
 {
