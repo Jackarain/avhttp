@@ -28,18 +28,7 @@
 
 namespace avhttp {
 
-/*
-
-boost::asio::io_service io;
-http_stream h(io);
-
-cookies c;
-c("key=value;key2=value2");
-c("key", "value");
-
-h.set_cookies(c);
-
-*/
+// 用于管理cookie的实现.
 
 class cookies
 {
