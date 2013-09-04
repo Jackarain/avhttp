@@ -37,6 +37,13 @@ struct storage_interface
 	// 关闭存储组件.
 	virtual void close() = 0;
 
+	// 写入数据到文件.
+	// @param buf是需要写入的数据缓冲.
+	// @param size指定了写入的数据缓冲大小.
+	// @返回值为实际写入的字节数, 返回-1表示写入失败.
+	// 备注: 在文件指针当前位置写入, 写入完成将自动移动文件指针到完成位置, 保证和fwrite行为一至.
+	virtual std::streamsize write(const char* buf, int size) = 0;
+
 	// 写入数据.
 	// @param buf是需要写入的数据缓冲.
 	// @param offset是写入的偏移位置.
@@ -44,12 +51,23 @@ struct storage_interface
 	// @返回值为实际写入的字节数, 返回-1表示写入失败.
 	virtual std::streamsize write(const char* buf, boost::uint64_t offset, int size) = 0;
 
+	// 从文件读取数据.
+	// @param buf是需要读取的数据缓冲.
+	// @param size指定了读取的数据缓冲大小.
+	// @返回值为实际读取的字节数, 返回-1表示读取失败.
+	// 备注: 在文件指针当前位置开始读取, 读取完成将自动移动文件指针到完成位置, 保证和fread行为一至.
+	virtual std::streamsize read(char* buf, int size) = 0;
+
 	// 读取数据.
 	// @param buf是需要读取的数据缓冲.
 	// @param offset是读取的偏移位置.
 	// @param size指定了读取的数据缓冲大小.
 	// @返回值为实际读取的字节数, 返回-1表示读取失败.
 	virtual std::streamsize read(char* buf, boost::uint64_t offset, int size) = 0;
+
+	// 判断是否文件结束.
+	// 返回值true表示文件结束.
+	virtual bool eof() const = 0;
 };
 
 // 重定义storage_interface创建函数指针, 在multi_download内部通过调用它来完成创建storage_interface.
