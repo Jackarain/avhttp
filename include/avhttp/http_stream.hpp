@@ -27,6 +27,7 @@
 #include "avhttp/detail/io.hpp"
 #include "avhttp/detail/parsers.hpp"
 #include "avhttp/detail/error_codec.hpp"
+#include "avhttp/cookie.hpp"
 #ifdef AVHTTP_ENABLE_OPENSSL
 #include "avhttp/detail/ssl_stream.hpp"
 #endif
@@ -495,6 +496,15 @@ public:
 	// @返回服务器回复的所有选项信息, key/value形式.
 	AVHTTP_DECL response_opts response_options(void) const;
 
+	///得到所有cookies.
+	// @返回http服务器传回的cookies.
+	AVHTTP_DECL const cookies& http_cookies() const;
+
+	///设置请求cookies.
+	// @param cookie指定设置的cookies.
+	// @备注: 一般用于发起请求.
+	AVHTTP_DECL void http_cookies(const cookies& cookie);
+
 	///返回location.
 	// @返回location信息, 如果没有则返回空串.
 	AVHTTP_DECL const std::string& location() const;
@@ -673,44 +683,118 @@ protected:
 
 private:
 
-	boost::asio::io_service& m_io_service;			// io_service引用.
-	tcp::resolver m_resolver;						// 解析HOST.
-	socket_type m_sock;								// socket.
-	nossl_socket m_nossl_socket;					// 非ssl socket, 只用于https的proxy实现.
-	bool m_check_certificate;						// 是否认证服务端证书.
-	std::string m_ca_directory;						// 证书路径.
-	std::string m_ca_cert;							// CA证书文件.
-	request_opts m_request_opts;					// 向http服务器请求的头信息.
-	request_opts m_request_opts_priv;				// 向http服务器请求的头信息.
-	response_opts m_response_opts;					// http服务器返回的http头信息.
-	proxy_settings m_proxy;							// 代理设置.
-	int m_proxy_status;								// 异步中代理状态.
-	tcp::endpoint m_remote_endp;					// 用于socks4代理中.
-	std::string m_protocol;							// 协议类型(http/https).
-	url m_url;										// 保存当前请求的url.
-	url m_entry_url;								// 保存用户请求的入口url.
-	bool m_keep_alive;								// 获得connection选项, 同时受m_response_opts影响.
-	int m_status_code;								// http返回状态码.
-	std::size_t m_redirects;						// 重定向次数计数.
-	std::size_t m_max_redirects;					// 重定向次数计数.
-	std::string m_content_type;						// 数据类型.
-	boost::int64_t m_content_length;				// 数据内容长度.
-	std::size_t m_body_size;						// body大小.
-	std::string m_location;							// 重定向的地址.
-	boost::asio::streambuf m_request;				// 请求缓冲.
-	boost::asio::streambuf m_response;				// 回复缓冲.
+	// io_service引用.
+	boost::asio::io_service& m_io_service;
+
+	// 解析HOST.
+	tcp::resolver m_resolver;
+
+	// socket.
+	socket_type m_sock;
+
+	// 非ssl socket, 只用于https的proxy实现.
+	nossl_socket m_nossl_socket;
+
+	// 是否认证服务端证书.
+	bool m_check_certificate;
+
+	// 证书路径.
+	std::string m_ca_directory;
+
+	// CA证书文件.
+	std::string m_ca_cert;
+
+	// 向http服务器请求的头信息.
+	request_opts m_request_opts;
+
+	// 向http服务器请求的头信息.
+	request_opts m_request_opts_priv;
+
+	// http服务器返回的http头信息.
+	response_opts m_response_opts;
+
+	// 代理设置.
+	proxy_settings m_proxy;
+
+	// 异步中代理状态.
+	int m_proxy_status;
+
+	// 用于socks4代理中.
+	tcp::endpoint m_remote_endp;
+
+	// 协议类型(http/https).
+	std::string m_protocol;
+
+	// 保存当前请求的url.
+	url m_url;
+
+	// 保存用户请求的入口url.
+	url m_entry_url;
+
+	// 获得connection选项, 同时受m_response_opts影响.
+	bool m_keep_alive;
+
+	// http返回状态码.
+	int m_status_code;
+
+	// 重定向次数计数.
+	std::size_t m_redirects;
+
+	// 重定向次数计数.
+	std::size_t m_max_redirects;
+
+	// 数据类型.
+	std::string m_content_type;
+
+	// 数据内容长度.
+	boost::int64_t m_content_length;
+
+	// body大小.
+	std::size_t m_body_size;
+
+	// 重定向的地址.
+	std::string m_location;
+
+	// 请求缓冲.
+	boost::asio::streambuf m_request;
+
+	// 回复缓冲.
+	boost::asio::streambuf m_response;
+
 #ifdef AVHTTP_ENABLE_ZLIB
-	z_stream m_stream;								// zlib支持.
-	char m_zlib_buffer[1024];						// 解压缓冲.
-	std::size_t m_zlib_buffer_size;					// 输入的字节数.
-	bool m_is_gzip;									// 是否使用gz.
+	// zlib支持.
+	z_stream m_stream;
+
+	// 解压缓冲.
+	char m_zlib_buffer[1024];
+
+	// 输入的字节数.
+	std::size_t m_zlib_buffer_size;
+
+	// 是否使用gz.
+	bool m_is_gzip;
 #endif
-	bool m_is_chunked;								// 是否使用chunked编码.
-	bool m_skip_crlf;								// 跳过crlf.
-	bool m_is_chunked_end;							// 跳过chunked footer.
-	std::size_t m_chunked_size;						// chunked大小.
-	boost::array<char, buffer_size> m_get_buffer;	// 用于stream形式的读取缓冲.
-	boost::system::error_code m_last_error;			// 用于记录最后错误信息.
+
+	// 是否使用chunked编码.
+	bool m_is_chunked;
+
+	// 跳过crlf.
+	bool m_skip_crlf;
+
+	// 跳过chunked footer.
+	bool m_is_chunked_end;
+
+	// chunked大小.
+	std::size_t m_chunked_size;
+
+	// 用于stream形式的读取缓冲.
+	boost::array<char, buffer_size> m_get_buffer;
+
+	// 用于记录最后错误信息.
+	boost::system::error_code m_last_error;
+
+	// 保存相关cookies.
+	cookies m_cookies;
 };
 
 }

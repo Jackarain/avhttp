@@ -1297,6 +1297,16 @@ response_opts http_stream::response_options(void) const
 	return m_response_opts;
 }
 
+const cookies& http_stream::http_cookies() const
+{
+	return m_cookies;
+}
+
+void http_stream::http_cookies(const cookies& cookie)
+{
+	m_cookies = cookie;
+}
+
 const std::string& http_stream::location() const
 {
 	return m_location;
