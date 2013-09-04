@@ -1128,7 +1128,7 @@ void http_stream::async_request(const request_opts& opt, BOOST_ASIO_MOVE_ARG(Han
 
 			if (!cookie.empty())
 			{
-				cookie += ";";
+				cookie += "; ";
 			}
 
 			cookie += (i->name + "=" + i->value);
@@ -3477,7 +3477,7 @@ void http_stream::request_impl(Stream& sock, request_opts& opt, boost::system::e
 
 			if (!cookie.empty())
 			{
-				cookie += ";";
+				cookie += "; ";
 			}
 
 			cookie += (i->name + "=" + i->value);
