@@ -29,7 +29,15 @@
 namespace avhttp {
 
 // 用于管理cookie的实现.
-
+// @begin example
+//  http_stream h(io);
+//  ...
+// 	cookies cookie;
+// 	cookie("cookie_name1", "hohoo");
+// 	cookie("cookie_name1", "hahaha");
+//  设置到http_stream.
+// 	h.http_cookies(cookie);
+// @end example
 class cookies
 {
 public:
