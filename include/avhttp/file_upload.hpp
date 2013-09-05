@@ -23,6 +23,43 @@ namespace avhttp {
 
 // WebForm文件上传组件.
 // 根据RFC1867(http://www.servlets.com/rfcs/rfc1867.txt)实现.
+// @begin example
+// 	boost::asio::io_service io;
+// 	avhttp::file_upload upload(io);
+// 	avhttp::file_upload::form_agrs fields;
+// 	fields["username"] = "Cai";
+// 	boost::system::error_code ec;
+// 	upload.open("http://example.upload/upload", "cppStudy.tar.bz2",
+// 		"file", fields, ec);
+// 	if (ec)
+// 	{
+// 		// 处理错误.
+// 	}
+// 	// 开始上传文件数据.
+// 	avhttp::file file;
+// 	file.open("\\root\\cppStudy.tar.bz2", ec);
+// 	if (ec)
+// 	{
+// 		// 处理错误.
+// 	}
+//
+// 	boost::array<char, 1024> buffer;
+// 	while (!file.eof())
+// 	{
+// 		int readed = file.read(buffer.data(), 1024);
+// 		boost::asio::write(upload, boost::asio::buffer(buffer, readed), ec);
+// 		if (ec)
+// 		{
+// 			// 处理错误.
+// 		}
+// 	}
+// 	upload.write_tail(ec);
+// 	if (ec)
+// 	{
+// 		// 处理错误.
+// 	}
+//  ...
+// @end example
 class file_upload : public boost::noncopyable
 {
 public:
@@ -177,8 +214,15 @@ public:
 	}
 
 	///发送结尾行.
+	// @param ec错误信息.
+	AVHTTP_DECL void write_tail(boost::system::error_code& ec)
+	{
+		boost::asio::write(m_http_stream, boost::asio::buffer(m_boundary), ec);
+	}
+
+	///发送结尾行.
 	// 失败将抛出一个boost::system::system_error异常.
-	void write_Tail()
+	AVHTTP_DECL void write_tail()
 	{
 		boost::asio::write(m_http_stream, boost::asio::buffer(m_boundary));
 	}
