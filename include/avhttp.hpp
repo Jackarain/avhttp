@@ -51,17 +51,19 @@ namespace
 #include "avhttp/url.hpp"
 #include "avhttp/http_stream.hpp"
 #ifndef AVHTTP_DISABLE_FILE_UPLOAD
-#include "avhttp/file_upload.hpp"
+# if (BOOST_VERSION >= 105400)
+#  include "avhttp/file_upload.hpp"
+# endif
 #endif
 #ifndef AVHTTP_DISABLE_MULTI_DOWNLOAD
-#include "avhttp/entry.hpp"
-#include "avhttp/bencode.hpp"
-#include "avhttp/rangefield.hpp"
-#include "avhttp/bitfield.hpp"
-#include "avhttp/multi_download.hpp"
+# include "avhttp/entry.hpp"
+# include "avhttp/bencode.hpp"
+# include "avhttp/rangefield.hpp"
+# include "avhttp/bitfield.hpp"
+# include "avhttp/multi_download.hpp"
 #endif
 #if (BOOST_VERSION >= 105400)
-#include "avhttp/async_read_body.hpp"
+# include "avhttp/async_read_body.hpp"
 #endif
 
 #include "avhttp/detail/abi_suffix.hpp"
