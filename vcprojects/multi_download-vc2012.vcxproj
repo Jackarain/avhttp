@@ -127,6 +127,7 @@
     <ClInclude Include="..\include\avhttp\version.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\include\avhttp\impl\file_upload.ipp" />
     <None Include="..\include\avhttp\impl\http_stream.ipp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

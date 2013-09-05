@@ -115,5 +115,8 @@
     <None Include="..\include\avhttp\impl\http_stream.ipp">
       <Filter>头文件\avhttp\impl</Filter>
     </None>
+    <None Include="..\include\avhttp\impl\file_upload.ipp">
+      <Filter>头文件\avhttp\impl</Filter>
+    </None>
   </ItemGroup>
 </Project>
