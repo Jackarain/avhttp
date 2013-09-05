@@ -1545,7 +1545,8 @@ void http_stream::handle_status(Handler handler, const boost::system::error_code
 	m_response.consume(response_size - tempbuf.size());
 
 	// "continue"表示我们需要继续等待接收状态.
-	if (m_status_code == errc::continue_request)
+	if (m_status_code == errc::continue_request &&
+		m_request_opts_priv.find(http_options::request_method) != "POST")
 	{
 		boost::asio::async_read_until(m_sock, m_response, "\r\n",
 			boost::bind(&http_stream::handle_status<Handler>,
@@ -1556,10 +1557,17 @@ void http_stream::handle_status(Handler handler, const boost::system::error_code
 	}
 	else
 	{
-		// 清除原有的返回选项.
+		// 清除原有的返回选项, 并添加状态码.
 		m_response_opts.clear();
-		// 添加状态码.
 		m_response_opts.insert("_status_code", boost::str(boost::format("%d") % m_status_code));
+
+		// 如果为errc::continue_request, 直接回调, 避免在下面读取"\r\n\r\n"上一直等待.
+		if (m_status_code == errc::continue_request)
+		{
+			handler(make_error_code(static_cast<errc::errc_t>(m_status_code)));
+			return;
+		}
+
 		// 异步读取所有Http header部分.
 		boost::asio::async_read_until(m_sock, m_response, "\r\n\r\n",
 			boost::bind(&http_stream::handle_header<Handler>,
@@ -3171,10 +3179,8 @@ void http_stream::handle_https_proxy_status(Stream& sock, Handler handler,
 	}
 	else
 	{
-		// 清除原有的返回选项.
+		// 清除原有的返回选项, 并添加状态码.
 		m_response_opts.clear();
-
-		// 添加状态码.
 		m_response_opts.insert("_status_code", boost::str(boost::format("%d") % m_status_code));
 
 		// 异步读取所有Http header部分.
@@ -3371,10 +3377,8 @@ void http_stream::https_proxy_connect(Stream& sock, boost::system::error_code& e
 			break;
 	} // end for.
 
-	// 清除原有的返回选项.
+	// 清除原有的返回选项, 并添加状态码.
 	m_response_opts.clear();
-
-	// 添加状态码.
 	m_response_opts.insert("_status_code", boost::str(boost::format("%d") % m_status_code));
 
 	// 接收掉所有Http Header.
@@ -3675,14 +3679,23 @@ void http_stream::request_impl(Stream& sock, request_opts& opt, boost::system::e
 		}
 
 		// "continue"表示我们需要继续等待接收状态.
-		if (m_status_code != errc::continue_request)
+		// 如果是POST的话, 就不必了, 因为我们需要返回状态, 以便继续发送文件数据.
+		if (m_status_code != errc::continue_request || request_method == "POST")
 			break;
 	} // end for.
 
-	// 清除原有的返回选项.
+	LOG_DEBUG("Status code: " << m_status_code);
+
+	// 清除原有的返回选项, 并添加状态码.
 	m_response_opts.clear();
-	// 添加状态码.
 	m_response_opts.insert("_status_code", boost::str(boost::format("%d") % m_status_code));
+
+	// 如果返回errc::continue_request, 直接回调, 避免阻塞在下面接收\r\n\r\n上面.
+	if (m_status_code == errc::continue_request)
+	{
+		ec = make_error_code(static_cast<errc::errc_t>(m_status_code));
+		return;
+	}
 
 	// 接收掉所有Http Header.
 	boost::system::error_code read_err;
@@ -3702,7 +3715,6 @@ void http_stream::request_impl(Stream& sock, request_opts& opt, boost::system::e
 	header_string.resize(bytes_transferred);
 	m_response.sgetn(&header_string[0], bytes_transferred);
 
-	LOG_DEBUG("Status code: " << m_status_code);
 	LOG_DEBUG("Http header:\n" << header_string);
 
 	// 解析Http Header.
