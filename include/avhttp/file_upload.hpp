@@ -153,7 +153,7 @@ public:
 	void async_open(const std::string& url, BOOST_ASIO_MOVE_ARG(Handler) handler,
 		const std::string& filename, const std::string& file_of_form, const form_agrs& agrs)
 	{
-		open_coro(handler, m_http_stream, filename, file_of_form, agrs);
+		open_coro(handler, m_http_stream, filename, file_of_form, agrs, m_boundary);
 	}
 
 	///打开文件上传.
