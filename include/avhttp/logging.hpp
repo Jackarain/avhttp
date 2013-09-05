@@ -157,18 +157,18 @@ Logger_ptr& logger_single(std::string path = ".",
 //////////////////////////////////////////////////////////////////////////
 // 日志相关内部实现定义.
 
-#define _LOGS_ (*(avhttp::aux::logger_single<avhttp::logger, boost::shared_ptr<avhttp::logger> >()))
+#define LOGGER_LOGS_ (*(avhttp::aux::logger_single<avhttp::logger, boost::shared_ptr<avhttp::logger> >()))
 
 #ifdef LOGGER_THREAD_SAFE
-#define _LOCKS_() boost::mutex::scoped_lock lock(avhttp::aux::lock_single<boost::mutex>())
+#define LOGGER_LOCKS_() boost::mutex::scoped_lock lock(avhttp::aux::lock_single<boost::mutex>())
 #else
-#define _LOCKS_() ((void)0)
+#define LOGGER_LOCKS_() ((void)0)
 #endif // LOGGER_THREAD_SAFE
 
 #if defined(WIN32) && defined(LOGGER_DBG_VIEW)
-#define _DBG_VIEW_() do { OutputDebugStringA(_LOGS_.dbg_view().c_str()); _LOGS_.clear_dbg_view(); } while (0)
+#define LOGGER_DBG_VIEW_() do { OutputDebugStringA(LOGGER_LOGS_.dbg_view().c_str()); LOGGER_LOGS_.clear_dbg_view(); } while (0)
 #else
-#define _DBG_VIEW_() ((void)0)
+#define LOGGER_DBG_VIEW_() ((void)0)
 #endif // WIN32 && LOGGER_DEBUG_VIEW
 
 //////////////////////////////////////////////////////////////////////////
@@ -179,39 +179,39 @@ Logger_ptr& logger_single(std::string path = ".",
 // @param file指定了日志文件名.
 // 备注: 如果file为空串, 则不产生日志文件, 仅仅输出日志到屏幕.
 #define INIT_LOGGER(path, file) do {\
-	_LOCKS_();\
+	LOGGER_LOCKS_();\
 	avhttp::aux::logger_single<avhttp::logger, boost::shared_ptr<avhttp::logger> >(path, file, true, true);\
 } while (0)
 
 ///卸载日志模块接口.
 #define UNINIT_LOGGER() do {\
-	_LOCKS_();\
+	LOGGER_LOCKS_();\
 	avhttp::aux::logger_single<avhttp::logger, boost::shared_ptr<avhttp::logger> >().reset();\
 } while (0)
 
 #if defined(DEBUG) || defined(_DEBUG)
 #define LOG_DEBUG(message) do { \
-	_LOCKS_(); \
-	_LOGS_ << avhttp::time_now_string() << "[DEBUG]: " << message << "\n"; \
-	_DBG_VIEW_(); \
+	LOGGER_LOCKS_(); \
+	LOGGER_LOGS_ << avhttp::time_now_string() << "[DEBUG]: " << message << "\n"; \
+	LOGGER_DBG_VIEW_(); \
 } while (0)
 
 #define LOG_INFO(message) do { \
-	_LOCKS_(); \
-	_LOGS_ << avhttp::time_now_string() << "[INFO]: " << message << "\n"; \
-	_DBG_VIEW_(); \
+	LOGGER_LOCKS_(); \
+	LOGGER_LOGS_ << avhttp::time_now_string() << "[INFO]: " << message << "\n"; \
+	LOGGER_DBG_VIEW_(); \
 } while (0)
 
 #define LOG_WARNING(message) do { \
-	_LOCKS_(); \
-	_LOGS_ << avhttp::time_now_string() << "[WARNING]: " << message << "\n"; \
-	_DBG_VIEW_(); \
+	LOGGER_LOCKS_(); \
+	LOGGER_LOGS_ << avhttp::time_now_string() << "[WARNING]: " << message << "\n"; \
+	LOGGER_DBG_VIEW_(); \
 } while (0)
 
 #define LOG_ERROR(message) do { \
-	_LOCKS_(); \
-	_LOGS_ << avhttp::time_now_string() << "[ERROR]: " << message << "\n"; \
-	_DBG_VIEW_(); \
+	LOGGER_LOCKS_(); \
+	LOGGER_LOGS_ << avhttp::time_now_string() << "[ERROR]: " << message << "\n"; \
+	LOGGER_DBG_VIEW_(); \
 } while (0)
 
 #else
