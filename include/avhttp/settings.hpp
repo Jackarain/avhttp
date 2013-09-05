@@ -71,7 +71,11 @@ public:
 	typedef std::vector<option_item> option_item_list;
 	// for boost::assign::insert
 	typedef option_item value_type;
+	// 定义选项回调.
+	typedef boost::function<void (boost::system::error_code&)> body_callback_func;
+
 public:
+
 	option() {}
 	~option() {}
 
@@ -168,8 +172,26 @@ public:
 		return m_opts.size();
 	}
 
+	// 设置body_callback.
+	// 一般用于处理在header发送完成后的继续需要向服务器发送body数据.
+	void body_callback(body_callback_func func)
+	{
+		m_body_callback = func;
+	}
+
+	// 返回body_callback_func.
+	body_callback_func body_callback() const
+	{
+		return m_body_callback;
+	}
+
 protected:
+	// 选项列表.
 	option_item_list m_opts;
+
+	// body选项回调, 一般用于处理在header发送完成后的继续
+	// 需要向服务器发送数据.
+	body_callback_func m_body_callback;
 };
 
 // 请求时的http选项.
