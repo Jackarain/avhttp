@@ -1109,31 +1109,7 @@ void http_stream::async_request(const request_opts& opt, BOOST_ASIO_MOVE_ARG(Han
 	m_request_opts.insert(http_options::user_agent, user_agent);
 
 	// 添加cookies.
-	std::string cookie;
-	if (m_cookies.size() != 0)
-	{
-		cookies::iterator i = m_cookies.begin();
-		for (; i != m_cookies.end(); i++)
-		{
-			// 判断是否过期, 小于当前时间表示过期, 不添加到cookie.
-			// 判断是否为空.
-			// 判断secure.
-			// 判断是否是该域? 这里不作判断了, 默认全带上好了， 以兼容使用ip请求http服务器也能带上cookie.
-			if (i->expires < boost::posix_time::second_clock::local_time()
-				|| i->value.empty()
-				|| (i->secure && m_protocol != "https"))
-			{
-				continue;
-			}
-
-			if (!cookie.empty())
-			{
-				cookie += "; ";
-			}
-
-			cookie += (i->name + "=" + i->value);
-		}
-	}
+	std::string cookie = m_cookies.get_cookie_line(m_protocol=="https");
 
 	// 如果是认证代理.
 	std::string auth;

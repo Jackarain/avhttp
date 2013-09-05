@@ -17,7 +17,6 @@
 
 #include <stdlib.h>     // for atol.
 #include <string>
-#include <map>
 #include <vector>
 #include <boost/date_time.hpp>
 #include <boost/algorithm/string.hpp>
@@ -89,42 +88,14 @@ public:
 	~cookies()
 	{}
 
-	// cookies迭代器实现, 用于访问cookies中的http_cookie.
-	struct iterator
-	{
-		iterator(std::map<std::string, http_cookie>::iterator iter)
-			: m_iter(iter)
-		{}
+	typedef std::vector<http_cookie>::iterator iterator;
+	typedef std::vector<http_cookie>::const_iterator const_iterator;
 
-		friend class cookies;
+	iterator begin() { return m_cookies.begin(); }
+	iterator end() { return m_cookies.end(); }
 
-		typedef http_cookie value_type;
-		typedef ptrdiff_t difference_type;
-		typedef http_cookie const* pointer;
-		typedef http_cookie& reference;
-		typedef std::forward_iterator_tag iterator_category;
-
-		http_cookie& operator*() { return m_iter->second; }
-		http_cookie* operator->() { return &(m_iter->second); }
-		iterator& operator++() { m_iter++; return *this; }
-		iterator operator++(int)
-		{ iterator ret(*this); m_iter++; return ret; }
-		iterator& operator--() { m_iter--; return *this; }
-		iterator operator--(int)
-		{ iterator ret(*this); m_iter--; return ret; }
-
-		bool operator==(iterator const& rhs) const
-		{ return m_iter == rhs.m_iter; }
-
-		bool operator!=(iterator const& rhs) const
-		{ return m_iter != rhs.m_iter; }
-
-	private:
-		std::map<std::string, http_cookie>::iterator m_iter;
-	};
-
-	iterator begin() { return iterator(m_cookies.begin()); }
-	iterator end() { return iterator(m_cookies.end()); }
+	const_iterator begin() const { return m_cookies.begin(); }
+	const_iterator end() const { return m_cookies.end(); }
 
 	// 保存cookies到指定的文件, 以Netscape HTTP Cookie File格式保存, 兼容curl.
 	// @param filename指定保存的文件名.
@@ -147,10 +118,10 @@ public:
 			f.write(memo.c_str(), memo.size());
 		}
 
-		std::map<std::string, http_cookie>::const_iterator i = m_cookies.begin();
+		std::vector<http_cookie>::const_iterator i = m_cookies.begin();
 		for (; i != m_cookies.end(); i++)
 		{
-			const http_cookie& cookie = i->second;
+			const http_cookie& cookie = *i;
 			std::string tmp;
 
 			// domain.
@@ -236,8 +207,56 @@ public:
 			cookie.value = split_vec[6];
 
 			// 更新或插入cookie.
-			m_cookies[cookie.name] = cookie;
+			m_cookies.push_back(cookie);
 		}
+	}
+
+	// 获取HTTP请求头需要的 cookie 行
+	// @is_https 是否为 https 连接
+	std::string get_cookie_line(bool is_https = false) const
+	{
+		std::string cookie;
+		if (m_cookies.size() != 0)
+		{
+			cookies::const_iterator i = m_cookies.begin();
+			for (; i != m_cookies.end(); i++)
+			{
+				// 判断是否为空.
+				if (i->value.empty())
+					continue;
+				// 判断secure.
+				if (i->secure && !is_https)
+					continue;
+				// 判断是否过期, 小于当前时间表示过期, 不添加到cookie.
+				if ( !i->expires.is_not_a_date_time()
+					&& i->expires < boost::posix_time::second_clock::local_time())
+				{
+					continue;
+				}
+
+				if (!cookie.empty())
+				{
+					cookie += "; ";
+				}
+
+				cookie += (i->name + "=" + i->value);
+			}
+		}
+		return cookie;
+	}
+
+	// 获取指定的 cookie
+	std::string operator[](const std::string& key) const
+	{
+		const_iterator i = m_cookies.begin();
+
+		for (; i != m_cookies.end(); ++i)
+		{
+			if (i->name == key && !i->value.empty())
+				return i->value;
+		}
+
+		return "";
 	}
 
 	// 更新一个cookie.
@@ -248,7 +267,15 @@ public:
 		http_cookie tmp;
 		tmp.name = name;
 		tmp.value = value;
-		m_cookies.insert(std::make_pair(name, tmp));
+		m_cookies.push_back(tmp);
+		return *this;
+	}
+
+	// 更新一个cookie.
+	// @cookie 指定cookie
+	cookies& operator()(const http_cookie & cookie)
+	{
+		m_cookies.push_back(cookie);
 		return *this;
 	}
 
@@ -261,29 +288,34 @@ public:
 			for (std::vector<http_cookie>::iterator i = cookie.begin();
 				i != cookie.end(); i++)
 			{
-				// 过期的cookie, 删除之.
-				if (i->expires < boost::posix_time::second_clock::local_time())
-				{
-					std::map<std::string, http_cookie>::iterator finder = m_cookies.find(i->name);
-					if (finder != m_cookies.end())
-					{
-						m_cookies.erase(finder);
-					}
-				}
-				else
-				{
-					m_cookies[i->name] = *i;	// 更新或插入cookie.
-				}
+				m_cookies.push_back(*i);
 			}
 		}
 
 		return *this;
 	}
 
+private:
+	struct http_cookie_is_same_name
+	{
+		http_cookie_is_same_name(const std::string & name)
+		  : m_name(name)
+		{}
+
+		bool operator()( const http_cookie & cookie)
+		{
+			return cookie.name == m_name ;
+		}
+
+		std::string m_name;
+	};
+
+public:
 	// 删除指定名称的cookie.
 	void remove_cookie(const std::string& name)
 	{
-		m_cookies.erase(name);
+		std::remove_if(m_cookies.begin(), m_cookies.end(),
+			http_cookie_is_same_name(name) );
 	}
 
 	// 清除所有cookie.
@@ -304,7 +336,7 @@ private:
 	// 示例字符串:
 	// gsid=none; expires=Sun, 22-Sep-2013 14:27:43 GMT; path=/; domain=.fidelity.cn; httponly
 	// gsid=none; gsid2=none; expires=Sun, 22-Sep-2013 14:27:43 GMT; path=/; domain=.fidelity.cn
-	bool parse_cookie_string(const std::string& str, std::vector<http_cookie>& cookie)
+	static inline bool parse_cookie_string(const std::string& str, std::vector<http_cookie>& cookie)
 	{
 		// 解析状态.
 		enum
@@ -365,8 +397,18 @@ private:
 					name.push_back(c);
 				break;
 			case cookie_value_start:
-				if (c == ';' || c == '\"' || c == '\'')
+				if (c == ';')
+				{
+					tmp[name] = value; // 添加或更新.
+					name = "";
+					value = "";
+					state = cookie_name_start;
 					continue;
+				}
+
+				if (c == '\"' || c == '\'')
+					continue;
+
 				if (detail::is_char(c))
 				{
 					value.push_back(c);
@@ -411,18 +453,18 @@ private:
 		for (std::map<std::string, std::string>::iterator i = tmp.begin();
 			i != tmp.end(); )
 		{
-			if (i->first == "expires")
+			if (boost::to_lower_copy(i->first) == "expires")
 			{
 				if (!detail::parse_http_date(i->second, cookie_tmp.expires))
 					BOOST_ASSERT(0);	// for debug.
 				tmp.erase(i++);
 			}
-			else if (i->first == "domain")
+			else if (boost::to_lower_copy(i->first) == "domain")
 			{
 				cookie_tmp.domain = i->second;
 				tmp.erase(i++);
 			}
-			else if (i->first == "path")
+			else if (boost::to_lower_copy(i->first) == "path")
 			{
 				cookie_tmp.path = i->second;
 				tmp.erase(i++);
@@ -447,7 +489,7 @@ private:
 
 private:
 	// 保存所有cookie.
-	std::map<std::string, http_cookie> m_cookies;
+	std::vector<http_cookie> m_cookies;
 };
 
 } // namespace avhttp
