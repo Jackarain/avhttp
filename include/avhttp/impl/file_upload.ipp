@@ -62,28 +62,28 @@ public:
 		reenter (this)
 		{
 			// 循环发送表单参数.
-			form_agrs::const_iterator m_iter = m_form_args.begin();
+			m_iter = m_form_args.begin();
 			for (; m_iter != m_form_args.end(); m_iter++)
 			{
 				yield boost::asio::async_write(m_http_stream, boost::asio::buffer(m_boundary),
-					*this, boost::asio::placeholders::error);
+					*this);
 				// 发送 Content-Disposition.
 				m_content_disposition = "Content-Disposition: form-data; name=\""
 					+ m_iter->first + "\"\r\n\r\n";
 				m_content_disposition += m_iter->second;
 				m_content_disposition += "\r\n";
 				yield boost::asio::async_write(m_http_stream, boost::asio::buffer(m_content_disposition),
-					*this, boost::asio::placeholders::error);
+					*this);
 			}
 
 			// 发送文件名.
 			yield boost::asio::async_write(m_http_stream, boost::asio::buffer(m_boundary),
-				*this, boost::asio::placeholders::error);
+				*this);
 			m_content_disposition = "Content-Disposition: form-data; name=\""
 				+ m_file_of_form + "\"" + "; filename=" + "\"" + m_filename + "\"\r\n"
 				+ "Content-Type: application/x-msdownload\r\n\r\n";
 			yield boost::asio::write(m_http_stream, boost::asio::buffer(m_content_disposition),
-				*this, boost::asio::placeholders::error);
+				*this);
 			// 回调用户handler.
 			m_handler(ec);
 		}
@@ -101,10 +101,19 @@ private:
 };
 
 template <typename Handler>
+file_upload::open_coro<boost::remove_reference<Handler> >
+file_upload::make_open_coro(const std::string& url, BOOST_ASIO_MOVE_ARG(Handler) handler,
+	const std::string& filename, const std::string& file_of_form, const form_agrs& agrs)
+{
+	return open_coro<boost::remove_reference<Handler> >(handler,
+		m_http_stream, url, filename, file_of_form, agrs, m_boundary);
+}
+
+template <typename Handler>
 void file_upload::async_open(const std::string& url, BOOST_ASIO_MOVE_ARG(Handler) handler,
 	const std::string& filename, const std::string& file_of_form, const form_agrs& agrs)
 {
-	open_coro<Handler> open_coro_t(handler, m_http_stream, url, filename, file_of_form, agrs, m_boundary);
+	make_open_coro(handler, m_http_stream, url, filename, file_of_form, agrs, m_boundary);
 }
 
 void file_upload::open(const std::string& url, const std::string& filename,

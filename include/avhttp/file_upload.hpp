@@ -161,6 +161,13 @@ private:
 
 	template <typename Handler>
 	class open_coro;
+	/// 辅助函数，用于创建协程并进行 Templet type deduction.
+	template <typename Handler>
+	open_coro<boost::remove_reference<Handler> > make_open_coro(const std::string& url,
+		BOOST_ASIO_MOVE_ARG(Handler) handler, const std::string& filename,
+		const std::string& file_of_form, const form_agrs& agrs);
+
+private:
 
 	// io_service引用.
 	boost::asio::io_service& m_io_service;
