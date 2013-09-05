@@ -192,7 +192,7 @@ public:
 				continue;
 			}
 
-			// 开始解析
+			// 开始解析.
 			std::vector<std::string> split_vec;
 			boost::split(split_vec, line, boost::is_any_of("\t"), boost::token_compress_on);
 			time_t time;
@@ -212,7 +212,7 @@ public:
 	}
 
 	// 获取HTTP请求头需要的 cookie 行
-	// @is_https 是否为 https 连接
+	// @is_https 是否为 https 连接.
 	std::string get_cookie_line(bool is_https = false) const
 	{
 		std::string cookie;
