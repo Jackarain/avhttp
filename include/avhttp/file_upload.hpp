@@ -80,13 +80,13 @@ public:
 	class open_coro : boost::asio::coroutine
 	{
 	public:
-		open_coro(Handler& handler, http_stream& http, const std::string& filename,
-			const std::string& file_of_form, const form_agrs& agrs, std::string& boundary)
+		open_coro(Handler& handler, http_stream& http, const std::string& url, const std::string& filename,
+			const std::string& file_of_form, const form_agrs& args, std::string& boundary)
 			: m_handler(handler)
 			, m_http_stream(http)
 			, m_filename(filename)
 			, m_file_of_form(file_of_form)
-			, m_form_agrs(args)
+			, m_form_args(args)
 			, m_boundary(boundary)
 		{
 			request_opts opts;
@@ -110,8 +110,8 @@ public:
 			reenter (this)
 			{
 				// 循环发送表单参数.
-				form_agrs::const_iterator m_iter = agrs.begin();
-				for (; m_iter != agrs.end(); m_iter++)
+				form_agrs::const_iterator m_iter = m_form_args.begin();
+				for (; m_iter != m_form_args.end(); m_iter++)
 				{
 					yield boost::asio::async_write(m_http_stream, boost::asio::buffer(m_boundary),
 						*this, boost::asio::placeholders::error);
@@ -141,7 +141,7 @@ public:
 		Handler m_handler;
 		http_stream& m_http_stream;
 		std::string m_filename;
-		form_agrs m_form_agrs;
+		form_agrs m_form_args;
 		std::string m_file_of_form;
 		std::string& m_boundary;
 		std::string m_content_disposition;
@@ -155,7 +155,7 @@ public:
 	void async_open(const std::string& url, BOOST_ASIO_MOVE_ARG(Handler) handler,
 		const std::string& filename, const std::string& file_of_form, const form_agrs& agrs)
 	{
-		open_coro open_coro_t(handler, m_http_stream, filename, file_of_form, agrs, m_boundary);
+		open_coro<Handler> open_coro_t(handler, m_http_stream, url, filename, file_of_form, agrs, m_boundary);
 	}
 
 	///打开文件上传.
