@@ -18,6 +18,7 @@
 
 #include <boost/noncopyable.hpp>
 #include "avhttp/http_stream.hpp"
+#include <boost/asio/yield.hpp>
 
 namespace avhttp {
 
@@ -74,6 +75,86 @@ public:
 	/// Destructor.
 	AVHTTP_DECL virtual ~file_upload()
 	{}
+
+	template <typename Handler>
+	class open_coro : boost::asio::coroutine
+	{
+	public:
+		open_coro(Handler& handler, http_stream& http, const std::string& filename,
+			const std::string& file_of_form, const form_agrs& agrs, std::string& boundary)
+			: m_handler(handler)
+			, m_http_stream(http)
+			, m_filename(filename)
+			, m_file_of_form(file_of_form)
+			, m_form_agrs(args)
+			, m_boundary(boundary)
+		{
+			request_opts opts;
+
+			// 添加边界等选项并打开url.
+			m_boundary = "----AvHttpFormBoundaryamFja2FyYWlu";
+			opts.insert(http_options::content_type, "multipart/form-data; boundary=" + m_boundary);
+			m_boundary = "--" + m_boundary + "\r\n";	// 之后都是单行的分隔.
+			m_http_stream.request_options(opts);
+			m_http_stream.async_open(url, *this);
+		}
+
+		void operator()(boost::system::error_code ec)
+		{
+			if (ec)	// 出错!
+			{
+				m_handler(ec);
+				return;
+			}
+
+			reenter (this)
+			{
+				// 循环发送表单参数.
+				form_agrs::const_iterator m_iter = agrs.begin();
+				for (; m_iter != agrs.end(); m_iter++)
+				{
+					yield boost::asio::async_write(m_http_stream, boost::asio::buffer(m_boundary),
+						*this, boost::asio::placeholders::error);
+					// 发送 Content-Disposition.
+					m_content_disposition = "Content-Disposition: form-data; name=\""
+						+ m_iter->first + "\"\r\n\r\n";
+					m_content_disposition += m_iter->second;
+					m_content_disposition += "\r\n";
+					yield boost::asio::async_write(m_http_stream, boost::asio::buffer(m_content_disposition),
+						*this, boost::asio::placeholders::error);
+				}
+
+				// 发送文件名.
+				yield boost::asio::async_write(m_http_stream, boost::asio::buffer(m_boundary),
+					*this, boost::asio::placeholders::error);
+				m_content_disposition = "Content-Disposition: form-data; name=\""
+					+ m_file_of_form + "\"" + "; filename=" + "\"" + m_filename + "\"\r\n"
+					+ "Content-Type: application/x-msdownload\r\n\r\n";
+				yield boost::asio::write(m_http_stream, boost::asio::buffer(m_content_disposition),
+					*this, boost::asio::placeholders::error);
+				// 回调用户handler.
+				m_handler(ec);
+			}
+		}
+
+	private:
+		Handler m_handler;
+		http_stream& m_http_stream;
+		std::string m_filename;
+		form_agrs m_form_agrs;
+		std::string m_file_of_form;
+		std::string& m_boundary;
+		std::string m_content_disposition;
+		form_agrs::const_iterator m_iter;
+	};
+
+	///异步打开文件上传.
+	template <typename Handler>
+	void async_open(const std::string& url, BOOST_ASIO_MOVE_ARG(Handler) handler,
+		const std::string& filename, const std::string& file_of_form, const form_agrs& agrs)
+	{
+		open_coro(handler, m_http_stream, filename, file_of_form, agrs);
+	}
 
 	///打开文件上传.
 	// @param url指定上传文件的url.
@@ -240,5 +321,7 @@ private:
 };
 
 } // namespace avhttp
+
+#include <boost/asio/unyield.hpp>
 
 #endif // AVHTTP_UPLOAD_HPP
