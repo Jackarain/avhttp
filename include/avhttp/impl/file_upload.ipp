@@ -16,6 +16,7 @@
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 #include <boost/asio/yield.hpp>
+#include "avhttp/http_stream.hpp"
 
 namespace avhttp {
 
