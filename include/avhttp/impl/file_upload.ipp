@@ -52,7 +52,7 @@ public:
 		m_http_stream.async_open(url, *this);
 	}
 
-	void operator()(boost::system::error_code ec)
+	void operator()(boost::system::error_code ec, std::size_t bytes_transfered)
 	{
 		if (ec)	// 出错!
 		{
