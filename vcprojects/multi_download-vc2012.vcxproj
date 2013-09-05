@@ -129,6 +129,7 @@
   <ItemGroup>
     <None Include="..\include\avhttp\impl\file_upload.ipp" />
     <None Include="..\include\avhttp\impl\http_stream.ipp" />
+    <None Include="..\include\avhttp\impl\multi_download.ipp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
