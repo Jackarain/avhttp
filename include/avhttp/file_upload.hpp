@@ -112,7 +112,7 @@ public:
 
 	///发送一些上传的文件数据.
 	// @param buffers是一个或多个用于发送数据缓冲. 这个类型必须满足ConstBufferSequence, 参考文档:
-	// http://www.boost.org/doc/libs/1_53_0/doc/html/boost_asio/reference/ConstBufferSequence.html
+	// http://www.boost.org/doc/libs/1_54_0/doc/html/boost_asio/reference/ConstBufferSequence.html
 	// @返回实现发送的数据大小.
 	// @备注: 该函数将会阻塞到一直等待数据被发送或发生错误时才返回.
 	// write_some不保证发送完所有数据, 用户需要根据返回值来确定已经发送的数据大小.
@@ -134,7 +134,7 @@ public:
 
 	///发送一些上传的文件数据.
 	// @param buffers是一个或多个用于发送数据缓冲. 这个类型必须满足ConstBufferSequence, 参考文档:
-	// http://www.boost.org/doc/libs/1_53_0/doc/html/boost_asio/reference/ConstBufferSequence.html
+	// http://www.boost.org/doc/libs/1_54_0/doc/html/boost_asio/reference/ConstBufferSequence.html
 	// @返回实现发送的数据大小.
 	// @备注: 该函数将会阻塞到一直等待数据被发送或发生错误时才返回.
 	// write_some不保证发送完所有数据, 用户需要根据返回值来确定已经发送的数据大小.
