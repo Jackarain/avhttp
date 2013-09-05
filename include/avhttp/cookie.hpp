@@ -397,8 +397,18 @@ private:
 					name.push_back(c);
 				break;
 			case cookie_value_start:
-				if (c == ';' || c == '\"' || c == '\'')
+				if (c == ';')
+				{
+					tmp[name] = value; // 添加或更新.
+					name = "";
+					value = "";
+					state = cookie_name_start;
 					continue;
+				}
+
+				if (c == '\"' || c == '\'')
+					continue;
+
 				if (detail::is_char(c))
 				{
 					value.push_back(c);
@@ -443,18 +453,18 @@ private:
 		for (std::map<std::string, std::string>::iterator i = tmp.begin();
 			i != tmp.end(); )
 		{
-			if (i->first == "expires")
+			if (boost::to_lower_copy(i->first) == "expires")
 			{
 				if (!detail::parse_http_date(i->second, cookie_tmp.expires))
 					BOOST_ASSERT(0);	// for debug.
 				tmp.erase(i++);
 			}
-			else if (i->first == "domain")
+			else if (boost::to_lower_copy(i->first) == "domain")
 			{
 				cookie_tmp.domain = i->second;
 				tmp.erase(i++);
 			}
-			else if (i->first == "path")
+			else if (boost::to_lower_copy(i->first) == "path")
 			{
 				cookie_tmp.path = i->second;
 				tmp.erase(i++);
