@@ -114,6 +114,7 @@
     <ClInclude Include="..\include\avhttp\rangefield.hpp" />
     <ClInclude Include="..\include\avhttp\settings.hpp" />
     <ClInclude Include="..\include\avhttp\storage_interface.hpp" />
+    <ClInclude Include="..\include\avhttp\file_upload.hpp" />
     <ClInclude Include="..\include\avhttp\url.hpp" />
     <ClInclude Include="..\include\avhttp\detail\abi_prefix.hpp" />
     <ClInclude Include="..\include\avhttp\detail\abi_suffix.hpp" />
