@@ -1483,6 +1483,19 @@ void http_stream::handle_request(Handler handler, const boost::system::error_cod
 		return;
 	}
 
+	// 判断是否设置有用户回调.
+	request_opts::body_callback_func body_callback = m_request_opts.body_callback();
+	if (body_callback)
+	{
+		boost::system::error_code ec;
+		body_callback(ec);
+		if (ec)
+		{
+			LOG_ERROR("Body callback, error message: \'" << ec.message() <<"\'");
+			return;
+		}
+	}
+
 	// 异步读取Http status.
 	boost::asio::async_read_until(m_sock, m_response, "\r\n",
 		boost::bind(&http_stream::handle_status<Handler>,
@@ -3600,6 +3613,18 @@ void http_stream::request_impl(Stream& sock, request_opts& opt, boost::system::e
 	{
 		LOG_ERROR("Send request, error message: \'" << ec.message() <<"\'");
 		return;
+	}
+
+	// 判断是否设置有用户回调.
+	request_opts::body_callback_func body_callback = m_request_opts.body_callback();
+	if (body_callback)
+	{
+		body_callback(ec);
+		if (ec)
+		{
+			LOG_ERROR("Body callback, error message: \'" << ec.message() <<"\'");
+			return;
+		}
 	}
 
 	// 循环读取.
