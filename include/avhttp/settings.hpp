@@ -8,8 +8,8 @@
 // path LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef __SETTINGS_HPP__
-#define __SETTINGS_HPP__
+#ifndef AVHTTP_SETTINGS_HPP
+#define AVHTTP_SETTINGS_HPP
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
@@ -294,4 +294,4 @@ struct settings
 
 } // namespace avhttp
 
-#endif // __SETTINGS_HPP__
+#endif // AVHTTP_SETTINGS_HPP

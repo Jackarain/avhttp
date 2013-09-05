@@ -8,8 +8,8 @@
 // path LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef MULTI_DOWNLOAD_HPP__
-#define MULTI_DOWNLOAD_HPP__
+#ifndef AVHTTP_MULTI_DOWNLOAD_HPP
+#define AVHTTP_MULTI_DOWNLOAD_HPP
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
@@ -2036,4 +2036,4 @@ private:
 
 } // avhttp
 
-#endif // MULTI_DOWNLOAD_HPP__
+#endif // AVHTTP_MULTI_DOWNLOAD_HPP

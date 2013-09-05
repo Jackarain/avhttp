@@ -9,8 +9,8 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef __HANDLER_TYPE_REQUIREMENTS_HPP__
-#define __HANDLER_TYPE_REQUIREMENTS_HPP__
+#ifndef AVHTTP_HANDLER_TYPE_REQUIREMENTS_HPP
+#define AVHTTP_HANDLER_TYPE_REQUIREMENTS_HPP
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
@@ -125,4 +125,4 @@ namespace detail {
 } // namespace asio
 } // namespace boost
 
-#endif // __HANDLER_TYPE_REQUIREMENTS_HPP__
+#endif // AVHTTP_HANDLER_TYPE_REQUIREMENTS_HPP

@@ -8,8 +8,8 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef __LOGGING_H__
-#define __LOGGING_H__
+#ifndef AVHTTP_LOGGING_HPP
+#define AVHTTP_LOGGING_HPP
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
@@ -223,4 +223,4 @@ Logger_ptr& logger_single(std::string path = ".",
 
 }
 
-#endif // __LOGGING_H__
+#endif // AVHTTP_LOGGING_HPP

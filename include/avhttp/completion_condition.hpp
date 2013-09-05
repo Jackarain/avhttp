@@ -8,8 +8,8 @@
 // path LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef __AVHTTP_COMPLETION_CONDITION_HPP__
-#define __AVHTTP_COMPLETION_CONDITION_HPP__
+#ifndef AVHTTP_COMPLETION_CONDITION_HPP
+#define AVHTTP_COMPLETION_CONDITION_HPP
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
@@ -94,4 +94,4 @@ inline detail::transfer_response_body_t transfer_response_body(boost::int64_t co
 
 #include <boost/asio/detail/pop_options.hpp>
 
-#endif // __AVHTTP_COMPLETION_CONDITION_HPP__
+#endif // AVHTTP_COMPLETION_CONDITION_HPP

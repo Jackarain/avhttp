@@ -9,8 +9,8 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef __SSL_STREAM_HPP__
-#define __SSL_STREAM_HPP__
+#ifndef AVHTTP_SSL_STREAM_HPP
+#define AVHTTP_SSL_STREAM_HPP
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
@@ -309,4 +309,4 @@ private:
 }
 }
 
-#endif // __SSL_STREAM_HPP__
+#endif // AVHTTP_SSL_STREAM_HPP

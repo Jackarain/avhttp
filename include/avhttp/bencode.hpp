@@ -9,8 +9,8 @@
 // path LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef __BENCODE_HPP__
-#define __BENCODE_HPP__
+#ifndef AVHTTP_BENCODE_HPP
+#define AVHTTP_BENCODE_HPP
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
@@ -323,4 +323,4 @@ entry bdecode(InIt start, InIt end, int& len)
 
 }
 
-#endif // __BENCODE_HPP__
+#endif // AVHTTP_BENCODE_HPP

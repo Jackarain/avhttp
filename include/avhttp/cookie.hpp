@@ -8,8 +8,8 @@
 // path LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef __COOKIE_HPP__
-#define __COOKIE_HPP__
+#ifndef AVHTTP_COOKIE_HPP
+#define AVHTTP_COOKIE_HPP
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
@@ -452,4 +452,4 @@ private:
 
 } // namespace avhttp
 
-#endif // __COOKIE_HPP__
+#endif // AVHTTP_COOKIE_HPP

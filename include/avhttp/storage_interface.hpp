@@ -8,8 +8,8 @@
 // path LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef __STORAGE_INTERFACE_HPP__
-#define __STORAGE_INTERFACE_HPP__
+#ifndef AVHTTP_STORAGE_INTERFACE_HPP
+#define AVHTTP_STORAGE_INTERFACE_HPP
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
@@ -75,4 +75,4 @@ typedef storage_interface* (*storage_constructor_type)();
 
 }
 
-#endif // __STORAGE_INTERFACE_HPP__
+#endif // AVHTTP_STORAGE_INTERFACE_HPP

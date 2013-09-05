@@ -31,8 +31,8 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 
-#ifndef __ENTRY_HPP__
-#define __ENTRY_HPP__
+#ifndef AVHTTP_ENTRY_HPP
+#define AVHTTP_ENTRY_HPP
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
@@ -528,4 +528,4 @@ private:
 
 } // namespace avhttp
 
-#endif // __ENTRY_HPP__
+#endif // AVHTTP_ENTRY_HPP

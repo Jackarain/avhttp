@@ -9,8 +9,8 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef __SOCKET_TYPE_HPP__
-#define __SOCKET_TYPE_HPP__
+#ifndef AVHTTP_SOCKET_TYPE_HPP
+#define AVHTTP_SOCKET_TYPE_HPP
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
@@ -929,4 +929,4 @@ private:
 }
 }
 
-#endif // __SOCKET_TYPE_HPP__
+#endif // AVHTTP_SOCKET_TYPE_HPP

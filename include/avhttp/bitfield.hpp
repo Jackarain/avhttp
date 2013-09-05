@@ -28,8 +28,8 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 
-#ifndef __BITFIELD_HPP__
-#define __BITFIELD_HPP__
+#ifndef AVHTTP_BITFIELD_HPP
+#define AVHTTP_BITFIELD_HPP
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
@@ -272,5 +272,5 @@ private:
 
 } // namespace avhttp
 
-#endif // __BITFIELD_HPP__
+#endif // AVHTTP_BITFIELD_HPP
 

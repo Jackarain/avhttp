@@ -8,8 +8,8 @@
 // path LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef __UTF8_HPP__
-#define __UTF8_HPP__
+#ifndef AVHTTP_UTF8_HPP
+#define AVHTTP_UTF8_HPP
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
@@ -148,4 +148,4 @@ inline std::string wide_ansi(const std::wstring& source)
 } // namespace detail
 } // namespace avhttp
 
-#endif // __UTF8_HPP__
+#endif // AVHTTP_UTF8_HPP

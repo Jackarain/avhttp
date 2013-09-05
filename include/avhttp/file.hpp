@@ -8,8 +8,8 @@
 // path LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef __FILE_HPP__
-#define __FILE_HPP__
+#ifndef AVHTTP_FILE_HPP
+#define AVHTTP_FILE_HPP
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
@@ -164,4 +164,4 @@ static storage_interface* default_storage_constructor()
 
 }
 
-#endif // __FILE_HPP__
+#endif // AVHTTP_FILE_HPP

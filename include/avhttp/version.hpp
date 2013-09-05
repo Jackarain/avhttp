@@ -5,8 +5,8 @@
 // path LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef __VERSION_HPP__
-#define __VERSION_HPP__
+#ifndef AVHTTP_VERSION_HPP
+#define AVHTTP_VERSION_HPP
 
 #define AVHTTP_VERSION_MAJOR 2
 #define AVHTTP_VERSION_MINOR 9
@@ -20,4 +20,4 @@
 // #define AVHTTP_REVISION "$Git-Rev$"
 
 
-#endif // __VERSION_HPP__
+#endif // AVHTTP_VERSION_HPP

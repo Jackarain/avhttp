@@ -8,8 +8,8 @@
 // path LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef __ESCAPE_STRING_HPP__
-#define __ESCAPE_STRING_HPP__
+#ifndef AVHTTP_ESCAPE_STRING_HPP
+#define AVHTTP_ESCAPE_STRING_HPP
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
@@ -182,4 +182,4 @@ std::string encode_base64(const Source& s)
 }
 }
 
-#endif // __ESCAPE_STRING_HPP__
+#endif // AVHTTP_ESCAPE_STRING_HPP

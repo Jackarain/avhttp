@@ -8,8 +8,8 @@
 // path LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef __URL_HPP__
-#define __URL_HPP__
+#ifndef AVHTTP_URL_HPP
+#define AVHTTP_URL_HPP
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
@@ -512,4 +512,4 @@ private:
 
 } // namespace avhttp
 
-#endif // __URL_HPP__
+#endif // AVHTTP_URL_HPP

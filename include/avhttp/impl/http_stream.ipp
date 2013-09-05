@@ -8,8 +8,8 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef __HTTP_STREAM_IPP__
-#define __HTTP_STREAM_IPP__
+#ifndef AVHTTP_HTTP_STREAM_IPP
+#define AVHTTP_HTTP_STREAM_IPP
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
@@ -3785,4 +3785,4 @@ std::streambuf::int_type http_stream::underflow()
 
 }
 
-#endif // __HTTP_STREAM_IPP__
+#endif // AVHTTP_HTTP_STREAM_IPP

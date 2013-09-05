@@ -11,8 +11,8 @@
 // * $Id: parsers.hpp 49 2011-07-15 03:00:34Z jack $
 //
 
-#ifndef __PARSERS_HPP__
-#define __PARSERS_HPP__
+#ifndef AVHTTP_PARSERS_HPP
+#define AVHTTP_PARSERS_HPP
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
@@ -588,4 +588,4 @@ inline bool parse_http_date(const std::string& s, time_t& t)
 } // namespace detail
 } // namespace avhttp
 
-#endif // __PARSERS_HPP__
+#endif // AVHTTP_PARSERS_HPP

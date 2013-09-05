@@ -8,8 +8,8 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef __HTTP_STREAM_HPP__
-#define __HTTP_STREAM_HPP__
+#ifndef AVHTTP_HTTP_STREAM_HPP
+#define AVHTTP_HTTP_STREAM_HPP
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
@@ -801,4 +801,4 @@ private:
 
 #include "avhttp/impl/http_stream.ipp"
 
-#endif // __HTTP_STREAM_HPP__
+#endif // AVHTTP_HTTP_STREAM_HPP

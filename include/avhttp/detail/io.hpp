@@ -9,8 +9,8 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef __IO_HPP__
-#define __IO_HPP__
+#ifndef AVHTTP_IO_HPP
+#define AVHTTP_IO_HPP
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
@@ -140,4 +140,4 @@ namespace detail {
 } // namespace detail
 } // namespace avhttp
 
-#endif // __IO_HPP__
+#endif // AVHTTP_IO_HPP
