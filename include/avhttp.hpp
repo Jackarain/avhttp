@@ -50,6 +50,9 @@ namespace
 #include "avhttp/detail/error_codec.hpp"
 #include "avhttp/url.hpp"
 #include "avhttp/http_stream.hpp"
+#ifndef AVHTTP_DISABLE_FILE_UPLOAD
+#include "avhttp/file_upload.hpp"
+#endif
 #ifndef AVHTTP_DISABLE_MULTI_DOWNLOAD
 #include "avhttp/entry.hpp"
 #include "avhttp/bencode.hpp"
