@@ -343,7 +343,10 @@ static inline int page_size()
 __attribute__((weak))
 #elif defined _MSC_VER
 __declspec(selectany)
+#else
+#pragma weak m_page_size
 #endif
+
 int const file::m_page_size = page_size();
 
 inline void file::init_file()
