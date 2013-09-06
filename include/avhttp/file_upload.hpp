@@ -63,7 +63,7 @@ namespace avhttp {
 class file_upload : public boost::noncopyable
 {
 public:
-	typedef std::map<std::string, std::string> form_agrs;
+	typedef std::map<std::string, std::string> form_args;
 
 	/// Constructor.
 	AVHTTP_DECL explicit file_upload(boost::asio::io_service& io);
@@ -74,7 +74,7 @@ public:
 	///异步打开文件上传.
 	template <typename Handler>
 	void async_open(const std::string& url, BOOST_ASIO_MOVE_ARG(Handler) handler,
-		const std::string& filename, const std::string& file_of_form, const form_agrs& agrs);
+		const std::string& filename, const std::string& file_of_form, const form_args& args);
 
 	///打开文件上传.
 	// @param url指定上传文件的url.
@@ -91,7 +91,7 @@ public:
 	//    "file", fields, ec);
 	// @end example
 	AVHTTP_DECL void open(const std::string& url, const std::string& filename,
-		const std::string& file_of_form, const form_agrs& agrs, boost::system::error_code& ec);
+		const std::string& file_of_form, const form_args& args, boost::system::error_code& ec);
 
 	///打开文件上传.
 	// @param url指定上传文件的url.
@@ -108,7 +108,7 @@ public:
 	//    "file", fields, ec);
 	// @end example
 	AVHTTP_DECL void open(const std::string& url, const std::string& filename,
-		const std::string& file_of_form, const form_agrs& agrs);
+		const std::string& file_of_form, const form_args& agrs);
 
 	///发送一些上传的文件数据.
 	// @param buffers是一个或多个用于发送数据缓冲. 这个类型必须满足ConstBufferSequence, 参考文档:
@@ -165,7 +165,7 @@ private:
 	template <typename Handler>
 	open_coro<boost::remove_reference<Handler> > make_open_coro(const std::string& url,
 		BOOST_ASIO_MOVE_ARG(Handler) handler, const std::string& filename,
-		const std::string& file_of_form, const form_agrs& agrs);
+		const std::string& file_of_form, const form_args& agrs);
 
 private:
 

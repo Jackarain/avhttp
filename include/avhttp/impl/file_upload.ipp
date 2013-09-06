@@ -33,7 +33,7 @@ class file_upload::open_coro : boost::asio::coroutine
 {
 public:
 	open_coro(Handler& handler, http_stream& http, const std::string& url, const std::string& filename,
-		const std::string& file_of_form, const form_agrs& args, std::string& boundary)
+		const std::string& file_of_form, const form_args& args, std::string& boundary)
 		: m_handler(handler)
 		, m_http_stream(http)
 		, m_filename(filename)
@@ -96,31 +96,31 @@ private:
 	Handler m_handler;
 	http_stream& m_http_stream;
 	std::string m_filename;
-	form_agrs m_form_args;
+	form_args m_form_args;
 	std::string m_file_of_form;
 	std::string& m_boundary;
 	std::string m_content_disposition;
-	form_agrs::const_iterator m_iter;
+	form_args::const_iterator m_iter;
 };
 
 template <typename Handler>
 file_upload::open_coro<boost::remove_reference<Handler> >
 file_upload::make_open_coro(const std::string& url, BOOST_ASIO_MOVE_ARG(Handler) handler,
-	const std::string& filename, const std::string& file_of_form, const form_agrs& agrs)
+	const std::string& filename, const std::string& file_of_form, const form_args& args)
 {
 	return open_coro<boost::remove_reference<Handler> >(handler,
-		m_http_stream, url, filename, file_of_form, agrs, m_boundary);
+		m_http_stream, url, filename, file_of_form, args, m_boundary);
 }
 
 template <typename Handler>
 void file_upload::async_open(const std::string& url, BOOST_ASIO_MOVE_ARG(Handler) handler,
-	const std::string& filename, const std::string& file_of_form, const form_agrs& agrs)
+	const std::string& filename, const std::string& file_of_form, const form_args& args)
 {
-	make_open_coro(handler, m_http_stream, url, filename, file_of_form, agrs, m_boundary);
+	make_open_coro(handler, m_http_stream, url, filename, file_of_form, args, m_boundary);
 }
 
 void file_upload::open(const std::string& url, const std::string& filename,
-	const std::string& file_of_form, const form_agrs& agrs, boost::system::error_code& ec)
+	const std::string& file_of_form, const form_args& args, boost::system::error_code& ec)
 {
 	request_opts opts;
 
@@ -141,8 +141,8 @@ void file_upload::open(const std::string& url, const std::string& filename,
 
 	// 循环发送表单参数.
 	std::string content_disposition;
-	form_agrs::const_iterator i = agrs.begin();
-	for (; i != agrs.end(); i++)
+	form_args::const_iterator i = args.begin();
+	for (; i != args.end(); i++)
 	{
 		boost::asio::write(m_http_stream, boost::asio::buffer(m_boundary), ec);
 		if (ec)
@@ -178,10 +178,10 @@ void file_upload::open(const std::string& url, const std::string& filename,
 }
 
 void file_upload::open(const std::string& url, const std::string& filename,
-	const std::string& file_of_form, const form_agrs& agrs)
+	const std::string& file_of_form, const form_args& args)
 {
 	boost::system::error_code ec;
-	open(url, filename, file_of_form, agrs, ec);
+	open(url, filename, file_of_form, args, ec);
 	if (ec)
 	{
 		boost::throw_exception(boost::system::system_error(ec));
