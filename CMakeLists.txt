@@ -42,3 +42,4 @@ if (UNIX AND NOT APPLE)
 	target_link_libraries(avhttp rt)
 endif()
 
+add_executable(test test/multi_include_test_include1.cpp test/multi_include_test_include2.cpp)
