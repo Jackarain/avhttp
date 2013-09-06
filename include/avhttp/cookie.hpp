@@ -430,9 +430,22 @@ public:
 		return m_cookies.size();
 	}
 
-	void reserve(std::size_t s)
+	// 保留n个cookie空间.
+	void reserve(std::size_t n)
 	{
-		return m_cookies.reserve(s);
+		return m_cookies.reserve(n);
+	}
+
+	// 设置默认domain.
+	void default_domain(const std::string& domain)
+	{
+		m_default_domain = domain;
+	}
+
+	// 返回当前默认domain.
+	std::string default_domain() const
+	{
+		return m_default_domain;
 	}
 
 private:
@@ -441,7 +454,7 @@ private:
 	// 示例字符串:
 	// gsid=none; expires=Sun, 22-Sep-2013 14:27:43 GMT; path=/; domain=.fidelity.cn; httponly
 	// gsid=none; gsid2=none; expires=Sun, 22-Sep-2013 14:27:43 GMT; path=/; domain=.fidelity.cn
-	static inline bool parse_cookie_string(const std::string& str, std::vector<http_cookie>& cookie)
+	inline bool parse_cookie_string(const std::string& str, std::vector<http_cookie>& cookie)
 	{
 		// 解析状态.
 		enum
@@ -567,6 +580,10 @@ private:
 			else if (boost::to_lower_copy(i->first) == "domain")
 			{
 				cookie_tmp.domain = i->second;
+				if (i->second.empty() && !m_default_domain.empty())
+				{
+					cookie_tmp.domain = m_default_domain;
+				}
 				tmp.erase(i++);
 			}
 			else if (boost::to_lower_copy(i->first) == "path")
@@ -595,6 +612,9 @@ private:
 private:
 	// 保存所有cookie.
 	std::vector<http_cookie> m_cookies;
+
+	// 设置默认域.
+	std::string m_default_domain;
 };
 
 namespace detail {
