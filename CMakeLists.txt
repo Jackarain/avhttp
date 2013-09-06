@@ -25,6 +25,12 @@ include_directories(include)
 
 add_library(libavhttp test/avhttp_include.cpp)
 
+set_target_properties(libavhttp
+		PROPERTIES
+		OUTPUT_NAME avhttp
+		PREFIX "lib"
+		CLEAN_DIRECT_OUTPUT 1)
+
 add_executable(avhttp example/multi_download.cpp)
 
 target_link_libraries(libavhttp ${ZLIB_LIBRARIES})
