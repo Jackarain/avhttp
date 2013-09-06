@@ -104,6 +104,7 @@
     <ClInclude Include="..\include\avhttp\bitfield.hpp" />
     <ClInclude Include="..\include\avhttp\completion_condition.hpp" />
     <ClInclude Include="..\include\avhttp\cookie.hpp" />
+    <ClInclude Include="..\include\avhttp\default_storage.hpp" />
     <ClInclude Include="..\include\avhttp\detail\handler_type_requirements.hpp" />
     <ClInclude Include="..\include\avhttp\detail\utf8.hpp" />
     <ClInclude Include="..\include\avhttp\entry.hpp" />
@@ -127,6 +128,7 @@
     <ClInclude Include="..\include\avhttp\version.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\include\avhttp\impl\file.ipp" />
     <None Include="..\include\avhttp\impl\file_upload.ipp" />
     <None Include="..\include\avhttp\impl\http_stream.ipp" />
     <None Include="..\include\avhttp\impl\multi_download.ipp" />

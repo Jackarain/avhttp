@@ -110,6 +110,9 @@
     <ClInclude Include="..\include\avhttp\file_upload.hpp">
       <Filter>头文件\avhttp</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\avhttp\default_storage.hpp">
+      <Filter>头文件\avhttp</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\include\avhttp\impl\http_stream.ipp">
@@ -119,6 +122,9 @@
       <Filter>头文件\avhttp\impl</Filter>
     </None>
     <None Include="..\include\avhttp\impl\multi_download.ipp">
+      <Filter>头文件\avhttp\impl</Filter>
+    </None>
+    <None Include="..\include\avhttp\impl\file.ipp">
       <Filter>头文件\avhttp\impl</Filter>
     </None>
   </ItemGroup>
