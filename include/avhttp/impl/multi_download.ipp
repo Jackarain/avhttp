@@ -16,6 +16,7 @@
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 #include "avhttp/http_stream.hpp"
+#include "avhttp/default_storage.hpp"
 
 namespace avhttp {
 
@@ -1708,7 +1709,7 @@ bool multi_download::open_meta(const fs::path& file_path)
 
 	// 打开文件.
 	m_file_meta.close();
-	m_file_meta.open(file_path, ec);
+	m_file_meta.open(file_path, file::read_write, ec);
 	if (ec)
 	{
 		return false;
@@ -1720,7 +1721,7 @@ bool multi_download::open_meta(const fs::path& file_path)
 		std::vector<char> buffer;
 
 		buffer.resize(size);
-		const std::streamsize num = m_file_meta.read(&buffer[0], 0, size);
+		const std::streamsize num = m_file_meta.read(&buffer[0], size);
 		if (num != size)
 		{
 			return false;
@@ -1768,7 +1769,7 @@ void multi_download::update_meta()
 	if (!m_file_meta.is_open())
 	{
 		boost::system::error_code ec;
-		m_file_meta.open(m_settings.meta_file, ec);
+		m_file_meta.open(m_settings.meta_file, file::read_write, ec);
 		if (ec)
 		{
 			return;
@@ -1790,7 +1791,7 @@ void multi_download::update_meta()
 	std::vector<char> buffer;
 	bencode(back_inserter(buffer), e);
 
-	m_file_meta.write(&buffer[0], 0, buffer.size());
+	m_file_meta.write(&buffer[0], buffer.size());
 }
 
 void multi_download::change_outstranding(bool addref/* = true*/)
