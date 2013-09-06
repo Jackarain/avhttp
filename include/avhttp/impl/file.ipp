@@ -339,13 +339,11 @@ static int page_size()
 
 #if defined WIN32 || defined __linux__ || defined DEBUG
 
-int file::m_page_size = 0;
+int const file::m_page_size = page_size();
 
-void file::init_file()
+inline void file::init_file()
 {
 	if (m_page_size != 0) return;
-
-	m_page_size = page_size();
 }
 
 #endif

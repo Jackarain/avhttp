@@ -126,8 +126,8 @@ private:
 	int m_fd;
 #endif
 #if defined WIN32 || defined __linux__ || defined DEBUG
-	static void init_file();
-	static int m_page_size;
+	static inline void init_file();
+	static const int m_page_size;
 #endif
 	int m_open_mode;
 #if defined WIN32 || defined __linux__
