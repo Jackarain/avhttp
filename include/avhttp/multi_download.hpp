@@ -32,7 +32,6 @@
 #include <boost/filesystem/fstream.hpp>
 #include <boost/crc.hpp>  // for boost::crc_32_type
 
-#include "avhttp/file.hpp"
 #include "avhttp/http_stream.hpp"
 #include "avhttp/rangefield.hpp"
 #include "avhttp/entry.hpp"
