@@ -104,7 +104,7 @@ protected:
 // 默认存储对象.
 static storage_interface* default_storage_constructor()
 {
-	return NULL;// new file();
+	return new default_storge();
 }
 
 } // namespace avhttp

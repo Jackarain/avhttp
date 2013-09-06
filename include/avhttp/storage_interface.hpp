@@ -67,7 +67,7 @@ struct storage_interface
 
 	// 判断是否文件结束.
 	// 返回值true表示文件结束.
-	virtual bool eof() const = 0;
+	virtual bool eof() = 0;
 };
 
 // 重定义storage_interface创建函数指针, 在multi_download内部通过调用它来完成创建storage_interface.
