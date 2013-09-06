@@ -433,7 +433,30 @@ public:
 	// @param ec在发生错误时, 将传回错误信息.
 	// @备注: 该函数将开始接收一个http头(直到遇到\r\n\r\n)并解析, 解析结果将
 	// 在response_options中.
-	AVHTTP_DECL void recvive_header(boost::system::error_code& ec);
+	AVHTTP_DECL void receive_header(boost::system::error_code& ec);
+
+	///异步接受一个http头信息.
+	// @param handler 将被调用在打开完成时. 它必须满足以下签名:
+	// @begin code
+	//  void handler(
+	//    const boost::system::error_code& ec	// 用于返回操作状态.
+	//  );
+	// @end code
+	// @begin example
+	//  void receive_header_handler(const boost::system::error_code& ec)
+	//  {
+	//    if (!ec)
+	//    {
+	//      // 请求成功!
+	//    }
+	//  }
+	//  ...
+	//  avhttp::http_stream h(io_service);
+	//  ...
+	//  h.async_recvive_header(boost::bind(&receive_header_handler, boost::asio::placeholders::error));
+	// @end example
+	template <typename Handler>
+	void async_receive_header(BOOST_ASIO_MOVE_ARG(Handler) handler);
 
 	///清除读写缓冲区数据.
 	// @备注: 非线程安全! 不应在正在进行读写操作时进行该操作!

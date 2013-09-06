@@ -1255,7 +1255,7 @@ void http_stream::request(request_opts& opt, boost::system::error_code& ec)
 	}
 
 	// 读取http头.
-	recvive_header(ec);
+	receive_header(ec);
 }
 
 template <typename Handler>
@@ -1449,7 +1449,7 @@ void http_stream::async_request(const request_opts& opt, BOOST_ASIO_MOVE_ARG(Han
 	);
 }
 
-void http_stream::recvive_header(boost::system::error_code& ec)
+void http_stream::receive_header(boost::system::error_code& ec)
 {
 	// 循环读取.
 	for (;;)
@@ -1588,6 +1588,20 @@ void http_stream::recvive_header(boost::system::error_code& ec)
 			m_cookies(i->second);	// 解析cookie字符串, 并保存到m_cookies.
 		}
 	}
+}
+
+template <typename Handler>
+void http_stream::async_receive_header(BOOST_ASIO_MOVE_ARG(Handler) handler)
+{
+	AVHTTP_RECEIVE_HEADER_CHECK(Handler, handler) type_check;
+
+	// 异步读取Http status.
+	boost::asio::async_read_until(m_sock, m_response, "\r\n",
+		boost::bind(&http_stream::handle_status<Handler>,
+			this, handler,
+			boost::asio::placeholders::error
+		)
+	);
 }
 
 void http_stream::clear()
@@ -1877,7 +1891,8 @@ void http_stream::handle_status(Handler handler, const boost::system::error_code
 	// 处理掉状态码所占用的字节数.
 	m_response.consume(response_size - tempbuf.size());
 
-	// "continue"表示我们需要继续等待接收状态.
+	// "continue"表示我们需要继续等待接收状态, 如果是POST我们直接返回让POST有继续发送
+	// 数据的机会.
 	if (m_status_code == errc::continue_request &&
 		m_request_opts_priv.find(http_options::request_method) != "POST")
 	{
