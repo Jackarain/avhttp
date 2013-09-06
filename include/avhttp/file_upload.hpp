@@ -73,8 +73,8 @@ public:
 
 	///异步打开文件上传.
 	template <typename Handler>
-	void async_open(const std::string& url, BOOST_ASIO_MOVE_ARG(Handler) handler,
-		const std::string& filename, const std::string& file_of_form, const form_args& args);
+	void async_open(const std::string& url, const std::string& filename,
+		const std::string& file_of_form, const form_args& args, BOOST_ASIO_MOVE_ARG(Handler) handler);
 
 	///打开文件上传.
 	// @param url指定上传文件的url.
@@ -170,8 +170,8 @@ private:
 	/// 辅助函数，用于创建协程并进行 Templet type deduction.
 	template <typename Handler>
 	open_coro<boost::remove_reference<Handler> > make_open_coro(const std::string& url,
-		BOOST_ASIO_MOVE_ARG(Handler) handler, const std::string& filename,
-		const std::string& file_of_form, const form_args& agrs);
+		const std::string& filename, const std::string& file_of_form, const form_args& agrs
+		, BOOST_ASIO_MOVE_ARG(Handler) handler);
 
 private:
 

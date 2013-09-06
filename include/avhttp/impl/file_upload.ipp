@@ -32,8 +32,8 @@ template <typename Handler>
 class file_upload::open_coro : boost::asio::coroutine
 {
 public:
-	open_coro(Handler& handler, http_stream& http, const std::string& url, const std::string& filename,
-		const std::string& file_of_form, const form_args& args, std::string& boundary)
+	open_coro(http_stream& http, const std::string& url, const std::string& filename,
+		const std::string& file_of_form, const form_args& args, std::string& boundary, Handler& handler)
 		: m_handler(handler)
 		, m_http_stream(http)
 		, m_filename(filename)
@@ -105,16 +105,16 @@ private:
 
 template <typename Handler>
 file_upload::open_coro<boost::remove_reference<Handler> >
-file_upload::make_open_coro(const std::string& url, BOOST_ASIO_MOVE_ARG(Handler) handler,
-	const std::string& filename, const std::string& file_of_form, const form_args& args)
+file_upload::make_open_coro(const std::string& url, const std::string& filename,
+	const std::string& file_of_form, const form_args& args, BOOST_ASIO_MOVE_ARG(Handler) handler)
 {
-	return open_coro<boost::remove_reference<Handler> >(handler,
-		m_http_stream, url, filename, file_of_form, args, m_boundary);
+	return open_coro<boost::remove_reference<Handler> >(m_http_stream,
+		url, filename, file_of_form, args, m_boundary, handler);
 }
 
 template <typename Handler>
-void file_upload::async_open(const std::string& url, BOOST_ASIO_MOVE_ARG(Handler) handler,
-	const std::string& filename, const std::string& file_of_form, const form_args& args)
+void file_upload::async_open(const std::string& url, const std::string& filename,
+	const std::string& file_of_form, const form_args& args, BOOST_ASIO_MOVE_ARG(Handler) handler)
 {
 	make_open_coro(handler, m_http_stream, url, filename, file_of_form, args, m_boundary);
 }
