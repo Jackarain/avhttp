@@ -1496,6 +1496,34 @@ void http_stream::receive_header(boost::system::error_code& ec)
 			return;
 		}
 
+		// "continue"消息中带有2个CRLF, 所以需要处理掉后面1个CRLF.
+		if (m_status_code == errc::continue_request)
+		{
+			// 如果此时tempbuf中数据大小大于2, 则跳过后面1个\r\n.
+			if (tempbuf.size() >= 2)
+			{
+				std::iostream ios(&tempbuf);
+				char crlf[2];
+				ios.read(&crlf[0], 2);
+				BOOST_ASSERT(crlf[0] == '\r' && crlf[1] == '\n');
+				if (crlf[0] != '\r' || crlf[1] != '\n')
+				{
+					ec = errc::malformed_status_line;
+					LOG_ERROR("Malformed status line");
+					return;
+				}
+			}
+			else
+			{
+				BOOST_ASSERT(0);	// Fuck! 不标准的http服务器！！！
+				ec = errc::malformed_status_line;
+				LOG_ERROR("Malformed status line");
+				return;
+			}
+
+			m_response.consume(2);
+		}
+
 		// 处理掉状态码所占用的字节数.
 		m_response.consume(response_size - tempbuf.size());
 
@@ -1508,7 +1536,6 @@ void http_stream::receive_header(boost::system::error_code& ec)
 			ec = make_error_code(static_cast<errc::errc_t>(m_status_code));
 		}
 
-		// "continue"表示我们需要继续等待接收状态.
 		// 如果是POST的话, 就不必了, 因为我们需要返回状态, 以便继续发送文件数据.
 		if (m_status_code != errc::continue_request ||
 			m_request_opts_priv.find(http_options::request_method) == "POST")
@@ -1896,6 +1923,34 @@ void http_stream::handle_status(Handler handler, const boost::system::error_code
 		LOG_ERROR("Malformed status line");
 		handler(errc::malformed_status_line);
 		return;
+	}
+
+	// "continue"消息中带有2个CRLF, 所以需要处理掉后面1个CRLF.
+	if (m_status_code == errc::continue_request)
+	{
+		// 如果此时tempbuf中数据大小大于2, 则跳过后面1个CRLF.
+		if (tempbuf.size() >= 2)
+		{
+			std::iostream ios(&tempbuf);
+			char crlf[2];
+			ios.read(&crlf[0], 2);
+			BOOST_ASSERT(crlf[0] == '\r' && crlf[1] == '\n');
+			if (crlf[0] != '\r' || crlf[1] != '\n')
+			{
+				LOG_ERROR("Malformed status line");
+				handler(errc::malformed_status_line);
+				return;
+			}
+		}
+		else
+		{
+			BOOST_ASSERT(0);	// Fuck! 不标准的http服务器！！！
+			LOG_ERROR("Malformed status line");
+			handler(errc::malformed_status_line);
+			return;
+		}
+
+		m_response.consume(2);
 	}
 
 	// 处理掉状态码所占用的字节数.
