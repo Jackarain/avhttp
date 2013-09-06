@@ -429,6 +429,11 @@ public:
 	template <typename Handler>
 	void async_request(const request_opts& opt, BOOST_ASIO_MOVE_ARG(Handler) handler);
 
+	///接收一个http头信息, 失败将抛出一个boost::system::system_error异常.
+	// @备注: 该函数将开始接收一个http头(直到遇到\r\n\r\n)并解析, 解析结果将
+	// 在response_options中.
+	AVHTTP_DECL void receive_header();
+
 	///接收一个http头信息.
 	// @param ec在发生错误时, 将传回错误信息.
 	// @备注: 该函数将开始接收一个http头(直到遇到\r\n\r\n)并解析, 解析结果将

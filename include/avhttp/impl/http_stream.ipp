@@ -1449,6 +1449,16 @@ void http_stream::async_request(const request_opts& opt, BOOST_ASIO_MOVE_ARG(Han
 	);
 }
 
+void http_stream::receive_header()
+{
+	boost::system::error_code ec;
+	receive_header(ec);
+	if (ec)
+	{
+		boost::throw_exception(boost::system::system_error(ec));
+	}
+}
+
 void http_stream::receive_header(boost::system::error_code& ec)
 {
 	// 循环读取.
