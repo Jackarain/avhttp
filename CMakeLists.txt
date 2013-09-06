@@ -9,9 +9,7 @@ find_package(Threads)
 
 find_package(ZLIB REQUIRED)
 
-if (ZLIB_FOUND)
-	add_definitions(-DAVHTTP_ENABLE_ZLIB)
-endif()
+add_definitions(-DAVHTTP_ENABLE_ZLIB)
 
 if (ENABLE_OPENSSL)
 	find_package(OpenSSL)
@@ -27,9 +25,7 @@ include_directories(include)
 
 add_executable(avhttp example/multi_download.cpp)
 
-if (ZLIB_FOUND)
-	target_link_libraries(avhttp ${ZLIB})
-endif()
+target_link_libraries(avhttp ${ZLIB_LIBRARIES})
 
 target_link_libraries(avhttp ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${OPENSSL_LIBRARIES} ${CMAKE_DL_LIBS})
 
@@ -43,3 +39,8 @@ if (UNIX AND NOT APPLE)
 endif()
 
 add_executable(test test/multi_include_test_include1.cpp test/multi_include_test_include2.cpp)
+target_link_libraries(test ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${OPENSSL_LIBRARIES} ${CMAKE_DL_LIBS})
+
+target_link_libraries(test ${ZLIB_LIBRARIES})
+
+

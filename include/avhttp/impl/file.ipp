@@ -339,7 +339,7 @@ static inline int page_size()
 
 #if defined WIN32 || defined __linux__ || defined DEBUG
 
-#ifdef defined __GNUC__
+#if defined __GNUC__
 __attribute__((weak))
 #elif defined _MSC_VER
 __declspec(selectany)
