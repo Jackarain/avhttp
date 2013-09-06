@@ -65,15 +65,15 @@ public:
 	typedef boost::uint64_t unsigned_size_type;
 
 public:
-	explicit file();
-	explicit file(fs::path const& p, int m, boost::system::error_code& ec);
-	~file(void);
+	AVHTTP_DECL explicit file();
+	AVHTTP_DECL explicit file(fs::path const& p, int m, boost::system::error_code& ec);
+	AVHTTP_DECL ~file(void);
 
-	void open(fs::path const& p, int m);
-	void open(fs::path const& p, int m, boost::system::error_code& ec);
-	bool is_open() const;
-	void close();
-	bool set_size(size_type size, boost::system::error_code& ec);
+	AVHTTP_DECL void open(fs::path const& p, int m);
+	AVHTTP_DECL void open(fs::path const& p, int m, boost::system::error_code& ec);
+	AVHTTP_DECL bool is_open() const;
+	AVHTTP_DECL void close();
+	AVHTTP_DECL bool set_size(size_type size, boost::system::error_code& ec);
 
 	int open_mode() const { return m_open_mode; }
 
@@ -81,35 +81,35 @@ public:
 	// required alignment of file_offsets. i.e.
 	// any (file_offset & (pos_alignment()-1)) == 0
 	// is a precondition to read and write operations
-	int pos_alignment() const;
+	AVHTTP_DECL int pos_alignment() const;
 
 	// when opened in unbuffered mode, this is the
 	// required alignment of buffer addresses
-	int buf_alignment() const;
+	AVHTTP_DECL int buf_alignment() const;
 
 	// read/write buffer sizes needs to be aligned to
 	// this when in unbuffered mode
-	int size_alignment() const;
+	AVHTTP_DECL int size_alignment() const;
 
-	size_type write(const char* buf, int size);
-	size_type read(char* buf, int size);
+	AVHTTP_DECL size_type write(const char* buf, int size);
+	AVHTTP_DECL size_type read(char* buf, int size);
 
-	size_type write(size_type offset, const char* buf, int size);
-	size_type read(size_type offset, char* buf, int size);
+	AVHTTP_DECL size_type write(size_type offset, const char* buf, int size);
+	AVHTTP_DECL size_type read(size_type offset, char* buf, int size);
 
-	size_type writev(size_type file_offset, iovec_t const* bufs, int num_bufs, boost::system::error_code& ec);
-	size_type readv(size_type file_offset, iovec_t const* bufs, int num_bufs, boost::system::error_code& ec);
+	AVHTTP_DECL size_type writev(size_type file_offset, iovec_t const* bufs, int num_bufs, boost::system::error_code& ec);
+	AVHTTP_DECL size_type readv(size_type file_offset, iovec_t const* bufs, int num_bufs, boost::system::error_code& ec);
 
-	size_type offset(boost::system::error_code& ec);
-	file::size_type offset(size_type offset, boost::system::error_code& ec);
+	AVHTTP_DECL size_type offset(boost::system::error_code& ec);
+	AVHTTP_DECL file::size_type offset(size_type offset, boost::system::error_code& ec);
 
-	size_type get_size(boost::system::error_code& ec) const;
+	AVHTTP_DECL size_type get_size(boost::system::error_code& ec) const;
 
 	// return the offset of the first byte that
 	// belongs to a data-region
-	size_type sparse_end(size_type start) const;
+	AVHTTP_DECL size_type sparse_end(size_type start) const;
 
-	size_type phys_offset(size_type offset);
+	AVHTTP_DECL size_type phys_offset(size_type offset);
 
 #ifdef WIN32
 	HANDLE native_handle() const { return m_file_handle; }
