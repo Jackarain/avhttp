@@ -54,7 +54,8 @@ public:
 
 	void operator()(boost::system::error_code ec, std::size_t bytes_transfered)
 	{
-		if (ec)	// 出错!
+		// 出错, 如果是errc::continue_request则忽略.
+		if (ec && ec != errc::continue_request)
 		{
 			m_handler(ec);
 			return;
@@ -130,7 +131,8 @@ void file_upload::open(const std::string& url, const std::string& filename,
 	m_boundary = "--" + m_boundary + "\r\n";	// 之后都是单行的分隔.
 	m_http_stream.request_options(opts);
 	m_http_stream.open(url, ec);
-	if (ec)
+	// 出错, 如果是errc::continue_request则忽略.
+	if (ec && ec != errc::continue_request)
 	{
 		return;
 	}
