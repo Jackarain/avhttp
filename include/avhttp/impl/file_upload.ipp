@@ -73,7 +73,7 @@ public:
 		, m_form_args(args)
 		, m_boundary(boundary)
 	{
-		 boost::system::error_code ec;
+		boost::system::error_code ec;
 		request_opts opts;
 
 		// 设置为POST模式.
@@ -119,22 +119,28 @@ public:
 			m_iter = m_form_args.begin();
 			for (; m_iter != m_form_args.end(); m_iter++)
 			{
+				// 发送边界.
 				yield boost::asio::async_write(m_http_stream, boost::asio::buffer(m_boundary), *this);
+
 				// 发送 Content-Disposition.
 				*m_content_disposition = "Content-Disposition: form-data; name=\""
 					+ m_iter->first + "\"\r\n\r\n";
 				*m_content_disposition += m_iter->second;
 				*m_content_disposition += "\r\n";
-				yield boost::asio::async_write(m_http_stream, boost::asio::buffer(*m_content_disposition),
-					*this);
+				yield boost::asio::async_write(m_http_stream,
+					boost::asio::buffer(*m_content_disposition), *this);
 			}
 
-			// 发送文件名.
+			// 发送边界.
 			yield boost::asio::async_write(m_http_stream, boost::asio::buffer(m_boundary), *this);
+
+			// 发送文件名.
 			*m_content_disposition = "Content-Disposition: form-data; name=\""
 				+ m_file_of_form + "\"" + "; filename=" + "\"" + m_filename + "\"\r\n"
 				+ "Content-Type: application/x-msdownload\r\n\r\n";
-			yield boost::asio::async_write(m_http_stream, boost::asio::buffer(*m_content_disposition), *this);
+			yield boost::asio::async_write(m_http_stream,
+				boost::asio::buffer(*m_content_disposition), *this);
+
 			// 回调用户handler.
 			m_handler(ec);
 		}
