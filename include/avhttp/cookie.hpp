@@ -105,8 +105,18 @@ public:
 	// 备注: 失败将抛出一个boost::system::system_error异常.
 	void save_to_file(const std::string& filename, const std::string& default_domain = "") const
 	{
-		file f;
-		f.open(filename);
+		std::fstream f;
+		f.open(filename, std::ios::out);
+		if (!f.is_open())
+		{
+			f.open(filename, std::ios::out|std::ios::trunc);
+			if (!f.is_open())
+			{
+				boost::system::error_code ec =
+					make_error_code(boost::system::errc::no_such_file_or_directory);
+				boost::throw_exception(boost::system::system_error(ec));
+			}
+		}
 
 		// 写入memo信息.
 		if (fs::file_size(filename) == 0)
@@ -178,13 +188,19 @@ public:
 	// 备注: 失败将抛出一个boost::system::system_error异常.
 	void load_from_file(const std::string& filename)
 	{
-		file f;
-		f.open(filename);
+		std::fstream f;
+		f.open(filename, std::ios::in|std::ios::out);
+		if (!f.is_open())
+		{
+			boost::system::error_code ec =
+				make_error_code(boost::system::errc::no_such_file_or_directory);
+			boost::throw_exception(boost::system::system_error(ec));
+		}
 
 		std::string line;
 		while (!f.eof())
 		{
-			f.getline(line);
+			std::getline(f, line);
 			// 过滤掉空行和注释行.
 			boost::trim(line);
 			if (line.empty() || line.at(0) == '#')
