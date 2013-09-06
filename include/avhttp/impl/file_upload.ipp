@@ -223,6 +223,11 @@ void file_upload::request_option(request_opts& opts)
 	m_request_opts = opts;
 }
 
+http_stream& file_upload::get_http_stream()
+{
+	return m_http_stream;
+}
+
 } // namespace avhttp
 
 #include <boost/asio/unyield.hpp>

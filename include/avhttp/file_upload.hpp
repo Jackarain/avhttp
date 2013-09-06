@@ -160,6 +160,9 @@ public:
 	///设置http header选项.
 	AVHTTP_DECL void request_option(request_opts& opts);
 
+	///返回http_stream对象的引用.
+	AVHTTP_DECL http_stream& get_http_stream();
+
 private:
 
 	template <typename Handler>
