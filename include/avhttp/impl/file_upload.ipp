@@ -196,19 +196,25 @@ std::size_t file_upload::write_some(const ConstBufferSequence& buffers)
 
 template <typename ConstBufferSequence>
 std::size_t file_upload::write_some(const ConstBufferSequence& buffers,
-					   boost::system::error_code& ec)
+	boost::system::error_code& ec)
 {
 	return m_http_stream.write_some(buffers, ec);
 }
 
 void file_upload::write_tail(boost::system::error_code& ec)
 {
+	// 发送结尾.
 	boost::asio::write(m_http_stream, boost::asio::buffer(m_boundary), ec);
+	// 继续读取http header.
+	m_http_stream.receive_header(ec);
 }
 
 void file_upload::write_tail()
 {
+	// 发送结尾.
 	boost::asio::write(m_http_stream, boost::asio::buffer(m_boundary));
+	// 继续读取http header.
+	m_http_stream.receive_header();
 }
 
 } // namespace avhttp
