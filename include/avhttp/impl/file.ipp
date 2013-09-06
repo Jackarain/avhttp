@@ -339,19 +339,10 @@ static inline int page_size()
 
 #if defined WIN32 || defined __linux__ || defined DEBUG
 
-#if defined __GNUC__
-__attribute__((weak))
-#elif defined _MSC_VER
-__declspec(selectany)
-#else
-#pragma weak m_page_size
-#endif
-
-int const file::m_page_size = page_size();
-
-inline void file::init_file()
+void file::init_file() const
 {
 	if (m_page_size != 0) return;
+	m_page_size = page_size();
 }
 
 #endif
@@ -395,7 +386,7 @@ file::size_type file::readv(file::size_type file_offset,
 	if (file_offset == -1)
 	{
 		LARGE_INTEGER position = { 0 };
-		if (SetFilePointerEx(m_file_handle, position, &position, FILE_CURRENT) == FALSE)
+		if (::SetFilePointerEx(m_file_handle, position, &position, FILE_CURRENT) == FALSE)
 		{
 			ec = boost::system::error_code(GetLastError(), boost::system::system_category());
 			return -1;
@@ -462,7 +453,7 @@ file::size_type file::readv(file::size_type file_offset,
 
 		LARGE_INTEGER offs;
 		offs.QuadPart = file_offset;
-		if (SetFilePointerEx(m_file_handle, offs, &offs, FILE_BEGIN) == FALSE)
+		if (::SetFilePointerEx(m_file_handle, offs, &offs, FILE_BEGIN) == FALSE)
 		{
 			ec = boost::system::error_code(GetLastError(), boost::system::system_category());
 			return -1;
@@ -471,7 +462,7 @@ file::size_type file::readv(file::size_type file_offset,
 		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
 		{
 			DWORD intermediate = 0;
-			if (ReadFile(m_file_handle, (char*)i->iov_base
+			if (::ReadFile(m_file_handle, (char*)i->iov_base
 				, (DWORD)i->iov_len, &intermediate, 0) == FALSE)
 			{
 				ec = boost::system::error_code(GetLastError(), boost::system::system_category());
@@ -505,27 +496,27 @@ file::size_type file::readv(file::size_type file_offset,
 	ol.InternalHigh = 0;
 	ol.OffsetHigh = file_offset >> 32;
 	ol.Offset = file_offset & 0xffffffff;
-	ol.hEvent = CreateEvent(0, true, false, 0);
+	ol.hEvent = ::CreateEvent(0, true, false, 0);
 
 	ret += size;
 	size = num_pages * m_page_size;
-	if (ReadFileScatter(m_file_handle, segment_array, size, 0, &ol) == 0)
+	if (::ReadFileScatter(m_file_handle, segment_array, size, 0, &ol) == 0)
 	{
 		DWORD last_error = GetLastError();
 		if (last_error != ERROR_IO_PENDING)
 		{
 			ec = boost::system::error_code(GetLastError(), boost::system::system_category());
-			CloseHandle(ol.hEvent);
+			::CloseHandle(ol.hEvent);
 			return -1;
 		}
-		if (GetOverlappedResult(m_file_handle, &ol, &ret, true) == 0)
+		if (::GetOverlappedResult(m_file_handle, &ol, &ret, true) == 0)
 		{
 			ec = boost::system::error_code(GetLastError(), boost::system::system_category());
-			CloseHandle(ol.hEvent);
+			::CloseHandle(ol.hEvent);
 			return -1;
 		}
 	}
-	CloseHandle(ol.hEvent);
+	::CloseHandle(ol.hEvent);
 	return ret;
 
 #else // WIN32
@@ -627,7 +618,7 @@ file::size_type file::writev(file::size_type file_offset, iovec_t const* bufs, i
 	if (file_offset == -1)
 	{
 		LARGE_INTEGER position = { 0 };
-		if (SetFilePointerEx(m_file_handle, position, &position, FILE_CURRENT) == FALSE)
+		if (::SetFilePointerEx(m_file_handle, position, &position, FILE_CURRENT) == FALSE)
 		{
 			ec = boost::system::error_code(GetLastError(), boost::system::system_category());
 			return -1;
@@ -697,7 +688,7 @@ file::size_type file::writev(file::size_type file_offset, iovec_t const* bufs, i
 
 		LARGE_INTEGER offs;
 		offs.QuadPart = file_offset;
-		if (SetFilePointerEx(m_file_handle, offs, &offs, FILE_BEGIN) == FALSE)
+		if (::SetFilePointerEx(m_file_handle, offs, &offs, FILE_BEGIN) == FALSE)
 		{
 			ec = boost::system::error_code(GetLastError(), boost::system::system_category());
 			return -1;
@@ -706,7 +697,7 @@ file::size_type file::writev(file::size_type file_offset, iovec_t const* bufs, i
 		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
 		{
 			DWORD intermediate = 0;
-			if (WriteFile(m_file_handle, (char const*)i->iov_base
+			if (::WriteFile(m_file_handle, (char const*)i->iov_base
 				, (DWORD)i->iov_len, &intermediate, 0) == FALSE)
 			{
 				ec = boost::system::error_code(GetLastError(), boost::system::system_category());
@@ -740,7 +731,7 @@ file::size_type file::writev(file::size_type file_offset, iovec_t const* bufs, i
 	ol.InternalHigh = 0;
 	ol.OffsetHigh = file_offset >> 32;
 	ol.Offset = file_offset & 0xffffffff;
-	ol.hEvent = CreateEvent(0, true, false, 0);
+	ol.hEvent = ::CreateEvent(0, true, false, 0);
 
 	ret += size;
 	// if file_size is > 0, the file will be opened in unbuffered
@@ -759,24 +750,24 @@ file::size_type file::writev(file::size_type file_offset, iovec_t const* bufs, i
 		size = num_pages * m_page_size;
 	}
 
-	if (WriteFileGather(m_file_handle, segment_array, size, 0, &ol) == 0)
+	if (::WriteFileGather(m_file_handle, segment_array, size, 0, &ol) == 0)
 	{
 		if (GetLastError() != ERROR_IO_PENDING)
 		{
 			ec = boost::system::error_code(GetLastError(), boost::system::system_category());
-			CloseHandle(ol.hEvent);
+			::CloseHandle(ol.hEvent);
 			return -1;
 		}
 		DWORD tmp;
-		if (GetOverlappedResult(m_file_handle, &ol, &tmp, true) == 0)
+		if (::GetOverlappedResult(m_file_handle, &ol, &tmp, true) == 0)
 		{
 			ec = boost::system::error_code(GetLastError(), boost::system::system_category());
-			CloseHandle(ol.hEvent);
+			::CloseHandle(ol.hEvent);
 			return -1;
 		}
 		if (tmp < ret) ret = tmp;
 	}
-	CloseHandle(ol.hEvent);
+	::CloseHandle(ol.hEvent);
 
 	if (file_size > 0)
 	{
@@ -792,19 +783,19 @@ file::size_type file::writev(file::size_type file_offset, iovec_t const* bufs, i
 
 		LARGE_INTEGER offs;
 		offs.QuadPart = file_size;
-		if (SetFilePointerEx(f, offs, &offs, FILE_BEGIN) == FALSE)
+		if (::SetFilePointerEx(f, offs, &offs, FILE_BEGIN) == FALSE)
 		{
-			CloseHandle(f);
+			::CloseHandle(f);
 			ec = boost::system::error_code(GetLastError(), boost::system::system_category());
 			return -1;
 		}
 		if (::SetEndOfFile(f) == FALSE)
 		{
 			ec = boost::system::error_code(GetLastError(), boost::system::system_category());
-			CloseHandle(f);
+			::CloseHandle(f);
 			return -1;
 		}
-		CloseHandle(f);
+		::CloseHandle(f);
 	}
 
 	return ret;
@@ -877,7 +868,7 @@ file::size_type file::offset(boost::system::error_code& ec)
 {
 #ifdef WIN32
 	LARGE_INTEGER position = { 0 };
-	if (SetFilePointerEx(m_file_handle, position, &position, FILE_CURRENT) == FALSE)
+	if (::SetFilePointerEx(m_file_handle, position, &position, FILE_CURRENT) == FALSE)
 	{
 		ec = boost::system::error_code(GetLastError(), boost::system::system_category());
 		return -1;
@@ -899,7 +890,7 @@ file::size_type file::offset(file::size_type offset, boost::system::error_code& 
 #ifdef WIN32
 	LARGE_INTEGER offs;
 	offs.QuadPart = offset;
-	if (SetFilePointerEx(m_file_handle, offs, &offs, FILE_BEGIN) == FALSE)
+	if (::SetFilePointerEx(m_file_handle, offs, &offs, FILE_BEGIN) == FALSE)
 	{
 		ec = boost::system::error_code(GetLastError(), boost::system::system_category());
 		return -1;
@@ -967,7 +958,7 @@ file::size_type file::phys_offset(file::size_type offset)
 	in.StartingVcn.QuadPart = offset / m_cluster_size;
 	int cluster_offset = in.StartingVcn.QuadPart % m_cluster_size;
 
-	if (DeviceIoControl(m_file_handle, FSCTL_GET_RETRIEVAL_POINTERS, &in
+	if (::DeviceIoControl(m_file_handle, FSCTL_GET_RETRIEVAL_POINTERS, &in
 		, sizeof(in), &out, sizeof(out), &out_bytes, 0) == 0)
 	{
 		DWORD error = GetLastError();
@@ -996,7 +987,7 @@ bool file::set_size(size_type s, boost::system::error_code& ec)
 #ifdef WIN32
 	LARGE_INTEGER offs;
 	LARGE_INTEGER cur_size;
-	if (GetFileSizeEx(m_file_handle, &cur_size) == FALSE)
+	if (::GetFileSizeEx(m_file_handle, &cur_size) == FALSE)
 	{
 		ec = boost::system::error_code(GetLastError(), boost::system::system_category());
 		return false;
@@ -1007,7 +998,7 @@ bool file::set_size(size_type s, boost::system::error_code& ec)
 	// modification time if we don't have to
 	if (cur_size.QuadPart != s)
 	{
-		if (SetFilePointerEx(m_file_handle, offs, &offs, FILE_BEGIN) == FALSE)
+		if (::SetFilePointerEx(m_file_handle, offs, &offs, FILE_BEGIN) == FALSE)
 		{
 			ec.assign(GetLastError(), boost::system::system_category());
 			return false;
@@ -1033,7 +1024,7 @@ bool file::set_size(size_type s, boost::system::error_code& ec)
 			// if the user has permissions, avoid filling
 			// the file with zeroes, but just fill it with
 			// garbage instead
-			SetFileValidData(m_file_handle, offs.QuadPart);
+			::SetFileValidData(m_file_handle, offs.QuadPart);
 		}
 	}
 #endif // _WIN32_WINNT >= 0x501
@@ -1114,7 +1105,7 @@ file::size_type file::get_size(boost::system::error_code& ec) const
 {
 #ifdef WIN32
 	LARGE_INTEGER file_size;
-	if (!GetFileSizeEx(m_file_handle, &file_size))
+	if (!::GetFileSizeEx(m_file_handle, &file_size))
 	{
 		ec = boost::system::error_code(GetLastError(), boost::system::system_category());
 		return -1;
@@ -1149,7 +1140,7 @@ file::size_type file::sparse_end(size_type start) const
 	if (ec) return start;
 	in.FileOffset.QuadPart = start;
 	in.Length.QuadPart = file_size - start;
-	if (!DeviceIoControl(m_file_handle, FSCTL_QUERY_ALLOCATED_RANGES
+	if (!::DeviceIoControl(m_file_handle, FSCTL_QUERY_ALLOCATED_RANGES
 		, &in, sizeof(FILE_ALLOCATED_RANGE_BUFFER)
 		, &buffer, sizeof(FILE_ALLOCATED_RANGE_BUFFER), &bytes_returned, 0))
 	{

@@ -75,7 +75,7 @@ public:
 	AVHTTP_DECL void close();
 	AVHTTP_DECL bool set_size(size_type size, boost::system::error_code& ec);
 
-	int open_mode() const { return m_open_mode; }
+	AVHTTP_DECL int open_mode() const { return m_open_mode; }
 
 	// when opened in unbuffered mode, this is the
 	// required alignment of file_offsets. i.e.
@@ -112,9 +112,9 @@ public:
 	AVHTTP_DECL size_type phys_offset(size_type offset);
 
 #ifdef WIN32
-	HANDLE native_handle() const { return m_file_handle; }
+	AVHTTP_DECL HANDLE native_handle() const { return m_file_handle; }
 #else
-	int native_handle() const { return m_fd; }
+	AVHTTP_DECL int native_handle() const { return m_fd; }
 #endif
 
 private:
@@ -126,8 +126,8 @@ private:
 	int m_fd;
 #endif
 #if defined WIN32 || defined __linux__ || defined DEBUG
-	static inline void init_file();
-	static const int m_page_size;
+	AVHTTP_DECL void init_file() const;
+	mutable int m_page_size;
 #endif
 	int m_open_mode;
 #if defined WIN32 || defined __linux__
