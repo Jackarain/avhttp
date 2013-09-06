@@ -134,10 +134,10 @@ public:
 	void save_to_file(const std::string& filename, const std::string& default_domain = "") const
 	{
 		std::fstream f;
-		f.open(filename, std::ios::out);
+		f.open(filename.c_str(), std::ios::out);
 		if (!f.is_open())
 		{
-			f.open(filename, std::ios::out|std::ios::trunc);
+			f.open(filename.c_str(), std::ios::out|std::ios::trunc);
 			if (!f.is_open())
 			{
 				boost::system::error_code ec =
@@ -217,7 +217,7 @@ public:
 	void load_from_file(const std::string& filename)
 	{
 		std::fstream f;
-		f.open(filename, std::ios::in|std::ios::out);
+		f.open(filename.c_str(), std::ios::in|std::ios::out);
 		if (!f.is_open())
 		{
 			boost::system::error_code ec =
