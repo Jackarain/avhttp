@@ -429,6 +429,12 @@ public:
 	template <typename Handler>
 	void async_request(const request_opts& opt, BOOST_ASIO_MOVE_ARG(Handler) handler);
 
+	///接收一个http头信息.
+	// @param ec在发生错误时, 将传回错误信息.
+	// @备注: 该函数将开始接收一个http头(直到遇到\r\n\r\n)并解析, 解析结果将
+	// 在response_options中.
+	AVHTTP_DECL void recvive_header(boost::system::error_code& ec);
+
 	///清除读写缓冲区数据.
 	// @备注: 非线程安全! 不应在正在进行读写操作时进行该操作!
 	AVHTTP_DECL void clear();
@@ -634,9 +640,6 @@ protected:
 	template <typename Stream>
 	void https_proxy_connect(Stream& sock, boost::system::error_code& ec);
 #endif
-
-	template <typename Stream>
-	void request_impl(Stream& sock, request_opts& opt, boost::system::error_code& ec);
 
 	// for support streambuf.
 	AVHTTP_DECL std::streambuf::int_type underflow();

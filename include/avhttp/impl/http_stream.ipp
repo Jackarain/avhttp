@@ -1039,7 +1039,223 @@ void http_stream::request(request_opts& opt)
 
 void http_stream::request(request_opts& opt, boost::system::error_code& ec)
 {
-	request_impl<socket_type>(m_sock, opt, ec);
+	// 判断socket是否打开.
+	if (!m_sock.is_open())
+	{
+		ec = boost::asio::error::network_reset;
+		LOG_ERROR("Socket is open, error message\'" << ec.message() << "\'");
+		return;
+	}
+
+	// 保存到一个新的opts中操作.
+	request_opts opts = opt;
+	// 清空.
+	m_request_opts.clear();
+	m_is_chunked_end = false;
+	m_keep_alive = true;
+	m_body_size = 0;
+
+	// 得到url选项.
+	std::string new_url;
+	if (opts.find(http_options::url, new_url))
+		opts.remove(http_options::url);		// 删除处理过的选项.
+
+	if (!new_url.empty())
+	{
+		BOOST_ASSERT(url::from_string(new_url).host() == m_url.host());	// 必须是同一主机.
+		m_url = new_url;
+		m_request_opts.insert(http_options::url, new_url);
+	}
+
+	// 得到request_method.
+	std::string request_method = "GET";
+	if (opts.find(http_options::request_method, request_method))
+		opts.remove(http_options::request_method);	// 删除处理过的选项.
+	m_request_opts.insert(http_options::request_method, request_method);
+
+	// 得到http版本信息.
+	std::string http_version = "HTTP/1.1";
+	if (opts.find(http_options::http_version, http_version))
+		opts.remove(http_options::http_version);	// 删除处理过的选项.
+	m_request_opts.insert(http_options::http_version, http_version);
+
+	// 得到Host信息.
+	std::string host = m_url.to_string(url::host_component | url::port_component);
+	if (opts.find(http_options::host, host))
+		opts.remove(http_options::host);	// 删除处理过的选项.
+	m_request_opts.insert(http_options::host, host);
+
+	// 得到Accept信息.
+	std::string accept = "text/html, application/xhtml+xml, */*";
+	if (opts.find(http_options::accept, accept))
+		opts.remove(http_options::accept);	// 删除处理过的选项.
+	m_request_opts.insert(http_options::accept, accept);
+
+	// 添加user_agent.
+	std::string user_agent = AVHTTP_VERSION_MIME;
+	if (opts.find(http_options::user_agent, user_agent))
+		opts.remove(http_options::user_agent);	// 删除处理过的选项.
+	m_request_opts.insert(http_options::user_agent, user_agent);
+
+	// 添加cookies.
+	std::string cookie;
+	if (m_cookies.size() != 0)
+	{
+		cookies::iterator i = m_cookies.begin();
+		for (; i != m_cookies.end(); i++)
+		{
+			// 判断是否过期, 小于当前时间表示过期, 不添加到cookie.
+			// 判断是否为空.
+			// 判断secure.
+			// 判断是否是该域? 这里不作判断了, 默认全带上好了， 以兼容使用ip请求http服务器也能带上cookie.
+			if (i->expires < boost::posix_time::second_clock::local_time()
+				|| i->value.empty()
+				|| (i->secure && m_protocol != "https"))
+			{
+				continue;
+			}
+
+			if (!cookie.empty())
+			{
+				cookie += "; ";
+			}
+
+			cookie += (i->name + "=" + i->value);
+		}
+	}
+
+	// 如果是认证代理.
+	std::string auth;
+	if ((m_proxy.type == proxy_settings::http_pw || m_proxy.type == proxy_settings::http)
+		&& m_protocol != "https")
+	{
+		if (m_proxy.type == proxy_settings::http_pw)
+		{
+			auth = m_proxy.username + ":" + m_proxy.password;
+			auth = "Basic " + detail::encode_base64(auth);
+			m_request_opts.insert("Proxy-Authorization", auth);
+		}
+		else if (!m_url.user_info().empty())
+		{
+			auth = "Basic " + detail::encode_base64(m_url.user_info());
+			m_request_opts.insert("Proxy-Authorization", auth);
+		}
+	}
+
+	// 默认添加close.
+	std::string connection = "close";
+	if ((m_proxy.type == proxy_settings::http_pw || m_proxy.type == proxy_settings::http)
+		&& m_protocol != "https")
+	{
+		if (opts.find(http_options::proxy_connection, connection))
+			opts.remove(http_options::proxy_connection);		// 删除处理过的选项.
+		m_request_opts.insert(http_options::proxy_connection, connection);
+	}
+	else
+	{
+		if (opts.find(http_options::connection, connection))
+			opts.remove(http_options::connection);		// 删除处理过的选项.
+		m_request_opts.insert(http_options::connection, connection);
+	}
+
+	// 是否带有body选项.
+	std::string body;
+	if (opts.find(http_options::request_body, body))
+		opts.remove(http_options::request_body);	// 删除处理过的选项.
+	m_request_opts.insert(http_options::request_body, body);
+
+	// 循环构造其它选项.
+	std::string other_option_string;
+	request_opts::option_item_list& list = opts.option_all();
+	for (request_opts::option_item_list::iterator val = list.begin(); val != list.end(); val++)
+	{
+		if (val->first == http_options::path ||
+			val->first == http_options::url ||
+			val->first == http_options::request_method ||
+			val->first == http_options::http_version ||
+			val->first == http_options::request_body ||
+			val->first == http_options::status_code)
+			continue;
+		other_option_string += (val->first + ": " + val->second + "\r\n");
+		m_request_opts.insert(val->first, val->second);
+	}
+
+	// 整合各选项到Http请求字符串中.
+	std::string request_string;
+	m_request.consume(m_request.size());
+	std::ostream request_stream(&m_request);
+	request_stream << request_method << " ";
+	if ((m_proxy.type == proxy_settings::http_pw || m_proxy.type == proxy_settings::http)
+		&& m_protocol != "https")
+	{
+		request_stream << m_url.to_string();
+		m_request_opts.insert(http_options::path, m_url.to_string());
+	}
+	else
+	{
+		request_stream << m_url.to_string(url::path_component |
+			url::query_component | url::fragment_component);
+		m_request_opts.insert(http_options::path, m_url.to_string(
+			url::path_component | url::query_component | url::fragment_component));
+	}
+	request_stream << " " << http_version << "\r\n";
+	request_stream << "Host: " << host << "\r\n";
+	request_stream << "Accept: " << accept << "\r\n";
+	request_stream << "User-Agent: " << user_agent << "\r\n";
+	if (!cookie.empty())
+	{
+		request_stream << "Cookie: " << cookie << "\r\n";
+	}
+	if ((m_proxy.type == proxy_settings::http_pw || m_proxy.type == proxy_settings::http)
+		&& m_protocol != "https")
+	{
+		request_stream << "Proxy-Connection: " << connection << "\r\n";
+	}
+	else
+	{
+		request_stream << "Connection: " << connection << "\r\n";
+	}
+	if (!auth.empty())
+	{
+		request_stream << "Proxy-Authorization: " << auth << "\r\n";
+	}
+	request_stream << other_option_string << "\r\n";
+	if (!body.empty())
+	{
+		request_stream << body;
+	}
+
+#if defined(DEBUG) || defined(_DEBUG)
+	{
+		int request_size = m_request.size();
+		boost::asio::streambuf::const_buffers_type::const_iterator begin(m_request.data().begin());
+		const char* ptr = boost::asio::buffer_cast<const char*>(*begin);
+		LOG_DEBUG("Request Header:\n" << std::string(ptr, request_size));
+	}
+#endif
+
+	// 发送请求.
+	boost::asio::write(m_sock, m_request, ec);
+	if (ec)
+	{
+		LOG_ERROR("Send request, error message: \'" << ec.message() <<"\'");
+		return;
+	}
+
+	// 判断是否设置有用户回调.
+	request_opts::body_callback_func body_callback = m_request_opts.body_callback();
+	if (body_callback)
+	{
+		body_callback(ec);
+		if (ec)
+		{
+			LOG_ERROR("Body callback, error message: \'" << ec.message() <<"\'");
+			return;
+		}
+	}
+
+	// 读取http头.
+	recvive_header(ec);
 }
 
 template <typename Handler>
@@ -1231,6 +1447,147 @@ void http_stream::async_request(const request_opts& opt, BOOST_ASIO_MOVE_ARG(Han
 			boost::asio::placeholders::error
 		)
 	);
+}
+
+void http_stream::recvive_header(boost::system::error_code& ec)
+{
+	// 循环读取.
+	for (;;)
+	{
+		boost::asio::read_until(m_sock, m_response, "\r\n", ec);
+		if (ec)
+		{
+			LOG_ERROR("Read status line, error message: \'" << ec.message() <<"\'");
+			return;
+		}
+
+		// 复制到新的streambuf中处理首行http状态, 如果不是http状态行, 那么将保持m_response中的内容,
+		// 这主要是为了兼容非标准http服务器直接向客户端发送文件的需要, 但是依然需要以malformed_status_line
+		// 通知用户, malformed_status_line并不意味着连接关闭, 关于m_response中的数据如何处理, 由用户自己
+		// 决定是否读取, 这时, 用户可以使用read_some/async_read_some来读取这个链接上的所有数据.
+		boost::asio::streambuf tempbuf;
+		int response_size = m_response.size();
+		boost::asio::streambuf::const_buffers_type::const_iterator begin(m_response.data().begin());
+		const char* ptr = boost::asio::buffer_cast<const char*>(*begin);
+		std::ostream tempbuf_stream(&tempbuf);
+		tempbuf_stream.write(ptr, response_size);
+
+		// 检查http状态码, version_major和version_minor是http协议的版本号.
+		int version_major = 0;
+		int version_minor = 0;
+		m_status_code = 0;
+		if (!detail::parse_http_status_line(
+			std::istreambuf_iterator<char>(&tempbuf),
+			std::istreambuf_iterator<char>(),
+			version_major, version_minor, m_status_code))
+		{
+			ec = errc::malformed_status_line;
+			LOG_ERROR("Malformed status line");
+			return;
+		}
+
+		// 处理掉状态码所占用的字节数.
+		m_response.consume(response_size - tempbuf.size());
+
+		// 如果http状态代码不是ok或partial_content, 根据status_code构造一个http_code, 后面
+		// 需要判断http_code是不是302等跳转, 如果是, 则将进入跳转逻辑; 如果是http发生了错误
+		// , 则直接返回这个状态构造的.
+		if (m_status_code != errc::ok &&
+			m_status_code != errc::partial_content)
+		{
+			ec = make_error_code(static_cast<errc::errc_t>(m_status_code));
+		}
+
+		// "continue"表示我们需要继续等待接收状态.
+		// 如果是POST的话, 就不必了, 因为我们需要返回状态, 以便继续发送文件数据.
+		if (m_status_code != errc::continue_request ||
+			m_request_opts_priv.find(http_options::request_method) == "POST")
+			break;
+	} // end for.
+
+	LOG_DEBUG("Status code: " << m_status_code);
+
+	// 清除原有的返回选项, 并添加状态码.
+	m_response_opts.clear();
+	m_response_opts.insert("_status_code", boost::str(boost::format("%d") % m_status_code));
+
+	// 如果返回errc::continue_request, 直接回调, 避免阻塞在下面接收\r\n\r\n上面.
+	if (m_status_code == errc::continue_request)
+	{
+		ec = make_error_code(static_cast<errc::errc_t>(m_status_code));
+		return;
+	}
+
+	// 接收掉所有Http Header.
+	boost::system::error_code read_err;
+	std::size_t bytes_transferred = boost::asio::read_until(m_sock, m_response, "\r\n\r\n", read_err);
+	if (read_err)
+	{
+		// 说明读到了结束还没有得到Http header, 返回错误的文件头信息而不返回eof.
+		if (read_err == boost::asio::error::eof)
+			ec = errc::malformed_response_headers;
+		else
+			ec = read_err;
+		LOG_ERROR("Header error, error message: \'" << ec.message() << "\'");
+		return;
+	}
+
+	std::string header_string;
+	header_string.resize(bytes_transferred);
+	m_response.sgetn(&header_string[0], bytes_transferred);
+
+	LOG_DEBUG("Http header:\n" << header_string);
+
+	// 解析Http Header.
+	if (!detail::parse_http_headers(header_string.begin(), header_string.end(),
+		m_content_type, m_content_length, m_location, m_response_opts.option_all()))
+	{
+		ec = errc::malformed_response_headers;
+		LOG_ERROR("Parse header error, error message: \'" << ec.message() << "\'");
+		return;
+	}
+
+	// 解析是否启用了gz压缩.
+	std::string opt_str = m_response_opts.find(http_options::content_encoding);
+#ifdef AVHTTP_ENABLE_ZLIB
+	if (opt_str == "gzip" || opt_str == "x-gzip")
+	{
+		m_is_gzip = true;
+		if (!m_stream.zalloc)	// 初始化ZLIB库, 每次解压每个chunked的时候, 不需要重新初始化.
+		{
+			if (inflateInit2(&m_stream, 32+15 ) != Z_OK)
+			{
+				ec = boost::asio::error::operation_not_supported;
+				LOG_ERROR("Init zlib invalid, error message: \'" << ec.message() << "\'");
+				return;
+			}
+		}
+	}
+#endif
+	// 是否启用了chunked.
+	opt_str = m_response_opts.find(http_options::transfer_encoding);
+	if (opt_str == "chunked")
+		m_is_chunked = true;
+	// 是否在请求完成后关闭socket.
+	opt_str = m_request_opts.find(http_options::connection);
+	if (opt_str == "close")
+		m_keep_alive = false;
+	opt_str = m_response_opts.find(http_options::connection);
+	if (opt_str == "close")
+		m_keep_alive = false;
+
+	// 解析cookie到cookie容器.
+	response_opts::option_item_list& option_list = m_response_opts.option_all();
+	response_opts::option_item_list::const_iterator i = option_list.begin();
+	for (; i != option_list.end(); i++)
+	{
+		std::string tmp = i->first;
+		boost::to_lower(tmp);
+		if (tmp == "set-cookie")
+		{
+			m_cookies(i->second);	// 解析cookie字符串, 并保存到m_cookies.
+		}
+	}
 }
 
 void http_stream::clear()
@@ -3388,361 +3745,6 @@ void http_stream::https_proxy_connect(Stream& sock, boost::system::error_code& e
 }
 
 #endif
-
-template <typename Stream>
-void http_stream::request_impl(Stream& sock, request_opts& opt, boost::system::error_code& ec)
-{
-	// 判断socket是否打开.
-	if (!sock.is_open())
-	{
-		ec = boost::asio::error::network_reset;
-		LOG_ERROR("Socket is open, error message\'" << ec.message() << "\'");
-		return;
-	}
-
-	// 保存到一个新的opts中操作.
-	request_opts opts = opt;
-	// 清空.
-	m_request_opts.clear();
-	m_is_chunked_end = false;
-	m_keep_alive = true;
-	m_body_size = 0;
-
-	// 得到url选项.
-	std::string new_url;
-	if (opts.find(http_options::url, new_url))
-		opts.remove(http_options::url);		// 删除处理过的选项.
-
-	if (!new_url.empty())
-	{
-		BOOST_ASSERT(url::from_string(new_url).host() == m_url.host());	// 必须是同一主机.
-		m_url = new_url;
-		m_request_opts.insert(http_options::url, new_url);
-	}
-
-	// 得到request_method.
-	std::string request_method = "GET";
-	if (opts.find(http_options::request_method, request_method))
-		opts.remove(http_options::request_method);	// 删除处理过的选项.
-	m_request_opts.insert(http_options::request_method, request_method);
-
-	// 得到http版本信息.
-	std::string http_version = "HTTP/1.1";
-	if (opts.find(http_options::http_version, http_version))
-		opts.remove(http_options::http_version);	// 删除处理过的选项.
-	m_request_opts.insert(http_options::http_version, http_version);
-
-	// 得到Host信息.
-	std::string host = m_url.to_string(url::host_component | url::port_component);
-	if (opts.find(http_options::host, host))
-		opts.remove(http_options::host);	// 删除处理过的选项.
-	m_request_opts.insert(http_options::host, host);
-
-	// 得到Accept信息.
-	std::string accept = "text/html, application/xhtml+xml, */*";
-	if (opts.find(http_options::accept, accept))
-		opts.remove(http_options::accept);	// 删除处理过的选项.
-	m_request_opts.insert(http_options::accept, accept);
-
-	// 添加user_agent.
-	std::string user_agent = AVHTTP_VERSION_MIME;
-	if (opts.find(http_options::user_agent, user_agent))
-		opts.remove(http_options::user_agent);	// 删除处理过的选项.
-	m_request_opts.insert(http_options::user_agent, user_agent);
-
-	// 添加cookies.
-	std::string cookie;
-	if (m_cookies.size() != 0)
-	{
-		cookies::iterator i = m_cookies.begin();
-		for (; i != m_cookies.end(); i++)
-		{
-			// 判断是否过期, 小于当前时间表示过期, 不添加到cookie.
-			// 判断是否为空.
-			// 判断secure.
-			// 判断是否是该域? 这里不作判断了, 默认全带上好了， 以兼容使用ip请求http服务器也能带上cookie.
-			if (i->expires < boost::posix_time::second_clock::local_time()
-				|| i->value.empty()
-				|| (i->secure && m_protocol != "https"))
-			{
-				continue;
-			}
-
-			if (!cookie.empty())
-			{
-				cookie += "; ";
-			}
-
-			cookie += (i->name + "=" + i->value);
-		}
-	}
-
-	// 如果是认证代理.
-	std::string auth;
-	if ((m_proxy.type == proxy_settings::http_pw || m_proxy.type == proxy_settings::http)
-		&& m_protocol != "https")
-	{
-		if (m_proxy.type == proxy_settings::http_pw)
-		{
-			auth = m_proxy.username + ":" + m_proxy.password;
-			auth = "Basic " + detail::encode_base64(auth);
-			m_request_opts.insert("Proxy-Authorization", auth);
-		}
-		else if (!m_url.user_info().empty())
-		{
-			auth = "Basic " + detail::encode_base64(m_url.user_info());
-			m_request_opts.insert("Proxy-Authorization", auth);
-		}
-	}
-
-	// 默认添加close.
-	std::string connection = "close";
-	if ((m_proxy.type == proxy_settings::http_pw || m_proxy.type == proxy_settings::http)
-		&& m_protocol != "https")
-	{
-		if (opts.find(http_options::proxy_connection, connection))
-			opts.remove(http_options::proxy_connection);		// 删除处理过的选项.
-		m_request_opts.insert(http_options::proxy_connection, connection);
-	}
-	else
-	{
-		if (opts.find(http_options::connection, connection))
-			opts.remove(http_options::connection);		// 删除处理过的选项.
-		m_request_opts.insert(http_options::connection, connection);
-	}
-
-	// 是否带有body选项.
-	std::string body;
-	if (opts.find(http_options::request_body, body))
-		opts.remove(http_options::request_body);	// 删除处理过的选项.
-	m_request_opts.insert(http_options::request_body, body);
-
-	// 循环构造其它选项.
-	std::string other_option_string;
-	request_opts::option_item_list& list = opts.option_all();
-	for (request_opts::option_item_list::iterator val = list.begin(); val != list.end(); val++)
-	{
-		if (val->first == http_options::path ||
-			val->first == http_options::url ||
-			val->first == http_options::request_method ||
-			val->first == http_options::http_version ||
-			val->first == http_options::request_body ||
-			val->first == http_options::status_code)
-			continue;
-		other_option_string += (val->first + ": " + val->second + "\r\n");
-		m_request_opts.insert(val->first, val->second);
-	}
-
-	// 整合各选项到Http请求字符串中.
-	std::string request_string;
-	m_request.consume(m_request.size());
-	std::ostream request_stream(&m_request);
-	request_stream << request_method << " ";
-	if ((m_proxy.type == proxy_settings::http_pw || m_proxy.type == proxy_settings::http)
-		&& m_protocol != "https")
-	{
-		request_stream << m_url.to_string();
-		m_request_opts.insert(http_options::path, m_url.to_string());
-	}
-	else
-	{
-		request_stream << m_url.to_string(url::path_component |
-			url::query_component | url::fragment_component);
-		m_request_opts.insert(http_options::path, m_url.to_string(
-			url::path_component | url::query_component | url::fragment_component));
-	}
-	request_stream << " " << http_version << "\r\n";
-	request_stream << "Host: " << host << "\r\n";
-	request_stream << "Accept: " << accept << "\r\n";
-	request_stream << "User-Agent: " << user_agent << "\r\n";
-	if (!cookie.empty())
-	{
-		request_stream << "Cookie: " << cookie << "\r\n";
-	}
-	if ((m_proxy.type == proxy_settings::http_pw || m_proxy.type == proxy_settings::http)
-		&& m_protocol != "https")
-	{
-		request_stream << "Proxy-Connection: " << connection << "\r\n";
-	}
-	else
-	{
-		request_stream << "Connection: " << connection << "\r\n";
-	}
-	if (!auth.empty())
-	{
-		request_stream << "Proxy-Authorization: " << auth << "\r\n";
-	}
-	request_stream << other_option_string << "\r\n";
-	if (!body.empty())
-	{
-		request_stream << body;
-	}
-
-#if defined(DEBUG) || defined(_DEBUG)
-	{
-		int request_size = m_request.size();
-		boost::asio::streambuf::const_buffers_type::const_iterator begin(m_request.data().begin());
-		const char* ptr = boost::asio::buffer_cast<const char*>(*begin);
-		LOG_DEBUG("Request Header:\n" << std::string(ptr, request_size));
-	}
-#endif
-
-	// 发送请求.
-	boost::asio::write(sock, m_request, ec);
-	if (ec)
-	{
-		LOG_ERROR("Send request, error message: \'" << ec.message() <<"\'");
-		return;
-	}
-
-	// 判断是否设置有用户回调.
-	request_opts::body_callback_func body_callback = m_request_opts.body_callback();
-	if (body_callback)
-	{
-		body_callback(ec);
-		if (ec)
-		{
-			LOG_ERROR("Body callback, error message: \'" << ec.message() <<"\'");
-			return;
-		}
-	}
-
-	// 循环读取.
-	for (;;)
-	{
-		boost::asio::read_until(sock, m_response, "\r\n", ec);
-		if (ec)
-		{
-			LOG_ERROR("Read status line, error message: \'" << ec.message() <<"\'");
-			return;
-		}
-
-		// 复制到新的streambuf中处理首行http状态, 如果不是http状态行, 那么将保持m_response中的内容,
-		// 这主要是为了兼容非标准http服务器直接向客户端发送文件的需要, 但是依然需要以malformed_status_line
-		// 通知用户, malformed_status_line并不意味着连接关闭, 关于m_response中的数据如何处理, 由用户自己
-		// 决定是否读取, 这时, 用户可以使用read_some/async_read_some来读取这个链接上的所有数据.
-		boost::asio::streambuf tempbuf;
-		int response_size = m_response.size();
-		boost::asio::streambuf::const_buffers_type::const_iterator begin(m_response.data().begin());
-		const char* ptr = boost::asio::buffer_cast<const char*>(*begin);
-		std::ostream tempbuf_stream(&tempbuf);
-		tempbuf_stream.write(ptr, response_size);
-
-		// 检查http状态码, version_major和version_minor是http协议的版本号.
-		int version_major = 0;
-		int version_minor = 0;
-		m_status_code = 0;
-		if (!detail::parse_http_status_line(
-			std::istreambuf_iterator<char>(&tempbuf),
-			std::istreambuf_iterator<char>(),
-			version_major, version_minor, m_status_code))
-		{
-			ec = errc::malformed_status_line;
-			LOG_ERROR("Malformed status line");
-			return;
-		}
-
-		// 处理掉状态码所占用的字节数.
-		m_response.consume(response_size - tempbuf.size());
-
-		// 如果http状态代码不是ok或partial_content, 根据status_code构造一个http_code, 后面
-		// 需要判断http_code是不是302等跳转, 如果是, 则将进入跳转逻辑; 如果是http发生了错误
-		// , 则直接返回这个状态构造的.
-		if (m_status_code != errc::ok &&
-			m_status_code != errc::partial_content)
-		{
-			ec = make_error_code(static_cast<errc::errc_t>(m_status_code));
-		}
-
-		// "continue"表示我们需要继续等待接收状态.
-		// 如果是POST的话, 就不必了, 因为我们需要返回状态, 以便继续发送文件数据.
-		if (m_status_code != errc::continue_request || request_method == "POST")
-			break;
-	} // end for.
-
-	LOG_DEBUG("Status code: " << m_status_code);
-
-	// 清除原有的返回选项, 并添加状态码.
-	m_response_opts.clear();
-	m_response_opts.insert("_status_code", boost::str(boost::format("%d") % m_status_code));
-
-	// 如果返回errc::continue_request, 直接回调, 避免阻塞在下面接收\r\n\r\n上面.
-	if (m_status_code == errc::continue_request)
-	{
-		ec = make_error_code(static_cast<errc::errc_t>(m_status_code));
-		return;
-	}
-
-	// 接收掉所有Http Header.
-	boost::system::error_code read_err;
-	std::size_t bytes_transferred = boost::asio::read_until(sock, m_response, "\r\n\r\n", read_err);
-	if (read_err)
-	{
-		// 说明读到了结束还没有得到Http header, 返回错误的文件头信息而不返回eof.
-		if (read_err == boost::asio::error::eof)
-			ec = errc::malformed_response_headers;
-		else
-			ec = read_err;
-		LOG_ERROR("Header error, error message: \'" << ec.message() << "\'");
-		return;
-	}
-
-	std::string header_string;
-	header_string.resize(bytes_transferred);
-	m_response.sgetn(&header_string[0], bytes_transferred);
-
-	LOG_DEBUG("Http header:\n" << header_string);
-
-	// 解析Http Header.
-	if (!detail::parse_http_headers(header_string.begin(), header_string.end(),
-		m_content_type, m_content_length, m_location, m_response_opts.option_all()))
-	{
-		ec = errc::malformed_response_headers;
-		LOG_ERROR("Parse header error, error message: \'" << ec.message() << "\'");
-		return;
-	}
-
-	// 解析是否启用了gz压缩.
-	std::string opt_str = m_response_opts.find(http_options::content_encoding);
-#ifdef AVHTTP_ENABLE_ZLIB
-	if (opt_str == "gzip" || opt_str == "x-gzip")
-	{
-		m_is_gzip = true;
-		if (!m_stream.zalloc)	// 初始化ZLIB库, 每次解压每个chunked的时候, 不需要重新初始化.
-		{
-			if (inflateInit2(&m_stream, 32+15 ) != Z_OK)
-			{
-				ec = boost::asio::error::operation_not_supported;
-				LOG_ERROR("Init zlib invalid, error message: \'" << ec.message() << "\'");
-				return;
-			}
-		}
-	}
-#endif
-	// 是否启用了chunked.
-	opt_str = m_response_opts.find(http_options::transfer_encoding);
-	if (opt_str == "chunked")
-		m_is_chunked = true;
-	// 是否在请求完成后关闭socket.
-	if (connection == "close")
-		m_keep_alive = false;
-	opt_str = m_response_opts.find(http_options::connection);
-	if (opt_str == "close")
-		m_keep_alive = false;
-
-	// 解析cookie到cookie容器.
-	response_opts::option_item_list& option_list = m_response_opts.option_all();
-	response_opts::option_item_list::const_iterator i = option_list.begin();
-	for (; i != option_list.end(); i++)
-	{
-		std::string tmp = i->first;
-		boost::to_lower(tmp);
-		if (tmp == "set-cookie")
-		{
-			m_cookies(i->second);	// 解析cookie字符串, 并保存到m_cookies.
-		}
-	}
-}
 
 std::streambuf::int_type http_stream::underflow()
 {
