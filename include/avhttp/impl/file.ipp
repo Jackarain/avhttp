@@ -563,10 +563,11 @@ file::size_type file::readv(file::size_type file_offset,
 
 #else // AVHTTP_USE_READV
 
-	ret = 0;
+	file::size_type ret = 0;
+
 	for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
 	{
-		int tmp = read(m_fd, i->iov_base, i->iov_len);
+		int tmp = ::read(m_fd, i->iov_base, i->iov_len);
 		if (tmp < 0)
 		{
 			ec = boost::system::error_code(errno, boost::system::generic_category());
@@ -847,10 +848,10 @@ file::size_type file::writev(file::size_type file_offset, iovec_t const* bufs, i
 
 #else // AVHTTP_USE_WRITEV
 
-	ret = 0;
+	file::size_type ret = 0;
 	for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
 	{
-		int tmp = write(m_fd, i->iov_base, i->iov_len);
+		int tmp = ::write(m_fd, i->iov_base, i->iov_len);
 		if (tmp < 0)
 		{
 			ec = boost::system::error_code(errno, boost::system::generic_category());
@@ -1166,6 +1167,7 @@ file::size_type file::sparse_end(size_type start) const
 	// this is supported on solaris
 	size_type ret = lseek(m_fd, start, SEEK_DATA);
 	if (ret < 0) return start;
+	return ret;
 #else
 	return start;
 #endif
