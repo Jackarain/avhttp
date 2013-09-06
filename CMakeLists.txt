@@ -38,7 +38,8 @@ if (UNIX AND NOT APPLE)
 	target_link_libraries(avhttp rt)
 endif()
 
-add_executable(test_multi test/multi_include_test_include1.cpp test/multi_include_test_include2.cpp)
+add_executable(test_multi test/multi_include_test_include1.cpp
+	test/multi_include_test_include2.cpp test/multi_include_test_main.cpp)
 target_link_libraries(test_multi ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${OPENSSL_LIBRARIES} ${CMAKE_DL_LIBS})
 
 target_link_libraries(test_multi ${ZLIB_LIBRARIES})
