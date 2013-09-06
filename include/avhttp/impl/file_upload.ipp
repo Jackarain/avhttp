@@ -122,11 +122,12 @@ void file_upload::async_open(const std::string& url, BOOST_ASIO_MOVE_ARG(Handler
 void file_upload::open(const std::string& url, const std::string& filename,
 	const std::string& file_of_form, const form_args& args, boost::system::error_code& ec)
 {
-	request_opts opts;
+	request_opts& opts = m_request_opts;
 
 	// 设置为POST模式.
 	opts.insert(http_options::request_method, "POST");
 	opts.insert("Expect", "100-continue");
+	// opts.insert(http_options::connection, "keep-alive");
 	// 添加边界等选项并打开url.
 	m_boundary = "----AvHttpFormBoundaryamFja2FyYWlu";
 	opts.insert(http_options::content_type, "multipart/form-data; boundary=" + m_boundary);
@@ -215,6 +216,11 @@ void file_upload::write_tail()
 	boost::asio::write(m_http_stream, boost::asio::buffer(m_boundary));
 	// 继续读取http header.
 	m_http_stream.receive_header();
+}
+
+void file_upload::request_option(request_opts& opts)
+{
+	m_request_opts = opts;
 }
 
 } // namespace avhttp

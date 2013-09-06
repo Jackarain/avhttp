@@ -157,6 +157,9 @@ public:
 	// 失败将抛出一个boost::system::system_error异常.
 	AVHTTP_DECL void write_tail();
 
+	///设置http header选项.
+	AVHTTP_DECL void request_option(request_opts& opts);
+
 private:
 
 	template <typename Handler>
@@ -177,6 +180,9 @@ private:
 
 	// 边界符.
 	std::string m_boundary;
+
+	// 选项.
+	request_opts m_request_opts;
 };
 
 } // namespace avhttp
