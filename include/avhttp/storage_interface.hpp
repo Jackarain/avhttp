@@ -49,7 +49,7 @@ struct storage_interface
 	// @param offset是写入的偏移位置.
 	// @param size指定了写入的数据缓冲大小.
 	// @返回值为实际写入的字节数, 返回-1表示写入失败.
-	virtual std::streamsize write(const char* buf, boost::uint64_t offset, int size) = 0;
+	virtual std::streamsize write(const char* buf, boost::int64_t offset, int size) = 0;
 
 	// 从文件读取数据.
 	// @param buf是需要读取的数据缓冲.
@@ -63,7 +63,7 @@ struct storage_interface
 	// @param offset是读取的偏移位置.
 	// @param size指定了读取的数据缓冲大小.
 	// @返回值为实际读取的字节数, 返回-1表示读取失败.
-	virtual std::streamsize read(char* buf, boost::uint64_t offset, int size) = 0;
+	virtual std::streamsize read(char* buf, boost::int64_t offset, int size) = 0;
 
 	// 判断是否文件结束.
 	// 返回值true表示文件结束.
