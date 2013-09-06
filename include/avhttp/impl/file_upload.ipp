@@ -44,6 +44,7 @@ public:
 		request_opts opts;
 		// 设置为POST模式.
 		opts.insert(http_options::request_method, "POST");
+		opts.insert("Expect", "100-continue");
 		// 添加边界等选项并打开url.
 		m_boundary = "----AvHttpFormBoundaryamFja2FyYWlu";
 		opts.insert(http_options::content_type, "multipart/form-data; boundary=" + m_boundary);
@@ -125,6 +126,7 @@ void file_upload::open(const std::string& url, const std::string& filename,
 
 	// 设置为POST模式.
 	opts.insert(http_options::request_method, "POST");
+	opts.insert("Expect", "100-continue");
 	// 添加边界等选项并打开url.
 	m_boundary = "----AvHttpFormBoundaryamFja2FyYWlu";
 	opts.insert(http_options::content_type, "multipart/form-data; boundary=" + m_boundary);
