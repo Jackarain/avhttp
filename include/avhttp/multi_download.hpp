@@ -200,32 +200,32 @@ public:
 
 protected:
 
-	void handle_open(const int index,
+	AVHTTP_DECL void handle_open(const int index,
 		http_object_ptr object_ptr, const boost::system::error_code& ec);
 
-	void handle_read(const int index,
+	AVHTTP_DECL void handle_read(const int index,
 		http_object_ptr object_ptr, int bytes_transferred, const boost::system::error_code& ec);
 
-	void handle_request(const int index,
+	AVHTTP_DECL void handle_request(const int index,
 		http_object_ptr object_ptr, const boost::system::error_code& ec);
 
 	template <typename Handler>
 	void handle_start(Handler handler, http_object_ptr object_ptr, const boost::system::error_code& ec);
 
-	void on_tick(const boost::system::error_code& e);
+	AVHTTP_DECL void on_tick(const boost::system::error_code& e);
 
-	bool allocate_range(range& r);
+	AVHTTP_DECL bool allocate_range(range& r);
 
-	bool open_meta(const fs::path& file_path);
+	AVHTTP_DECL bool open_meta(const fs::path& file_path);
 
-	void update_meta();
+	AVHTTP_DECL void update_meta();
 
 private:
 
 	inline void change_outstranding(bool addref = true);
 
 	// 默认根据文件大小自动计算分片大小.
-	std::size_t default_piece_size(const boost::int64_t& file_size) const;
+	AVHTTP_DECL std::size_t default_piece_size(const boost::int64_t& file_size) const;
 
 private:
 	// io_service引用.
