@@ -22,6 +22,36 @@ namespace avhttp {
 
 #define FORMBOUNDARY "----AvHttpFormBoundaryamFja2FyYWlu"
 
+std::size_t calc_content_length(const std::string& filename, const std::string& file_of_form,
+	const file_upload::form_args& args, boost::system::error_code& ec)
+{
+	std::string boundary = FORMBOUNDARY;
+	std::string short_filename = fs::path(filename).leaf().string();
+	std::size_t content_length = fs::file_size(filename, ec);
+	std::size_t boundary_size = boundary.size() + 4; // 4 是指 "--" + "\r\n"
+
+	// 各属性选项长度.
+	file_upload::form_args::const_iterator i = args.begin();
+	for (; i != args.end(); i++)
+	{
+		content_length += boundary_size;
+		content_length += std::string("Content-Disposition: form-data; name=\"\"\r\n\r\n\r\n").size();
+		content_length += i->first.size();
+		content_length += i->second.size();
+	}
+	// 文件名选项长度.
+	content_length += boundary_size;
+	content_length += std::string("Content-Disposition: form-data; name=\"\"; filename=\"\"\r\n"
+		"Content-Type: application/x-msdownload\r\n\r\n").size();
+	content_length += file_of_form.size();
+	content_length += short_filename.size();
+	content_length += 4;
+	// 结束边界长度.
+	content_length += boundary_size;
+
+	return content_length;
+}
+
 file_upload::file_upload(boost::asio::io_service& io)
 	: m_io_service(io)
 	, m_http_stream(io)
@@ -133,34 +163,12 @@ void file_upload::open(const std::string& url, const std::string& filename,
 	std::string short_filename = fs::path(filename).leaf().string();
 
 	// 计算Content-Length.
-	std::size_t content_length = fs::file_size(filename, ec);
+	std::size_t content_length = calc_content_length(filename, file_of_form, args, ec);
 	if (ec)
 	{
 		return;
 	}
 
-	std::size_t boundary_size = m_boundary.size() + 4; // 4 是指 "--" + "\r\n"
-
-	{
-		// 各属性选项长度.
-		form_args::const_iterator i = args.begin();
-		for (; i != args.end(); i++)
-		{
-			content_length += boundary_size;
-			content_length += std::string("Content-Disposition: form-data; name=\"\"\r\n\r\n\r\n").size();
-			content_length += i->first.size();
-			content_length += i->second.size();
-		}
-		// 文件名选项长度.
-		content_length += boundary_size;
-		content_length += std::string("Content-Disposition: form-data; name=\"\"; filename=\"\"\r\n"
-			"Content-Type: application/x-msdownload\r\n\r\n").size();
-		content_length += file_of_form.size();
-		content_length += short_filename.size();
-		content_length += 4;
-		// 结束边界长度.
-		content_length += boundary_size;
-	}
 	// 转换成字符串.
 	std::ostringstream content_length_stream;
 	content_length_stream.imbue(std::locale("C"));
@@ -170,11 +178,13 @@ void file_upload::open(const std::string& url, const std::string& filename,
 	opts.insert(http_options::request_method, "POST");
 	opts.insert(http_options::content_length, content_length_stream.str());
 	opts.insert("Expect", "100-continue");
+
 	// 添加边界等选项并打开url.
 	opts.insert(http_options::content_type, "multipart/form-data; boundary=" + m_boundary);
 	m_boundary = "--" + m_boundary + "\r\n";	// 之后都是单行的分隔.
 	m_http_stream.request_options(opts);
 	m_http_stream.open(url, ec);
+
 	// 出错, 如果是errc::continue_request则忽略.
 	if (ec && ec != errc::continue_request)
 	{
