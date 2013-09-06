@@ -1618,9 +1618,7 @@ void http_stream::receive_header(boost::system::error_code& ec)
 	response_opts::option_item_list::const_iterator i = option_list.begin();
 	for (; i != option_list.end(); i++)
 	{
-		std::string tmp = i->first;
-		boost::to_lower(tmp);
-		if (tmp == "set-cookie")
+		if (boost::to_lower_copy(i->first) == "set-cookie")
 		{
 			m_cookies(i->second);	// 解析cookie字符串, 并保存到m_cookies.
 		}
@@ -2091,9 +2089,7 @@ void http_stream::handle_header(Handler handler, int bytes_transferred, const bo
 	response_opts::option_item_list::const_iterator i = option_list.begin();
 	for (; i != option_list.end(); i++)
 	{
-		std::string tmp = i->first;
-		boost::to_lower(tmp);
-		if (tmp == "set-cookie")
+		if (boost::to_lower_copy(i->first) == "set-cookie")
 		{
 			m_cookies(i->second);	// 解析cookie字符串, 并保存到m_cookies.
 		}
