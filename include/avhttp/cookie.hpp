@@ -18,8 +18,10 @@
 #include <stdlib.h>     // for atol.
 #include <string>
 #include <vector>
+#include <algorithm>
 #include <boost/date_time.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/bind.hpp>
 
 #include "avhttp/detail/escape_string.hpp"
 #include "avhttp/detail/parsers.hpp"
@@ -76,6 +78,32 @@ public:
 		// httponly在这里没有意义, secure只有为https时, 才带上此cookie.
 		bool httponly;
 		bool secure;
+
+		// 用于 std::sort 算法的比较函数对象.
+		// 基于 过期时间进行排序.
+		template<typename Compare>
+		struct compare_by_expires_t : std::binary_function<cookie_t,cookie_t,bool>
+		{
+			compare_by_expires_t(const Compare& comp)
+			  : m_comp(comp)
+			{
+			}
+
+			bool operator()(const cookie_t & lhs, const cookie_t & rhs)
+			{
+				return m_comp(lhs.expires, rhs.expires);
+			}
+
+        private:
+			Compare m_comp;
+		};
+
+		template<typename Compare>
+		static compare_by_expires_t<Compare> compare_by_expires(const Compare & comp)
+		{
+			return compare_by_expires_t<Compare>(comp);
+		}
+
 	} http_cookie;
 
 public:
@@ -227,6 +255,42 @@ public:
 		}
 	}
 
+	// 更新一个cookie.
+	// @name 指定cookie的名称.
+	// @value cookie的值.
+	cookies& operator()(const std::string& name, const std::string& value)
+	{
+		http_cookie tmp;
+		tmp.name = name;
+		tmp.value = value;
+		m_cookies.push_back(tmp);
+		return *this;
+	}
+
+	// 更新一个cookie.
+	// @cookie 指定cookie
+	cookies& operator()(const http_cookie & cookie)
+	{
+		m_cookies.push_back(cookie);
+		return *this;
+	}
+
+	// 更新cookie, 接受一个http服务器返回的Set-Cookie格式字符串的cookie.
+	cookies& operator()(const std::string& str)
+	{
+		std::vector<http_cookie> cookie;
+		if (parse_cookie_string(str, cookie))
+		{
+			for (std::vector<http_cookie>::iterator i = cookie.begin();
+				i != cookie.end(); i++)
+			{
+				m_cookies.push_back(*i);
+			}
+		}
+
+		return *this;
+	}
+
 	// 获取HTTP请求头需要的 cookie 行
 	// @is_https 是否为 https 连接.
 	std::string get_cookie_line(bool is_https = false) const
@@ -275,40 +339,60 @@ public:
 		return "";
 	}
 
-	// 更新一个cookie.
-	// @name 指定cookie的名称.
-	// @value cookie的值.
-	cookies& operator()(const std::string& name, const std::string& value)
+	// 查找基于 名字.
+	iterator find(const std::string& key)
 	{
-		http_cookie tmp;
-		tmp.name = name;
-		tmp.value = value;
-		m_cookies.push_back(tmp);
-		return *this;
-	}
+		iterator i = m_cookies.begin();
 
-	// 更新一个cookie.
-	// @cookie 指定cookie
-	cookies& operator()(const http_cookie & cookie)
-	{
-		m_cookies.push_back(cookie);
-		return *this;
-	}
-
-	// 更新cookie, 接受一个http服务器返回的Set-Cookie格式字符串的cookie.
-	cookies& operator()(const std::string& str)
-	{
-		std::vector<http_cookie> cookie;
-		if (parse_cookie_string(str, cookie))
+		for (; i != m_cookies.end(); ++i)
 		{
-			for (std::vector<http_cookie>::iterator i = cookie.begin();
-				i != cookie.end(); i++)
-			{
-				m_cookies.push_back(*i);
-			}
+			if (i->name == key)
+				return i;
 		}
 
-		return *this;
+		return end();
+	}
+
+	// 查找基于 名字.
+	const_iterator find(const std::string& key) const
+	{
+		const_iterator i = m_cookies.begin();
+
+		for (; i != m_cookies.end(); ++i)
+		{
+			if (i->name == key)
+				return i;
+		}
+
+		return end();
+	}
+
+	// 查找基于 域/路径/名字.
+	iterator find(const http_cookie& key)
+	{
+		iterator i = m_cookies.begin();
+
+		for (; i != m_cookies.end(); ++i)
+		{
+			if (i->name == key.name && i->domain == key.domain && i->path == key.path)
+				return i;
+		}
+
+		return end();
+	}
+
+	// 查找基于 域/路径/名字.
+	const_iterator find(const http_cookie& key) const
+	{
+		const_iterator i = m_cookies.begin();
+
+		for (; i != m_cookies.end(); ++i)
+		{
+			if (i->name == key.name && i->domain == key.domain && i->path == key.path)
+				return i;
+		}
+
+		return end();
 	}
 
 private:
@@ -344,6 +428,11 @@ public:
 	int size() const
 	{
 		return m_cookies.size();
+	}
+
+	void reserve(std::size_t s)
+	{
+		return m_cookies.reserve(s);
 	}
 
 private:
@@ -507,6 +596,72 @@ private:
 	// 保存所有cookie.
 	std::vector<http_cookie> m_cookies;
 };
+
+namespace detail {
+
+inline bool cookie_megerable(const cookies::http_cookie& element, const cookies& container)
+{
+	// 查看是否 element 符合拷贝进 container 的资格.
+	// 第一，他应该不是空的.
+
+	cookies::const_iterator it = container.find(element.name);
+
+	// 首先，它不存在, 那就直接更新.
+	if (container.find(element)==container.end())
+	{
+		return true;
+	}
+
+	// 既然存在了，那就得比较比较.
+
+	// 要拷贝进去的自己都是空的，有什么资格要拷贝进去!
+	if (element.value.empty())
+		return false;
+
+	// 不过如果原来的是空的，那就可以拷贝进去.
+	if (it->value.empty())
+		return true;
+
+	// 要是原来的时间要比你新，那还是不能拷贝.
+	if (element.expires < it->expires)
+		return false;
+
+	// 好了，基本上不能拷贝的都判定好了，接下来就是能拷贝的了.
+	return true;
+}
+
+inline bool cookie_not_megerable(const cookies::http_cookie& element, const cookies& container)
+{
+	return ! cookie_megerable(element, container);
+}
+
+} // namespace detail
+
+// 将两个 cookies 容器合并.
+inline cookies operator+(const cookies& lhs, const cookies& rhs)
+{
+	cookies tmp, ret;
+
+	// 首先一股脑的拷贝进去.
+	tmp.reserve(lhs.size()+rhs.size());
+	std::copy(lhs.begin(), lhs.end(), tmp.begin());
+	std::copy(rhs.begin(), rhs.end(), tmp.begin()+tmp.size());
+
+	// 排序！ 我是多么希望能使用 c++11 的 lambda 表达式来简化这里的代码!
+	std::sort(tmp.begin(), tmp.end(),
+		cookies::http_cookie::compare_by_expires(std::greater<boost::posix_time::ptime>()));
+
+	// 然后拷贝到新的容器里，但是判断一下是否已经存在了，如果已经存在，嘻嘻，不拷贝.
+	// 以为已经排序，所以如果已经存在，那么时间上更老的后续 cookie 不应该拷贝.
+	ret.reserve(tmp.size());
+
+	// NOTE: 本来是使用 std::copy_if 的，这样就可以使用 cookie_megerable 作为比较
+	// 但是 c++98 里没有 std::copy_if, 因此使用了 remove_copy_if ,  这样就要把
+	// cookie_megerable 含义反过来，故而有此函数.
+	std::remove_copy_if(tmp.begin(), tmp.end(), ret.begin(), boost::bind(detail::cookie_not_megerable, _1, ret));
+	// 返回完成结果.
+	return ret;
+}
 
 } // namespace avhttp
 
