@@ -36,7 +36,7 @@ namespace avhttp {
 // 		// 处理错误.
 // 	}
 // 	// 开始上传文件数据.
-// 	avhttp::file file;
+// 	avhttp::default_storge file;
 // 	file.open("\\root\\cppStudy.tar.bz2", ec);
 // 	if (ec)
 // 	{
