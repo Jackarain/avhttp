@@ -319,7 +319,7 @@ static int bufs_size(file::iovec_t const* bufs, int num_bufs)
 	return size;
 }
 
-static int page_size()
+static inline int page_size()
 {
 	static int s = 0;
 	if (s != 0) return s;
@@ -339,6 +339,11 @@ static int page_size()
 
 #if defined WIN32 || defined __linux__ || defined DEBUG
 
+#ifdef defined __GNUC__
+__attribute__((weak))
+#elif defined _MSC_VER
+__declspec(selectany)
+#endif
 int const file::m_page_size = page_size();
 
 inline void file::init_file()
