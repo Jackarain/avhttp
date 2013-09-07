@@ -16,6 +16,8 @@
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 #include <boost/asio/yield.hpp>
+#include <boost/algorithm/string.hpp>
+
 #include "avhttp/http_stream.hpp"
 
 namespace avhttp {
@@ -106,11 +108,13 @@ namespace mime_types {
 inline std::size_t calc_content_length(const std::string& filename, const std::string& file_of_form,
 	const file_upload::form_args& args, boost::system::error_code& ec)
 {
+	using mime_types::extension_to_type;
+
 	std::string boundary = FORMBOUNDARY;
 	std::string short_filename = fs::path(filename).leaf().string();
 	std::size_t content_length = fs::file_size(filename, ec);
 	std::size_t boundary_size = boundary.size() + 4; // 4 是指 "--" + "\r\n"
-	std::size_t extension_size = mime_types::extension_to_type(fs::extension(filename)).size();
+	std::size_t extension_size = extension_to_type(boost::to_lower_copy(fs::extension(filename))).size();
 
 	// 各属性选项长度.
 	file_upload::form_args::const_iterator i = args.begin();
@@ -189,6 +193,8 @@ public:
 
 	void operator()(boost::system::error_code ec, std::size_t bytes_transfered = 0)
 	{
+		using mime_types::extension_to_type;
+
 		// 出错, 如果是errc::continue_request则忽略.
 		if (ec && ec != errc::continue_request)
 		{
@@ -222,7 +228,7 @@ public:
 				+ m_file_of_form + "\"" + "; filename=" + "\""
 				+ fs::path(m_filename).leaf().string() + "\"\r\n"
 				+ "Content-Type: "
-				+ mime_types::extension_to_type(fs::extension(m_filename))
+				+ extension_to_type(boost::to_lower_copy(fs::extension(m_filename)))
 				+ "\r\n\r\n";
 			yield boost::asio::async_write(m_http_stream,
 				boost::asio::buffer(*m_content_disposition), *this);
@@ -263,6 +269,8 @@ void file_upload::async_open(const std::string& url, const std::string& filename
 void file_upload::open(const std::string& url, const std::string& filename,
 	const std::string& file_of_form, const form_args& args, boost::system::error_code& ec)
 {
+	using mime_types::extension_to_type;
+
 	request_opts& opts = m_request_opts;
 	m_form_args = args;
 
@@ -333,7 +341,7 @@ void file_upload::open(const std::string& url, const std::string& filename,
 	content_disposition = "Content-Disposition: form-data; name=\""
 		+ file_of_form + "\"" + "; filename=" + "\"" + short_filename + "\"\r\n"
 		+ "Content-Type: "
-		+ mime_types::extension_to_type(fs::extension(short_filename))
+		+ extension_to_type(boost::to_lower_copy(fs::extension(short_filename)))
 		+ "\r\n\r\n";
 	boost::asio::write(m_http_stream, boost::asio::buffer(content_disposition), ec);
 	if (ec)
