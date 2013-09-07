@@ -26,6 +26,10 @@ public:
 
 		m_file_upload.request_option(opts);
 
+		// disable auto redirect.
+		avhttp::http_stream& http = m_file_upload.get_http_stream();
+		http.max_redirects(0);
+
 		agrs["nickname"] = nickname;
 		agrs["remember_nickname"] = "Y";
 		agrs["title"] = boost::filesystem::path(m_filename).leaf().string();
@@ -72,10 +76,11 @@ public:
 
 	void tail_handle(boost::system::error_code ec)
 	{
-		if (!ec)
+		if (!ec || ec == avhttp::errc::found)
 		{
 			avhttp::http_stream& http = m_file_upload.get_http_stream();
-			std::cout << &http;
+			std::string path = http.location();
+			std::cout << path << std::endl;
 		}
 	}
 
