@@ -278,6 +278,14 @@ std::size_t file_upload::write_some(const ConstBufferSequence& buffers,
 	return m_http_stream.write_some(buffers, ec);
 }
 
+template <typename ConstBufferSequence, typename Handler>
+void file_upload::async_write_some(const ConstBufferSequence& buffers, BOOST_ASIO_MOVE_ARG(Handler) handler)
+{
+	AVHTTP_WRITE_HANDLER_CHECK(Handler, handler) type_check;
+
+	m_http_stream.async_write_some(buffers, handler);
+}
+
 void file_upload::write_tail(boost::system::error_code& ec)
 {
 	// 发送结尾.
@@ -294,6 +302,53 @@ void file_upload::write_tail()
 	boost::asio::write(m_http_stream, boost::asio::buffer(m_boundary));
 	// 继续读取http header.
 	m_http_stream.receive_header();
+}
+
+template <typename Handler>
+class file_upload::tail_coro : boost::asio::coroutine
+{
+public:
+	tail_coro(std::string& boundary, http_stream& http, Handler handler)
+		: m_boundary(boundary)
+		, m_http_stream(http)
+		, m_handler(handler)
+	{
+		// 发送结尾.
+		m_boundary = "\r\n--" FORMBOUNDARY "--\r\n";
+		boost::asio::async_write(m_http_stream, m_boundary, *this);
+	}
+
+	void operator()(boost::system::error_code ec, std::size_t bytes_transfered = 0)
+	{
+		if (ec)
+		{
+			m_handler(ec);
+			return;
+		}
+
+		reenter (this)
+		{
+			yield m_http_stream.async_receive_header(*this);
+			m_handler(boost::system::error_code());
+		}
+	}
+
+private:
+	Handler m_handler;
+	std::string& m_boundary;
+	http_stream& m_http_stream;
+};
+
+template <typename Handler>
+file_upload::tail_coro<Handler> file_upload::make_tail_coro(BOOST_ASIO_MOVE_ARG(Handler) handler)
+{
+	return tail_coro<Handler>(m_boundary, m_http_stream, handler);
+}
+
+template <typename Handler>
+void file_upload::async_write_tail(BOOST_ASIO_MOVE_ARG(Handler) handler)
+{
+	make_tail_coro<Handler>(handler);
 }
 
 void file_upload::request_option(request_opts& opts)

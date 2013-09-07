@@ -149,6 +149,32 @@ public:
 	std::size_t write_some(const ConstBufferSequence& buffers,
 		boost::system::error_code& ec);
 
+	///异步上传一些文件数据.
+	// @param buffers一个或多个用于读取数据的缓冲区, 这个类型必须满足ConstBufferSequence,
+	//  ConstBufferSequence的定义在boost.asio文档中.
+	// http://www.boost.org/doc/libs/1_54_0/doc/html/boost_asio/reference/ConstBufferSequence.html
+	// @param handler在发送操作完成或出现错误时, 将被回调, 它满足以下条件:
+	// @begin code
+	//  void handler(
+	//    int bytes_transferred,				// 返回发送的数据字节数.
+	//    const boost::system::error_code& ec	// 用于返回操作状态.
+	//  );
+	// @end code
+	// @begin example
+	//   void handler(int bytes_transferred, const boost::system::error_code& ec)
+	//   {
+	//		// 处理异步回调.
+	//   }
+	//   file_upload f(io_service);
+	//   ...
+	//   f.async_write_some(boost::asio::buffer(data, size), handler);
+	//   ...
+	// @end example
+	// 关于示例中的boost::asio::buffer用法可以参考boost中的文档. 它可以接受一个
+	// boost.array或std.vector作为数据容器.
+	template <typename ConstBufferSequence, typename Handler>
+	void async_write_some(const ConstBufferSequence& buffers, BOOST_ASIO_MOVE_ARG(Handler) handler);
+
 	///发送结尾行.
 	// @param ec错误信息.
 	AVHTTP_DECL void write_tail(boost::system::error_code& ec);
@@ -156,6 +182,31 @@ public:
 	///发送结尾行.
 	// 失败将抛出一个boost::system::system_error异常.
 	AVHTTP_DECL void write_tail();
+
+	///异步发送结尾行.
+	// @param handler在发送操作完成或出现错误时, 将被回调, 它满足以下条件:
+	// @begin code
+	//  void handler(
+	//    const boost::system::error_code& ec // 用于返回操作状态.
+	//  );
+	// @end code
+	// @begin example
+	//  void tail_handler(const boost::system::error_code& ec)
+	//  {
+	//    if (!ec)
+	//    {
+	//      // 发送成功!
+	//    }
+	//  }
+	//  ...
+	//  avhttp::file_upload f(io_service);
+	//  ...
+	//  f.async_write_tail(handler);
+	// @end example
+	// @备注: handler也可以使用boost.bind来绑定一个符合规定的函数作
+	// 为async_open的参数handler.
+	template <typename Handler>
+	void async_write_tail(BOOST_ASIO_MOVE_ARG(Handler) handler);
 
 	///设置http header选项.
 	AVHTTP_DECL void request_option(request_opts& opts);
@@ -167,10 +218,18 @@ private:
 
 	template <typename Handler>
 	class open_coro;
-	/// 辅助函数，用于创建协程并进行 Templet type deduction.
+
+	template <typename Handler>
+	class tail_coro;
+
+	///辅助函数，用于创建协程并进行 Templet type deduction.
 	template <typename Handler>
 	open_coro<Handler> make_open_coro(const std::string& url, const std::string& filename,
 		const std::string& file_of_form, const form_args& args, BOOST_ASIO_MOVE_ARG(Handler) handler);
+
+	///辅助函数，用于创建协程并进行 Templet type deduction.
+	template <typename Handler>
+	tail_coro<Handler> make_tail_coro(BOOST_ASIO_MOVE_ARG(Handler) handler);
 
 private:
 
