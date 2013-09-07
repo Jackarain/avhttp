@@ -315,7 +315,7 @@ public:
 	{
 		// 发送结尾.
 		m_boundary = "\r\n--" FORMBOUNDARY "--\r\n";
-		boost::asio::async_write(m_http_stream, m_boundary, *this);
+		boost::asio::async_write(m_http_stream, boost::asio::buffer(m_boundary), *this);
 	}
 
 	void operator()(boost::system::error_code ec, std::size_t bytes_transfered = 0)
