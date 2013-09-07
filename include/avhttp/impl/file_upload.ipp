@@ -22,6 +22,87 @@ namespace avhttp {
 
 #define FORMBOUNDARY "----AvHttpFormBoundaryamFja2FyYWlu"
 
+namespace mime_types {
+
+	static struct mapping
+	{
+		const char* extension;
+		const char* mime_type;
+	} mappings[] =
+	{
+		{ "flv", "video/flv" },
+		{ "rmvb", "video/x-pn-realvideo" },
+		{ "gif", "image/gif" },
+		{ "htm", "text/html" },
+		{ "html", "text/html" },
+		{ "jpg", "image/jpeg" },
+		{ "png", "image/png" },
+
+		{ "htm",   "text/html" },
+		{ "html",  "text/html" },
+		{ "txt",   "text/plain" },
+		{ "xml",   "text/xml" },
+		{ "dtd",   "text/dtd" },
+		{ "css",   "text/css" },
+
+		/* image mime */
+		{ "gif",   "image/gif" },
+		{ "jpe",   "image/jpeg" },
+		{ "jpg",   "image/jpeg" },
+		{ "jpeg",  "image/jpeg" },
+		{ "png",   "image/png" },
+
+		/* media mime */
+		{ "flv", "video/flv" },
+		{ "rmvb", "video/x-pn-realvideo" },
+		{ "mp4", "video/mp4" },
+		{ "3gp", "video/3gpp" },
+		{ "divx", "video/divx" },
+		{ "avi",   "video/avi" },
+		{ "asf",   "video/x-ms-asf" },
+		{ "m1a",   "audio/mpeg" },
+		{ "m2a",   "audio/mpeg" },
+		{ "m1v",   "video/mpeg" },
+		{ "m2v",   "video/mpeg" },
+		{ "mp2",   "audio/mpeg" },
+		{ "mp3",   "audio/mpeg" },
+		{ "mpa",   "audio/mpeg" },
+		{ "mpg",   "video/mpeg" },
+		{ "mpeg",  "video/mpeg" },
+		{ "mpe",   "video/mpeg" },
+		{ "mov",   "video/quicktime" },
+		{ "moov",  "video/quicktime" },
+		{ "oga",   "audio/ogg" },
+		{ "ogg",   "application/ogg" },
+		{ "ogm",   "application/ogg" },
+		{ "ogv",   "video/ogg" },
+		{ "ogx",   "application/ogg" },
+		{ "opus",  "audio/ogg; codecs=opus" },
+		{ "spx",   "audio/ogg" },
+		{ "wav",   "audio/wav" },
+		{ "wma",   "audio/x-ms-wma" },
+		{ "wmv",   "video/x-ms-wmv" },
+		{ "webm",  "video/webm" },
+
+		{ 0, 0 } // Marks end of list.
+	};
+
+	/// Convert a file extension into a MIME type.
+	inline std::string extension_to_type(const std::string& extension)
+	{
+		for (mapping* m = mappings; m->extension; ++m)
+		{
+			if (m->extension == extension)
+			{
+				return m->mime_type;
+			}
+		}
+
+		return "application/octet-stream";
+	}
+
+} // namespace mime_types
+
 inline std::size_t calc_content_length(const std::string& filename, const std::string& file_of_form,
 	const file_upload::form_args& args, boost::system::error_code& ec)
 {
@@ -29,6 +110,7 @@ inline std::size_t calc_content_length(const std::string& filename, const std::s
 	std::string short_filename = fs::path(filename).leaf().string();
 	std::size_t content_length = fs::file_size(filename, ec);
 	std::size_t boundary_size = boundary.size() + 4; // 4 是指 "--" + "\r\n"
+	std::size_t extension_size = mime_types::extension_to_type(fs::extension(filename)).size();
 
 	// 各属性选项长度.
 	file_upload::form_args::const_iterator i = args.begin();
@@ -42,7 +124,8 @@ inline std::size_t calc_content_length(const std::string& filename, const std::s
 	// 文件名选项长度.
 	content_length += boundary_size;
 	content_length += std::string("Content-Disposition: form-data; name=\"\"; filename=\"\"\r\n"
-		"Content-Type: application/x-msdownload\r\n\r\n").size();
+		"Content-Type: \r\n\r\n").size();
+	content_length += extension_size;
 	content_length += file_of_form.size();
 	content_length += short_filename.size();
 	content_length += 4;
@@ -136,8 +219,11 @@ public:
 
 			// 发送文件名.
 			*m_content_disposition = "Content-Disposition: form-data; name=\""
-				+ m_file_of_form + "\"" + "; filename=" + "\"" + m_filename + "\"\r\n"
-				+ "Content-Type: application/x-msdownload\r\n\r\n";
+				+ m_file_of_form + "\"" + "; filename=" + "\""
+				+ fs::path(m_filename).leaf().string() + "\"\r\n"
+				+ "Content-Type: "
+				+ mime_types::extension_to_type(fs::extension(m_filename))
+				+ "\r\n\r\n";
 			yield boost::asio::async_write(m_http_stream,
 				boost::asio::buffer(*m_content_disposition), *this);
 
@@ -246,7 +332,9 @@ void file_upload::open(const std::string& url, const std::string& filename,
 	}
 	content_disposition = "Content-Disposition: form-data; name=\""
 		+ file_of_form + "\"" + "; filename=" + "\"" + short_filename + "\"\r\n"
-		+ "Content-Type: application/x-msdownload\r\n\r\n";
+		+ "Content-Type: "
+		+ mime_types::extension_to_type(fs::extension(short_filename))
+		+ "\r\n\r\n";
 	boost::asio::write(m_http_stream, boost::asio::buffer(content_disposition), ec);
 	if (ec)
 	{
