@@ -67,7 +67,10 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 
+#if WIN32
 	std::locale::global(std::locale(""));
+#endif
+
 	INIT_LOGGER(".", "multi_download.log");
 
 	try {
