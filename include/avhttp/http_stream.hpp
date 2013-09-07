@@ -254,7 +254,7 @@ public:
 	// @begin example
 	//  try
 	//  {
-	//    std::size bytes_transferred = s.read_some(boost::asio::buffer(data, size));
+	//    std::size bytes_transferred = h.read_some(boost::asio::buffer(data, size));
 	//  } catch (boost::asio::system_error& e)
 	//  {
 	//    std::cerr << e.what() << std::endl;
@@ -274,7 +274,7 @@ public:
 	// read_some不能读取指定大小的数据.
 	// @begin example
 	//  boost::system::error_code ec;
-	//  std::size bytes_transferred = s.read_some(boost::asio::buffer(data, size), ec);
+	//  std::size bytes_transferred = h.read_some(boost::asio::buffer(data, size), ec);
 	//  ...
 	// @end example
 	// 关于示例中的boost::asio::buffer用法可以参考boost中的文档. 它可以接受一个
@@ -319,7 +319,7 @@ public:
 	// @begin example
 	//  try
 	//  {
-	//    std::size bytes_transferred = s.write_some(boost::asio::buffer(data, size));
+	//    std::size bytes_transferred = h.write_some(boost::asio::buffer(data, size));
 	//  }
 	//  catch (boost::asio::system_error& e)
 	//  {
@@ -340,7 +340,7 @@ public:
 	// write_some不保证发送完所有数据, 用户需要根据返回值来确定已经发送的数据大小.
 	// @begin example
 	//  boost::system::error_code ec;
-	//  std::size bytes_transferred = s.write_some(boost::asio::buffer(data, size), ec);
+	//  std::size bytes_transferred = h.write_some(boost::asio::buffer(data, size), ec);
 	//  ...
 	// @end example
 	// 关于示例中的boost::asio::buffer用法可以参考boost中的文档. 它可以接受一个
