@@ -22,7 +22,7 @@ namespace avhttp {
 
 #define FORMBOUNDARY "----AvHttpFormBoundaryamFja2FyYWlu"
 
-std::size_t calc_content_length(const std::string& filename, const std::string& file_of_form,
+inline std::size_t calc_content_length(const std::string& filename, const std::string& file_of_form,
 	const file_upload::form_args& args, boost::system::error_code& ec)
 {
 	std::string boundary = FORMBOUNDARY;
