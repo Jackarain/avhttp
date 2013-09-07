@@ -1584,6 +1584,19 @@ void http_stream::receive_header(boost::system::error_code& ec)
 		return;
 	}
 
+	// 判断是否需要修正location.
+	if (!m_location.empty())
+	{
+		std::size_t found = m_location.find("://");
+		if (found == std::string::npos)
+		{
+			// 查询location中是否有协议相关标识, 如果没有http或https前辍, 则添加.
+			std::string prefix = m_url.to_string(
+				url::protocol_component|url::host_component|url::port_component);
+			m_location = prefix + "/" + m_location;
+		}
+	}
+
 	// 解析是否启用了gz压缩.
 	std::string opt_str = m_response_opts.find(http_options::content_encoding);
 #ifdef AVHTTP_ENABLE_ZLIB
@@ -2019,21 +2032,25 @@ void http_stream::handle_header(Handler handler, int bytes_transferred, const bo
 		return;
 	}
 
+	// 判断是否需要修正location.
+	if (!m_location.empty())
+	{
+		std::size_t found = m_location.find("://");
+		if (found == std::string::npos)
+		{
+			// 查询location中是否有协议相关标识, 如果没有http或https前辍, 则添加.
+			std::string prefix = m_url.to_string(
+				url::protocol_component|url::host_component|url::port_component);
+			m_location = prefix + "/" + m_location;
+		}
+	}
+
 	// 判断是否需要跳转.
 	if (m_status_code == errc::moved_permanently || m_status_code == errc::found)
 	{
 		m_sock.close(ec);
 		if (++m_redirects <= m_max_redirects)
 		{
-			// 查询location中是否有协议相关标识, 如果没有http或https前辍, 则添加.
-			std::size_t found = m_location.find("://");
-			if (found == std::string::npos)
-			{
-				// 添加头.
-				std::string prefix = m_url.to_string(
-					url::protocol_component|url::host_component|url::port_component);
-				m_location = prefix + "/" + m_location;
-			}
 			url new_url = url::from_string(m_location, ec);
 			if (ec == boost::system::errc::invalid_argument)
 			{
