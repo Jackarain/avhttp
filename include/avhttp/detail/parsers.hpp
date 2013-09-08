@@ -509,6 +509,8 @@ inline time_t ptime_to_time_t(const boost::posix_time::ptime& pt)
 	return std::mktime(&tm);
 }
 
+namespace {
+
 class gmt_time_input_face : public boost::posix_time::time_input_facet
 {
 	template<typename charT>
@@ -608,6 +610,8 @@ public:
 		m_parser = gmt_format_date_parser(fmt);
 	}
 };
+
+} // namespace
 
 // 解析http-date字符串.
 // 注: 根据RFC2616规定HTTP-date 格式是 rfc1123-date | rfc850-date | asctime-date之一.
