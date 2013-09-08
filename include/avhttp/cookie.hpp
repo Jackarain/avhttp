@@ -29,6 +29,9 @@
 
 namespace avhttp {
 
+class cookies;
+inline cookies operator+(const cookies& lhs, const cookies& rhs);
+
 // 用于管理cookie的实现.
 // 请求前设置cookie, 示例如下:.
 // @begin example
@@ -298,8 +301,14 @@ public:
 		std::string cookie;
 		if (m_cookies.size() != 0)
 		{
-			cookies::const_iterator i = m_cookies.begin();
-			for (; i != m_cookies.end(); i++)
+			cookies tmp;
+
+			// 通过+运算自动去掉重复的cookie项.
+			tmp = tmp + *this;
+
+			// 构造字符串.
+			cookies::const_iterator i = tmp.begin();
+			for (; i != tmp.end(); i++)
 			{
 				// 判断是否为空.
 				if (i->value.empty())
@@ -623,11 +632,10 @@ inline bool cookie_megerable(const cookies::http_cookie& element, const cookies&
 {
 	// 查看是否 element 符合拷贝进 container 的资格.
 	// 第一，他应该不是空的.
-
 	cookies::const_iterator it = container.find(element.name);
 
 	// 首先，它不存在, 那就直接更新.
-	if (container.find(element)==container.end())
+	if (container.find(element) == container.end())
 	{
 		return true;
 	}
@@ -652,7 +660,7 @@ inline bool cookie_megerable(const cookies::http_cookie& element, const cookies&
 
 inline bool cookie_not_megerable(const cookies::http_cookie& element, const cookies& container)
 {
-	return ! cookie_megerable(element, container);
+	return !cookie_megerable(element, container);
 }
 
 } // namespace detail
@@ -663,9 +671,9 @@ inline cookies operator+(const cookies& lhs, const cookies& rhs)
 	cookies tmp, ret;
 
 	// 首先一股脑的拷贝进去.
-	tmp.reserve(lhs.size()+rhs.size());
+	tmp.reserve(lhs.size() + rhs.size());
 	std::copy(lhs.begin(), lhs.end(), tmp.begin());
-	std::copy(rhs.begin(), rhs.end(), tmp.begin()+tmp.size());
+	std::copy(rhs.begin(), rhs.end(), tmp.begin() + tmp.size());
 
 	// 排序！ 我是多么希望能使用 c++11 的 lambda 表达式来简化这里的代码!
 	std::sort(tmp.begin(), tmp.end(),
