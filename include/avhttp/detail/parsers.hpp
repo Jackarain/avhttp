@@ -509,6 +509,106 @@ inline time_t ptime_to_time_t(const boost::posix_time::ptime& pt)
 	return std::mktime(&tm);
 }
 
+class gmt_time_input_face : public boost::posix_time::time_input_facet
+{
+	template<typename charT>
+	inline static std::vector<std::basic_string<charT> >
+		gather_month_strings(const std::locale& locale, bool short_strings=true)
+	{
+		typedef std::basic_string<charT> string_type;
+		typedef std::vector<string_type> collection_type;
+		typedef std::basic_ostringstream<charT> ostream_type;
+		typedef std::ostreambuf_iterator<charT> ostream_iter_type;
+		typedef std::basic_ostringstream<charT> stringstream_type;
+		typedef std::time_put<charT>           time_put_facet_type;
+		charT short_fmt[3] = { '%', 'b' };
+		charT long_fmt[3]  = { '%', 'B' };
+		collection_type months;
+		string_type outfmt(short_fmt);
+		if (!short_strings) {
+			outfmt = long_fmt;
+		}
+		{
+			//grab the needed strings by using the locale to
+			//output each month
+			const charT* p_outfmt = outfmt.c_str(), *p_outfmt_end = p_outfmt + outfmt.size();
+			tm tm_value;
+			memset(&tm_value, 0, sizeof(tm_value));
+			for (int m=0; m < 12; m++) {
+				tm_value.tm_mon = m;
+				stringstream_type ss;
+				ss.imbue(locale);
+				ostream_iter_type oitr(ss);
+				std::use_facet<time_put_facet_type>(locale).put(oitr, ss, ss.fill(),
+					&tm_value,
+					p_outfmt,
+					p_outfmt_end);
+				months.push_back(ss.str());
+			}
+		}
+		return months;
+	}
+
+	template<typename charT>
+	inline static std::vector<std::basic_string<charT> >
+		gather_weekday_strings(const std::locale& locale, bool short_strings=true)
+	{
+		typedef std::basic_string<charT> string_type;
+		typedef std::vector<string_type> collection_type;
+		typedef std::basic_ostringstream<charT> ostream_type;
+		typedef std::ostreambuf_iterator<charT> ostream_iter_type;
+		typedef std::basic_ostringstream<charT> stringstream_type;
+		typedef std::time_put<charT>           time_put_facet_type;
+		charT short_fmt[3] = { '%', 'a' };
+		charT long_fmt[3]  = { '%', 'A' };
+		collection_type weekdays;
+		string_type outfmt(short_fmt);
+		if (!short_strings) {
+			outfmt = long_fmt;
+		}
+		{
+			//grab the needed strings by using the locale to
+			//output each month / weekday
+			const charT* p_outfmt = outfmt.c_str(), *p_outfmt_end = p_outfmt + outfmt.size();
+			tm tm_value;
+			memset(&tm_value, 0, sizeof(tm_value));
+			for (int i=0; i < 7; i++) {
+				tm_value.tm_wday = i;
+				stringstream_type ss;
+				ss.imbue(locale);
+				ostream_iter_type oitr(ss);
+				std::use_facet<time_put_facet_type>(locale).put(oitr, ss, ss.fill(),
+					&tm_value,
+					p_outfmt,
+					p_outfmt_end);
+
+				weekdays.push_back(ss.str());
+			}
+		}
+		return weekdays;
+	}
+
+	class gmt_format_date_parser : public format_date_parser_type
+	{
+	public:
+		gmt_format_date_parser(std::string fmt)
+			: format_date_parser(fmt, std::locale::classic())
+		{
+			short_month_names(gmt_time_input_face::gather_month_strings<char>(std::locale::classic()));
+			long_month_names(gmt_time_input_face::gather_month_strings<char>(std::locale::classic(), false));
+			short_weekday_names(gmt_time_input_face::gather_weekday_strings<char>(std::locale::classic()));
+			long_weekday_names(gmt_time_input_face::gather_weekday_strings<char>(std::locale::classic(), false));
+		}
+	};
+
+public:
+	gmt_time_input_face(std::string fmt)
+		: boost::posix_time::time_input_facet(fmt)
+	{
+		m_parser = gmt_format_date_parser(fmt);
+	}
+};
+
 // 解析http-date字符串.
 // 注: 根据RFC2616规定HTTP-date 格式是 rfc1123-date | rfc850-date | asctime-date之一.
 // 参数s 指定了需要解析的字符串.
@@ -517,8 +617,7 @@ inline time_t ptime_to_time_t(const boost::posix_time::ptime& pt)
 inline bool parse_http_date(const std::string& s, boost::posix_time::ptime& t)
 {
 	std::stringstream ss(s);
-	boost::posix_time::time_input_facet* rfc1123_date =
-		new boost::posix_time::time_input_facet("%a, %d %b %Y %H:%M:%S GMT");
+	gmt_time_input_face* rfc1123_date = new gmt_time_input_face("%a, %d %b %Y %H:%M:%S GMT");
 	ss.imbue(std::locale(ss.getloc(), rfc1123_date));
 	ss >> t;
 	if (t != boost::posix_time::not_a_date_time)
@@ -527,8 +626,8 @@ inline bool parse_http_date(const std::string& s, boost::posix_time::ptime& t)
 	}
 	ss.clear();
 	ss.str(s);
-	boost::posix_time::time_input_facet* rfc850_date =
-		new boost::posix_time::time_input_facet("%A, %d-%b-%y %H:%M:%S GMT");
+	gmt_time_input_face* rfc850_date =
+		new gmt_time_input_face("%A, %d-%b-%y %H:%M:%S GMT");
 	ss.imbue(std::locale(ss.getloc(), rfc850_date));
 	ss >> t;
 	if (t != boost::posix_time::not_a_date_time)
@@ -537,8 +636,8 @@ inline bool parse_http_date(const std::string& s, boost::posix_time::ptime& t)
 	}
 	ss.clear();
 	ss.str(s);
-	boost::posix_time::time_input_facet* rfc850_date_workarround1 =
-		new boost::posix_time::time_input_facet("%A, %d-%b-%Y %H:%M:%S GMT");
+	gmt_time_input_face* rfc850_date_workarround1 =
+		new gmt_time_input_face("%A, %d-%b-%Y %H:%M:%S GMT");
 	ss.imbue(std::locale(ss.getloc(), rfc850_date_workarround1));
 	ss >> t;
 	if (t != boost::posix_time::not_a_date_time)
@@ -547,8 +646,8 @@ inline bool parse_http_date(const std::string& s, boost::posix_time::ptime& t)
 	}
 	ss.clear();
 	ss.str(s);
-	boost::posix_time::time_input_facet* rfc850_date_workarround2 =
-		new boost::posix_time::time_input_facet("%a, %d-%b-%y %H:%M:%S GMT");
+	gmt_time_input_face* rfc850_date_workarround2 =
+		new gmt_time_input_face("%a, %d-%b-%y %H:%M:%S GMT");
 	ss.imbue(std::locale(ss.getloc(), rfc850_date_workarround2));
 	ss >> t;
 	if (t != boost::posix_time::not_a_date_time)
@@ -557,8 +656,8 @@ inline bool parse_http_date(const std::string& s, boost::posix_time::ptime& t)
 	}
 	ss.clear();
 	ss.str(s);
-	boost::posix_time::time_input_facet* asctime_date =
-		new boost::posix_time::time_input_facet("%a %b %d %H:%M:%S %Y");
+	gmt_time_input_face* asctime_date =
+		new gmt_time_input_face("%a %b %d %H:%M:%S %Y");
 	ss.imbue(std::locale(ss.getloc(), asctime_date));
 	ss >> t;
 	if (t != boost::posix_time::not_a_date_time)
