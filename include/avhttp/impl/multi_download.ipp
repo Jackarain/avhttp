@@ -1791,7 +1791,7 @@ void multi_download::update_meta()
 	std::vector<char> buffer;
 	bencode(back_inserter(buffer), e);
 
-	m_file_meta.write(&buffer[0], buffer.size());
+	m_file_meta.write(0, &buffer[0], buffer.size());
 }
 
 void multi_download::change_outstranding(bool addref/* = true*/)
