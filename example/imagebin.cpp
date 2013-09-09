@@ -14,7 +14,7 @@ public:
 		, m_file_upload(io)
 		, m_filename(filename)
 	{
-		avhttp::file_upload::form_args agrs;
+		avhttp::file_upload::form_args args;
 		boost::system::error_code ec;
 		avhttp::request_opts opts;
 
@@ -30,16 +30,16 @@ public:
 		avhttp::http_stream& http = m_file_upload.get_http_stream();
 		http.max_redirects(0);
 
-		agrs["nickname"] = nickname;
-		agrs["remember_nickname"] = "Y";
-		agrs["title"] = boost::filesystem::path(m_filename).leaf().string();
-		agrs["description"] = "Upload by avhttp";
-		agrs["disclaimer_agree"] = "Y";
-		agrs["Submit"] = "Submit";
-		agrs["mode"] = "add";
+		args["nickname"] = nickname;
+		args["remember_nickname"] = "Y";
+		args["title"] = boost::filesystem::path(m_filename).leaf().string();
+		args["description"] = "Upload by avhttp";
+		args["disclaimer_agree"] = "Y";
+		args["Submit"] = "Submit";
+		args["mode"] = "add";
 
 		m_file_upload.async_open("http://imagebin.org/index.php",
-			m_filename, "image", agrs,
+			m_filename, "image", args,
 			boost::bind(&image_bin::open_handle, this, boost::asio::placeholders::error));
 	}
 
