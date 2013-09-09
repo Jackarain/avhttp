@@ -19,6 +19,8 @@
 #include <boost/noncopyable.hpp>
 #include "avhttp/http_stream.hpp"
 
+BOOST_STATIC_ASSERT_MSG(BOOST_VERSION >= 105400, "You must use boost-1.54 or later!!!");
+
 namespace avhttp {
 
 // WebForm文件上传组件.
