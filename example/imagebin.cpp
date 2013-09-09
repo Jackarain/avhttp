@@ -48,6 +48,11 @@ public:
 		if (!ec)
 		{
 			m_file.open(m_filename, ec);
+			if (ec)
+			{
+				std::cerr << "Error: " << ec.message() << std::endl;
+				return;
+			}
 			std::streamsize readed = m_file.read(m_buffer.data(), 1024);
 			boost::asio::async_write(m_file_upload, boost::asio::buffer(m_buffer, readed),
 				boost::bind(&image_bin::write_handle, this,
