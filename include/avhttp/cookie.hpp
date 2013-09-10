@@ -19,6 +19,7 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <iterator>
 #include <boost/date_time.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/bind.hpp>
@@ -85,14 +86,15 @@ public:
 		// 用于 std::sort 算法的比较函数对象.
 		// 基于 过期时间进行排序.
 		template<typename Compare>
-		struct compare_by_expires_t : std::binary_function<cookie_t,cookie_t,bool>
+		struct compare_by_expires_t
+			: std::binary_function<cookie_t, cookie_t, bool>
 		{
 			compare_by_expires_t(const Compare& comp)
 			  : m_comp(comp)
 			{
 			}
 
-			bool operator()(const cookie_t & lhs, const cookie_t & rhs)
+			bool operator()(const cookie_t& lhs, const cookie_t& rhs)
 			{
 				return m_comp(lhs.expires, rhs.expires);
 			}
@@ -102,7 +104,8 @@ public:
 		};
 
 		template<typename Compare>
-		static compare_by_expires_t<Compare> compare_by_expires(const Compare & comp)
+		static compare_by_expires_t<Compare>
+		compare_by_expires(const Compare & comp)
 		{
 			return compare_by_expires_t<Compare>(comp);
 		}
@@ -121,12 +124,17 @@ public:
 
 	typedef std::vector<http_cookie>::iterator iterator;
 	typedef std::vector<http_cookie>::const_iterator const_iterator;
+	typedef std::vector<http_cookie>::reference reference;
+	typedef std::vector<http_cookie>::const_reference const_reference;
+	typedef std::vector<http_cookie>::value_type value_type;
 
 	iterator begin() { return m_cookies.begin(); }
 	iterator end() { return m_cookies.end(); }
 
 	const_iterator begin() const { return m_cookies.begin(); }
 	const_iterator end() const { return m_cookies.end(); }
+
+	void push_back(const value_type& val) { m_cookies.push_back(val); }
 
 	// 保存cookies到指定的文件, 以Netscape HTTP Cookie File格式保存, 兼容curl.
 	// @param filename指定保存的文件名.
@@ -442,7 +450,7 @@ public:
 	// 保留n个cookie空间.
 	void reserve(std::size_t n)
 	{
-		return m_cookies.reserve(n);
+		m_cookies.reserve(n);
 	}
 
 	// 设置默认domain.
@@ -651,7 +659,7 @@ inline bool cookie_megerable(const cookies::http_cookie& element, const cookies&
 		return true;
 
 	// 要是原来的时间要比你新，那还是不能拷贝.
-	if (element.expires < it->expires)
+	if (element.expires <= it->expires)
 		return false;
 
 	// 好了，基本上不能拷贝的都判定好了，接下来就是能拷贝的了.
@@ -671,22 +679,18 @@ inline cookies operator+(const cookies& lhs, const cookies& rhs)
 	cookies tmp, ret;
 
 	// 首先一股脑的拷贝进去.
-	tmp.reserve(lhs.size() + rhs.size());
-	std::copy(lhs.begin(), lhs.end(), tmp.begin());
-	std::copy(rhs.begin(), rhs.end(), tmp.begin() + tmp.size());
+	std::copy(lhs.begin(), lhs.end(), std::back_inserter(tmp));
+	std::copy(rhs.begin(), rhs.end(), std::back_inserter(tmp));
 
 	// 排序！ 我是多么希望能使用 c++11 的 lambda 表达式来简化这里的代码!
 	std::sort(tmp.begin(), tmp.end(),
 		cookies::http_cookie::compare_by_expires(std::greater<boost::posix_time::ptime>()));
 
-	// 然后拷贝到新的容器里，但是判断一下是否已经存在了，如果已经存在，嘻嘻，不拷贝.
-	// 以为已经排序，所以如果已经存在，那么时间上更老的后续 cookie 不应该拷贝.
-	ret.reserve(tmp.size());
-
 	// NOTE: 本来是使用 std::copy_if 的，这样就可以使用 cookie_megerable 作为比较
 	// 但是 c++98 里没有 std::copy_if, 因此使用了 remove_copy_if ,  这样就要把
 	// cookie_megerable 含义反过来，故而有此函数.
-	std::remove_copy_if(tmp.begin(), tmp.end(), ret.begin(), boost::bind(detail::cookie_not_megerable, _1, ret));
+	std::remove_copy_if(tmp.begin(), tmp.end(), std::back_inserter(ret),
+		boost::bind(detail::cookie_not_megerable, _1, boost::ref(ret)));
 	// 返回完成结果.
 	return ret;
 }
