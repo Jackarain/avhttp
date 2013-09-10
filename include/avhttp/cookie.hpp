@@ -510,9 +510,9 @@ private:
 				if (c == ';')
 				{
 					state = cookie_name_start;
-					if (name == "secure")
+					if (boost::to_lower_copy(name) == "secure")
 						cookie_tmp.secure = true;
-					else if (name == "httponly")
+					else if (boost::to_lower_copy(name) == "httponly")
 						cookie_tmp.httponly = true;
 					else
 						state = cookie_bad;
@@ -571,9 +571,9 @@ private:
 		}
 		if (state == cookie_name && !name.empty())
 		{
-			if (name == "secure")
+			if (boost::to_lower_copy(name) == "secure")
 				cookie_tmp.secure = true;
-			else if (name == "httponly")
+			else if (boost::to_lower_copy(name) == "httponly")
 				cookie_tmp.httponly = true;
 		}
 		else if (state == cookie_value && !value.empty())
