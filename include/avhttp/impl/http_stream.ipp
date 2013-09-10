@@ -3846,6 +3846,11 @@ std::streambuf::int_type http_stream::underflow()
 			{
 				return traits_type::eof();
 			}
+			if (!m_last_error)
+			{
+				return traits_type::eof();
+			}
+
 			// 读取到0字节, 抛出错误异常.
 			boost::throw_exception(boost::system::system_error(m_last_error));
 		}
