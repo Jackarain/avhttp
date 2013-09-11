@@ -219,10 +219,10 @@ public:
 private:
 
 	template <typename Handler>
-	class open_coro;
+	struct open_coro;
 
 	template <typename Handler>
-	class tail_coro;
+	struct tail_coro;
 
 	///辅助函数，用于创建协程并进行 Templet type deduction.
 	template <typename Handler>

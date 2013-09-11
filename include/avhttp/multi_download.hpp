@@ -47,18 +47,18 @@ class multi_download : public boost::noncopyable
 	typedef boost::shared_ptr<http_stream> http_stream_ptr;
 
 	// 定义http_stream_obj.
-	class http_stream_object;
+	struct http_stream_object;
 
 	// 重定义http_object_ptr指针.
 	typedef boost::shared_ptr<http_stream_object> http_object_ptr;
 
 	// 用于计算下载速率.
-	class byte_rate;
+	struct byte_rate;
 	typedef boost::shared_ptr<byte_rate> byte_rate_ptr;
 
 	// 用于帮助multi_download自动计算outstranding.
-	class auto_outstanding;
-	friend class auto_outstanding;
+	struct auto_outstanding;
+	friend struct auto_outstanding;
 
 public:
 

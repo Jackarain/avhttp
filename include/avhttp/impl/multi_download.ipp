@@ -20,9 +20,8 @@
 
 namespace avhttp {
 
-class multi_download::http_stream_object
+struct multi_download::http_stream_object
 {
-public:
 	http_stream_object()
 		: request_range(0, 0)
 		, bytes_transferred(0)
@@ -64,9 +63,8 @@ public:
 	bool direct_reconnect;
 };
 
-class multi_download::byte_rate
+struct multi_download::byte_rate
 {
-public:
 	byte_rate()
 		: seconds(5)
 		, index(0)
@@ -92,9 +90,8 @@ public:
 	int current_byte_rate;
 };
 
-class multi_download::auto_outstanding
+struct multi_download::auto_outstanding
 {
-public:
 	auto_outstanding(multi_download &o)
 		: obj(o)
 	{

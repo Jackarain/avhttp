@@ -148,9 +148,8 @@ file_upload::~file_upload()
 {}
 
 template <typename Handler>
-class file_upload::open_coro : boost::asio::coroutine
+struct file_upload::open_coro : boost::asio::coroutine
 {
-public:
 	open_coro(http_stream& http, const std::string& url, const std::string& filename,
 		const std::string& file_of_form, const form_args& args, std::string& boundary, Handler handler)
 		: m_handler(handler)
@@ -238,7 +237,7 @@ public:
 		}
 	}
 
-private:
+// private:
 	Handler m_handler;
 	http_stream& m_http_stream;
 	std::string m_filename;
@@ -401,9 +400,8 @@ void file_upload::write_tail()
 }
 
 template <typename Handler>
-class file_upload::tail_coro : boost::asio::coroutine
+struct file_upload::tail_coro : boost::asio::coroutine
 {
-public:
 	tail_coro(std::string& boundary, http_stream& http, Handler handler)
 		: m_boundary(boundary)
 		, m_http_stream(http)
@@ -429,7 +427,7 @@ public:
 		}
 	}
 
-private:
+// private:
 	Handler m_handler;
 	std::string& m_boundary;
 	http_stream& m_http_stream;
