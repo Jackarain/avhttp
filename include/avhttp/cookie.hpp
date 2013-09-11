@@ -303,8 +303,12 @@ public:
 	}
 
 	// 获取HTTP请求头需要的 cookie 行
-	// @is_https 是否为 https 连接.
-	std::string get_cookie_line(bool is_https = false) const
+	// @https 是否为 https 连接.
+	// @domain 指定的domain, 如果为空串, 则默认添加所有domain的cookie.
+	// @path 指定的path, 如果为空串, 则添加所有path的cookie.
+	// 返回http 请求header中可用的cookie格式字符串.
+	std::string get_cookie_line(bool https = false,
+		std::string domain = "", std::string path = "") const
 	{
 		std::string cookie;
 		if (m_cookies.size() != 0)
@@ -322,8 +326,45 @@ public:
 				if (i->value.empty())
 					continue;
 				// 判断secure.
-				if (i->secure && !is_https)
+				if (i->secure && !https)
 					continue;
+				// 路径非空, 判断路径是否匹配.
+				boost::trim(path);
+				if (!path.empty())
+				{
+					std::string cookie_path = i->path;
+					boost::trim(cookie_path);
+					boost::filesystem::path p1(path);
+					boost::filesystem::path p2(cookie_path);
+					if (p1 != p2)
+						continue;
+				}
+				// domain非空, 判断domain是否匹配.
+				boost::trim(domain);
+				if (!domain.empty())
+				{
+					std::string cookie_domain = i->domain;
+					boost::trim(cookie_domain);
+					if (!cookie_domain.empty())
+					{
+						// 第一个字符为'.', 表示匹配所有以cookie_domain结尾的domain.
+						if (cookie_domain.at(0) == '.')
+						{
+							// 去掉'.'.
+							boost::trim_left_if(cookie_domain, boost::is_any_of("."));
+							// 然后再判断是否是domain的结 尾, 如果是
+							// 则表示ok, 否则匹配不通过.
+							if (!boost::iends_with(domain, cookie_domain))
+							{
+								continue;
+							}
+						}
+						else if (cookie_domain != domain) // 必须全部匹配.
+						{
+							continue;
+						}
+					}
+				}
 				// 判断是否过期, 小于当前时间表示过期, 不添加到cookie.
 				if ( !i->expires.is_not_a_date_time()
 					&& i->expires < boost::posix_time::second_clock::local_time())
