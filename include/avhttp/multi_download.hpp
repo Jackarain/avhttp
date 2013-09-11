@@ -313,6 +313,8 @@ private:
 
 } // avhttp
 
-#include "avhttp/impl/multi_download.ipp"
+#if defined(AVHTTP_HEADER_ONLY)
+#	include "avhttp/impl/multi_download.ipp"
+#endif
 
 #endif // AVHTTP_MULTI_DOWNLOAD_HPP

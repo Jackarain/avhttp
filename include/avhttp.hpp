@@ -35,15 +35,24 @@ namespace
 #include <boost/function.hpp>
 #include <boost/noncopyable.hpp>
 
-// 仅限于header only, 如果avhttp支持单独编译时或编译成动态库, AVHTTP_DECL应该
-// 相应支持其它定义.
-#ifndef AVHTTP_DECL
-# ifndef AVHTTP_SEPARATE_COMPILATION
-#  define AVHTTP_DECL inline
+
+// Default to a header-only implementation.
+#if !defined(AVHTTP_HEADER_ONLY)
+#	if !defined(AVHTTP_SEPARATE_COMPILATION)
+#		define AVHTTP_HEADER_ONLY 1
+#	endif // !defined(AVHTTP_SEPARATE_COMPILATION)
+#endif // !defined(AVHTTP_HEADER_ONLY)
+
+#if defined(AVHTTP_HEADER_ONLY)
+#	define AVHTTP_DECL inline
 # else
-#  define AVHTTP_DECL
-# endif
-#endif
+#	define AVHTTP_DECL
+#endif // defined(AVHTTP_HEADER_ONLY)
+
+// If AVHTTP_DECL isn't defined yet define it now.
+#if !defined(AVHTTP_DECL)
+# define AVHTTP_DECL
+#endif // !defined(AVHTTP_DECL)
 
 #include "avhttp/version.hpp"
 #include "avhttp/logging.hpp"

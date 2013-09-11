@@ -140,6 +140,8 @@ private:
 
 } // namespace avhttp
 
-#include "avhttp/impl/file.ipp"
+#if defined(AVHTTP_HEADER_ONLY)
+#	include "avhttp/impl/file.ipp"
+#endif
 
 #endif // AVHTTP_FILE_HPP

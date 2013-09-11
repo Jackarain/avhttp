@@ -830,6 +830,8 @@ private:
 
 }
 
-#include "avhttp/impl/http_stream.ipp"
+#if defined(AVHTTP_HEADER_ONLY)
+#	include "avhttp/impl/http_stream.ipp"
+#endif
 
 #endif // AVHTTP_HTTP_STREAM_HPP

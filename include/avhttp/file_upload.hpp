@@ -253,6 +253,8 @@ private:
 
 } // namespace avhttp
 
-#include "avhttp/impl/file_upload.ipp"
+#if defined(AVHTTP_HEADER_ONLY)
+#	include "avhttp/impl/file_upload.ipp"
+#endif
 
 #endif // AVHTTP_UPLOAD_HPP
