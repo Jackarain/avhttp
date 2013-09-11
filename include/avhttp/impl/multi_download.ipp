@@ -430,11 +430,11 @@ void multi_download::start(const std::string& u, const settings& s, boost::syste
 				// 开始异步打开.
 				h.async_open(m_final_url,
 					boost::bind(&multi_download::handle_open,
-					this,
-					0, obj,
-					boost::asio::placeholders::error
+						this,
+						0, obj,
+						boost::asio::placeholders::error
 					)
-					);
+				);
 			}
 			else
 			{
@@ -443,12 +443,12 @@ void multi_download::start(const std::string& u, const settings& s, boost::syste
 				// 传入指针obj, 以确保多线程安全.
 				h.async_read_some(boost::asio::buffer(obj->buffer, available_bytes),
 					boost::bind(&multi_download::handle_read,
-					this,
-					0, obj,
-					boost::asio::placeholders::bytes_transferred,
-					boost::asio::placeholders::error
+						this,
+						0, obj,
+						boost::asio::placeholders::bytes_transferred,
+						boost::asio::placeholders::error
 					)
-					);
+				);
 			}
 		}
 		else
@@ -465,12 +465,12 @@ void multi_download::start(const std::string& u, const settings& s, boost::syste
 		// 传入指针obj, 以确保多线程安全.
 		h.async_read_some(boost::asio::buffer(obj->buffer, available_bytes),
 			boost::bind(&multi_download::handle_read,
-			this,
-			0, obj,
-			boost::asio::placeholders::bytes_transferred,
-			boost::asio::placeholders::error
+				this,
+				0, obj,
+				boost::asio::placeholders::bytes_transferred,
+				boost::asio::placeholders::error
 			)
-			);
+		);
 	}
 
 	// 如果支持多点下载, 按设置创建其它http_stream.
@@ -526,11 +526,11 @@ void multi_download::start(const std::string& u, const settings& s, boost::syste
 			// 开始异步打开, 传入指针http_object_ptr, 以确保多线程安全.
 			p->stream->async_open(m_final_url,
 				boost::bind(&multi_download::handle_open,
-				this,
-				i, p,
-				boost::asio::placeholders::error
+					this,
+					i, p,
+					boost::asio::placeholders::error
 				)
-				);
+			);
 		}
 	}
 
@@ -595,11 +595,11 @@ void multi_download::async_start(const std::string& u, const settings& s, Handle
 	typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
 	h.async_open(m_final_url,
 		boost::bind(&multi_download::handle_start<HandlerWrapper>,
-		this,
-		HandlerWrapper(handler), obj,
-		boost::asio::placeholders::error
+			this,
+			HandlerWrapper(handler), obj,
+			boost::asio::placeholders::error
 		)
-		);
+	);
 
 	return;
 }
@@ -888,12 +888,12 @@ void multi_download::handle_open(const int index,
 	// 传入指针http_object_ptr, 以确保多线程安全.
 	stream_ptr->async_read_some(boost::asio::buffer(object.buffer, available_bytes),
 		boost::bind(&multi_download::handle_read,
-		this,
-		index, object_ptr,
-		boost::asio::placeholders::bytes_transferred,
-		boost::asio::placeholders::error
+			this,
+			index, object_ptr,
+			boost::asio::placeholders::bytes_transferred,
+			boost::asio::placeholders::error
 		)
-		);
+	);
 }
 
 void multi_download::handle_read(const int index, 
@@ -1000,21 +1000,21 @@ void multi_download::handle_read(const int index,
 		{
 			stream.async_open(m_final_url,
 				boost::bind(&multi_download::handle_open,
-				this,
-				index, object_ptr,
-				boost::asio::placeholders::error
+					this,
+					index, object_ptr,
+					boost::asio::placeholders::error
 				)
-				);
+			);
 		}
 		else
 		{
 			stream.async_request(req_opt,
 				boost::bind(&multi_download::handle_request,
-				this,
-				index, object_ptr,
-				boost::asio::placeholders::error
+					this,
+					index, object_ptr,
+					boost::asio::placeholders::error
 				)
-				);
+			);
 		}
 	}
 	else
@@ -1049,12 +1049,12 @@ void multi_download::handle_read(const int index,
 		// 继续读取数据, 传入指针http_object_ptr, 以确保多线程安全.
 		object.stream->async_read_some(boost::asio::buffer(object.buffer, available_bytes),
 			boost::bind(&multi_download::handle_read,
-			this,
-			index, object_ptr,
-			boost::asio::placeholders::bytes_transferred,
-			boost::asio::placeholders::error
+				this,
+				index, object_ptr,
+				boost::asio::placeholders::bytes_transferred,
+				boost::asio::placeholders::error
 			)
-			);
+		);
 	}
 }
 
@@ -1101,12 +1101,12 @@ void multi_download::handle_request(const int index,
 	// 发起数据读取请求, 传入指针http_object_ptr, 以确保多线程安全.
 	object_ptr->stream->async_read_some(boost::asio::buffer(object.buffer, available_bytes),
 		boost::bind(&multi_download::handle_read,
-		this,
-		index, object_ptr,
-		boost::asio::placeholders::bytes_transferred,
-		boost::asio::placeholders::error
+			this,
+			index, object_ptr,
+			boost::asio::placeholders::bytes_transferred,
+			boost::asio::placeholders::error
 		)
-		);
+	);
 }
 
 template <typename Handler>
@@ -1356,11 +1356,11 @@ void multi_download::handle_start(Handler handler, http_object_ptr object_ptr, c
 				// 开始异步打开.
 				h.async_open(m_final_url,
 					boost::bind(&multi_download::handle_open,
-					this,
-					0, object_ptr,
-					boost::asio::placeholders::error
+						this,
+						0, object_ptr,
+						boost::asio::placeholders::error
 					)
-					);
+				);
 			}
 			else
 			{
@@ -1369,12 +1369,12 @@ void multi_download::handle_start(Handler handler, http_object_ptr object_ptr, c
 				// 传入指针obj, 以确保多线程安全.
 				h.async_read_some(boost::asio::buffer(object_ptr->buffer, available_bytes),
 					boost::bind(&multi_download::handle_read,
-					this,
-					0, object_ptr,
-					boost::asio::placeholders::bytes_transferred,
-					boost::asio::placeholders::error
+						this,
+						0, object_ptr,
+						boost::asio::placeholders::bytes_transferred,
+						boost::asio::placeholders::error
 					)
-					);
+				);
 			}
 		}
 		else
@@ -1391,12 +1391,12 @@ void multi_download::handle_start(Handler handler, http_object_ptr object_ptr, c
 		// 传入指针obj, 以确保多线程安全.
 		h.async_read_some(boost::asio::buffer(object_ptr->buffer, available_bytes),
 			boost::bind(&multi_download::handle_read,
-			this,
-			0, object_ptr,
-			boost::asio::placeholders::bytes_transferred,
-			boost::asio::placeholders::error
+				this,
+				0, object_ptr,
+				boost::asio::placeholders::bytes_transferred,
+				boost::asio::placeholders::error
 			)
-			);
+		);
 	}
 
 	// 如果支持多点下载, 按设置创建其它http_stream.
@@ -1452,11 +1452,11 @@ void multi_download::handle_start(Handler handler, http_object_ptr object_ptr, c
 			// 开始异步打开, 传入指针http_object_ptr, 以确保多线程安全.
 			p->stream->async_open(m_final_url,
 				boost::bind(&multi_download::handle_open,
-				this,
-				i, p,
-				boost::asio::placeholders::error
+					this,
+					i, p,
+					boost::asio::placeholders::error
 				)
-				);
+			);
 		}
 	}
 
@@ -1612,11 +1612,11 @@ void multi_download::on_tick(const boost::system::error_code& e)
 			// 重新发起异步请求, 传入object_item_ptr指针, 以确保线程安全.
 			stream.async_open(m_final_url,
 				boost::bind(&multi_download::handle_open,
-				this,
-				i, object_ptr,
-				boost::asio::placeholders::error
+					this,
+					i, object_ptr,
+					boost::asio::placeholders::error
 				)
-				);
+			);
 		}
 	}
 
