@@ -1,6 +1,6 @@
 //
-// file.ipp
-// ~~~~~~~~
+// impl/file.ipp
+// ~~~~~~~~~~~~~
 //
 // Copyright (c) 2013 Jack (jack dot wgm at gmail dot com)
 //

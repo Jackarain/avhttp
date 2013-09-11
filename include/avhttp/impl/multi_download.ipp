@@ -1,6 +1,6 @@
 //
-// multi_download.ipp
-// ~~~~~~~~~~~~~~~~~~
+// impl/multi_download.ipp
+// ~~~~~~~~~~~~~~~~~~~~~~~
 //
 // Copyright (c) 2013 Jack (jack dot wgm at gmail dot com)
 //

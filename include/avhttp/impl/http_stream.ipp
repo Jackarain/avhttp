@@ -1,6 +1,6 @@
 //
-// http_stream.ipp
-// ~~~~~~~~~~~~~~~
+// impl/http_stream.ipp
+// ~~~~~~~~~~~~~~~~~~~~
 //
 // Copyright (c) 2013 Jack (jack dot wgm at gmail dot com)
 //
