@@ -171,7 +171,8 @@ std::string encode_base64(const Source& s)
 		>
 	> base64_text;
 	std::stringstream os;
-	std::copy(base64_text(s.begin()), base64_text(s.end()), ostream_iterator<char>(os));
+	std::copy(base64_text(s.begin()), base64_text(s.end()),
+		boost::archive::iterators::ostream_iterator<char>(os));
 	std::string result = os.str();
 	int padding = 4 - result.size() % 4;
 	for (int i = 0; i < padding; i++)
