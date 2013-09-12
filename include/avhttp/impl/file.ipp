@@ -1125,7 +1125,7 @@ file::size_type file::get_size(boost::system::error_code& ec) const
 file::size_type file::sparse_end(size_type start) const
 {
 #ifdef WIN32
-#ifdef _MINGW
+#if defined(__MINGW32__) || defined(MINGW32)
 	typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		LARGE_INTEGER FileOffset;
 		LARGE_INTEGER Length;
