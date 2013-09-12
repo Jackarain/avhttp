@@ -150,7 +150,7 @@ file_upload::~file_upload()
 template <typename Handler>
 struct file_upload::open_coro : boost::asio::coroutine
 {
-	open_coro(http_stream& http, const std::string& url, const std::string& filename,
+	open_coro(http_stream& http, request_opts& opts, const std::string& url, const std::string& filename,
 		const std::string& file_of_form, const form_args& args, std::string& boundary, Handler handler)
 		: m_handler(handler)
 		, m_http_stream(http)
@@ -160,7 +160,6 @@ struct file_upload::open_coro : boost::asio::coroutine
 		, m_boundary(boundary)
 	{
 		boost::system::error_code ec;
-		request_opts opts;
 
 		// 设置为POST模式.
 		opts.insert(http_options::request_method, "POST");
@@ -254,7 +253,7 @@ file_upload::make_open_coro(const std::string& url, const std::string& filename,
 	const std::string& file_of_form, const form_args& args, BOOST_ASIO_MOVE_ARG(Handler) handler)
 {
 	m_form_args = args;
-	return open_coro<Handler>(m_http_stream,
+	return open_coro<Handler>(m_http_stream, m_request_opts,
 		url, filename, file_of_form, m_form_args, m_boundary, handler);
 }
 
