@@ -246,9 +246,6 @@ private:
 
 	// 表单参数.
 	form_args m_form_args;
-
-	// 选项.
-	request_opts m_request_opts;
 };
 
 } // namespace avhttp

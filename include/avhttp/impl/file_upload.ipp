@@ -150,7 +150,7 @@ file_upload::~file_upload()
 template <typename Handler>
 struct file_upload::open_coro : boost::asio::coroutine
 {
-	open_coro(http_stream& http, request_opts& opts, const std::string& url, const std::string& filename,
+	open_coro(http_stream& http, const std::string& url, const std::string& filename,
 		const std::string& file_of_form, const form_args& args, std::string& boundary, Handler handler)
 		: m_handler(handler)
 		, m_http_stream(http)
@@ -160,6 +160,7 @@ struct file_upload::open_coro : boost::asio::coroutine
 		, m_boundary(boundary)
 	{
 		boost::system::error_code ec;
+		request_opts opts = m_http_stream.request_options();
 
 		// 设置为POST模式.
 		opts.insert(http_options::request_method, "POST");
@@ -253,7 +254,7 @@ file_upload::make_open_coro(const std::string& url, const std::string& filename,
 	const std::string& file_of_form, const form_args& args, BOOST_ASIO_MOVE_ARG(Handler) handler)
 {
 	m_form_args = args;
-	return open_coro<Handler>(m_http_stream, m_request_opts,
+	return open_coro<Handler>(m_http_stream,
 		url, filename, file_of_form, m_form_args, m_boundary, handler);
 }
 
@@ -269,7 +270,7 @@ void file_upload::open(const std::string& url, const std::string& filename,
 {
 	using mime_types::extension_to_type;
 
-	request_opts& opts = m_request_opts;
+	request_opts opts = m_http_stream.request_options();
 	m_form_args = args;
 
 	// 设置边界字符串.
@@ -446,7 +447,7 @@ void file_upload::async_write_tail(BOOST_ASIO_MOVE_ARG(Handler) handler)
 
 void file_upload::request_option(request_opts& opts)
 {
-	m_request_opts = opts;
+	m_http_stream.request_options(opts);
 }
 
 http_stream& file_upload::get_http_stream()
