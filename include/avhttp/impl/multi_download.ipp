@@ -723,7 +723,7 @@ bool multi_download::wait_for_complete()
 		}
 	}
 	// 检查是否下载完成, 完成返回true, 否则返回false.
-	boost::int64_t fs = file_size();
+	boost::int64_t fs = m_file_size;
 	if (fs != -1)
 	{
 		if (fs != bytes_download())
@@ -758,8 +758,11 @@ std::string multi_download::meta_name(const std::string& url) const
 
 std::string multi_download::file_name() const
 {
+	// 如果文件名为空, 则生成默认文件名.
 	if (m_file_name.empty())
 	{
+		// 构造默认文件名. 如果url中的文件名为空, 那么就默认为index.html, 否则
+		// 使用url中指定的文件名, 除非settings指定了保存文件路径及文件名.
 		m_file_name = fs::path(detail::utf8_ansi(m_final_url.path())).leaf().string();
 		if (m_file_name == "/" || m_file_name == "")
 			m_file_name = fs::path(m_final_url.query()).leaf().string();
