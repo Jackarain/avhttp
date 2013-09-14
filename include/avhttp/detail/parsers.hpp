@@ -591,7 +591,7 @@ class gmt_time_input_face : public boost::posix_time::time_input_facet
 	{
 	public:
 		gmt_format_date_parser(std::string fmt)
-			: format_date_parser(fmt, std::locale::classic())
+			: format_date_parser_type(fmt, std::locale::classic())
 		{
 			short_month_names(gmt_time_input_face::gather_month_strings<char>(std::locale::classic()));
 			long_month_names(gmt_time_input_face::gather_month_strings<char>(std::locale::classic(), false));
