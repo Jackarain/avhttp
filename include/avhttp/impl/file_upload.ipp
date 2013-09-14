@@ -139,9 +139,10 @@ inline std::size_t calc_content_length(const std::string& filename, const std::s
 	return content_length;
 }
 
-file_upload::file_upload(boost::asio::io_service& io)
+file_upload::file_upload(boost::asio::io_service& io, bool fake_continue)
 	: m_io_service(io)
 	, m_http_stream(io)
+	, m_fake_continue(fake_continue)
 {}
 
 file_upload::~file_upload()
@@ -150,7 +151,7 @@ file_upload::~file_upload()
 template <typename Handler>
 struct file_upload::open_coro : boost::asio::coroutine
 {
-	open_coro(http_stream& http, const std::string& url, const std::string& filename,
+	open_coro(http_stream& http, const std::string& url, const std::string& filename, bool& fake_100,
 		const std::string& file_of_form, const form_args& args, std::string& boundary, Handler handler)
 		: m_handler(handler)
 		, m_http_stream(http)
@@ -164,7 +165,9 @@ struct file_upload::open_coro : boost::asio::coroutine
 
 		// 设置为POST模式.
 		opts.insert(http_options::request_method, "POST");
-		opts.insert("Expect", "100-continue");
+		if (!fake_100)
+			opts.insert("Expect", "100-continue");
+		opts.fake_continue(fake_100);
 
 		// 计算Content-Length.
 		std::size_t content_length = calc_content_length(filename, file_of_form, args, ec);
@@ -195,7 +198,7 @@ struct file_upload::open_coro : boost::asio::coroutine
 		using mime_types::extension_to_type;
 
 		// 出错, 如果是errc::continue_request则忽略.
-		if (ec && ec != errc::continue_request)
+		if (ec && (ec != errc::continue_request && ec != errc::fake_continue))
 		{
 			m_handler(ec);
 			return;
@@ -254,8 +257,8 @@ file_upload::make_open_coro(const std::string& url, const std::string& filename,
 	const std::string& file_of_form, const form_args& args, BOOST_ASIO_MOVE_ARG(Handler) handler)
 {
 	m_form_args = args;
-	return open_coro<Handler>(m_http_stream,
-		url, filename, file_of_form, m_form_args, m_boundary, handler);
+	return open_coro<Handler>(m_http_stream, url, filename,
+		m_fake_continue, file_of_form, m_form_args, m_boundary, handler);
 }
 
 template <typename Handler>
@@ -295,7 +298,9 @@ void file_upload::open(const std::string& url, const std::string& filename,
 	content_length_stream << content_length;
 	opts.insert(http_options::content_length, content_length_stream.str());
 
-	opts.insert("Expect", "100-continue");
+	if (!m_fake_continue)
+		opts.insert("Expect", "100-continue");
+	opts.fake_continue(m_fake_continue);
 
 	// 添加边界等选项并打开url.
 	opts.insert(http_options::content_type, "multipart/form-data; boundary=" + m_boundary);
@@ -304,7 +309,7 @@ void file_upload::open(const std::string& url, const std::string& filename,
 	m_http_stream.open(url, ec);
 
 	// 出错, 如果是errc::continue_request则忽略.
-	if (ec && ec != errc::continue_request)
+	if (ec && (ec != errc::continue_request && ec != errc::fake_continue))
 	{
 		return;
 	}

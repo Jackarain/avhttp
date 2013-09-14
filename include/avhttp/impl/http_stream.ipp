@@ -1218,16 +1218,13 @@ void http_stream::request(request_opts& opt, boost::system::error_code& ec)
 		return;
 	}
 
-	// 判断是否设置有用户回调.
-	request_opts::body_callback_func body_callback = m_request_opts.body_callback();
-	if (body_callback)
+	// 需要返回fake continue消息.
+	if (m_request_opts_priv.fake_continue())
 	{
-		body_callback(ec);
-		if (ec)
-		{
-			LOG_ERROR("Body callback, error message: \'" << ec.message() <<"\'");
-			return;
-		}
+		ec = errc::fake_continue;
+		LOG_WARNING("Return \'" << ec.message() <<"\', "
+			"need call receive_header for continue receive the http header.");
+		return;
 	}
 
 	// 读取http头.
@@ -1854,17 +1851,14 @@ void http_stream::handle_request(Handler handler, const boost::system::error_cod
 		return;
 	}
 
-	// 判断是否设置有用户回调.
-	request_opts::body_callback_func body_callback = m_request_opts.body_callback();
-	if (body_callback)
+	// 需要返回fake continue消息.
+	if (m_request_opts_priv.fake_continue())
 	{
-		boost::system::error_code ec;
-		body_callback(ec);
-		if (ec)
-		{
-			LOG_ERROR("Body callback, error message: \'" << ec.message() <<"\'");
-			return;
-		}
+		boost::system::error_code ec = errc::fake_continue;
+		LOG_WARNING("Return \'" << ec.message() <<"\', "
+			"need call receive_header for continue receive the http header.");
+		handler(ec);
+		return;
 	}
 
 	// 异步读取Http status.

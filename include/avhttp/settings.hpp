@@ -76,8 +76,12 @@ public:
 
 public:
 
-	option() {}
-	~option() {}
+	option()
+		: m_fake_continue(false)
+	{}
+
+	~option()
+	{}
 
 public:
 
@@ -172,26 +176,25 @@ public:
 		return m_opts.size();
 	}
 
-	// 设置body_callback.
-	// 一般用于处理在header发送完成后的继续需要向服务器发送body数据.
-	void body_callback(body_callback_func func)
+	// 返回fake_continue.
+	bool fake_continue() const
 	{
-		m_body_callback = func;
+		return m_fake_continue;
 	}
 
-	// 返回body_callback_func.
-	body_callback_func body_callback() const
+	// 设置fake_continue.
+	void fake_continue(bool b)
 	{
-		return m_body_callback;
+		m_fake_continue = b;
 	}
 
 protected:
 	// 选项列表.
 	option_item_list m_opts;
 
-	// body选项回调, 一般用于处理在header发送完成后的继续
-	// 需要向服务器发送数据.
-	body_callback_func m_body_callback;
+	// 是否启用假100 continue消息, 如果启用, 则在发送完成http request head
+	// 之后, 返回一个fake continue消息.
+	bool m_fake_continue;
 };
 
 // 请求时的http选项.

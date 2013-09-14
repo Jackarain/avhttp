@@ -216,7 +216,10 @@ enum errc_t
 	socks_no_identd,
 
 	/// SOCKS no identd running.
-	socks_identd_error
+	socks_identd_error,
+
+	/// Fake continue!
+	fake_continue
 };
 
 /// Converts a value of type @c errc_t to a corresponding object of type
@@ -367,6 +370,8 @@ class error_category_impl
 			return "SOCKS no identd running";
 		case errc::socks_identd_error:
 			return "SOCKS no identd running";
+		case errc::fake_continue:
+			return "Fake continue";
 		default:
 			return "Unknown HTTP error";
 		}

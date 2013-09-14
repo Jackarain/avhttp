@@ -67,8 +67,12 @@ class file_upload : public boost::noncopyable
 public:
 	typedef std::map<std::string, std::string> form_args;
 
-	/// Constructor.
-	AVHTTP_DECL explicit file_upload(boost::asio::io_service& io);
+	///Constructor.
+	// @param io用户指定的io_service对象.
+	// @param fake_continue指定启用fake-continue消息.
+	// fake continue消息用于在http服务器不支持100的时候,
+	// 在async_open/open打开时, 返回一个fake continue.
+	AVHTTP_DECL explicit file_upload(boost::asio::io_service& io, bool fake_continue = false);
 
 	/// Destructor.
 	AVHTTP_DECL virtual ~file_upload();
@@ -246,6 +250,13 @@ private:
 
 	// 表单参数.
 	form_args m_form_args;
+
+	// 是否启用fake-continue消息.
+	// fake continue消息用于在http服
+	// 务器不支持100的时候, 在
+	// async_open/open打开时, 返回一个
+	// fake continue.
+	bool m_fake_continue;
 };
 
 } // namespace avhttp
