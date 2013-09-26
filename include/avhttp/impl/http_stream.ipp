@@ -76,7 +76,7 @@ void http_stream::open(const url& u, boost::system::error_code& ec)
 	m_protocol = u.protocol();
 	m_url = u;
 
-	LOG_DEBUG("Sync open url \'" << u.to_string() << "\'");
+	AVHTTP_LOG_DBG("Sync open url \'" << u.to_string() << "\'");
 
 	// 清空一些选项.
 	m_content_type = "";
@@ -95,7 +95,7 @@ void http_stream::open(const url& u, boost::system::error_code& ec)
 #endif
 		)
 	{
-		LOG_ERROR("Unsupported scheme \'" << m_protocol << "\'");
+		AVHTTP_LOG_ERR("Unsupported scheme \'" << m_protocol << "\'");
 		ec = boost::asio::error::operation_not_supported;
 		return;
 	}
@@ -117,7 +117,7 @@ void http_stream::open(const url& u, boost::system::error_code& ec)
 			ssl_sock->add_verify_path(m_ca_directory, ec);
 			if (ec)
 			{
-				LOG_ERROR("Add verify path \'" << m_ca_directory <<
+				AVHTTP_LOG_ERR("Add verify path \'" << m_ca_directory <<
 					"\', error message \'" << ec.message() << "\'");
 				return;
 			}
@@ -127,7 +127,7 @@ void http_stream::open(const url& u, boost::system::error_code& ec)
 			ssl_sock->load_verify_file(m_ca_cert, ec);
 			if (ec)
 			{
-				LOG_ERROR("Load verify file \'" << m_ca_cert <<
+				AVHTTP_LOG_ERR("Load verify file \'" << m_ca_cert <<
 					"\', error message \'" << ec.message() << "\'");
 				return;
 			}
@@ -138,7 +138,7 @@ void http_stream::open(const url& u, boost::system::error_code& ec)
 				boost::asio::ssl::rfc2818_verification(m_url.host()), ec);
 			if (ec)
 			{
-				LOG_ERROR("Set verify callback \'" << m_url.host() <<
+				AVHTTP_LOG_ERR("Set verify callback \'" << m_url.host() <<
 					"\', error message \'" << ec.message() << "\'");
 				return;
 			}
@@ -162,7 +162,7 @@ void http_stream::open(const url& u, boost::system::error_code& ec)
 
 			if (ec)	// 解析域名出错, 直接返回相关错误信息.
 			{
-				LOG_ERROR("Resolve DNS error \'" << m_url.host() <<
+				AVHTTP_LOG_ERR("Resolve DNS error \'" << m_url.host() <<
 					"\', error message \'" << ec.message() << "\'");
 				return ;
 			}
@@ -176,13 +176,13 @@ void http_stream::open(const url& u, boost::system::error_code& ec)
 			}
 			if (ec)
 			{
-				LOG_ERROR("Connect to \'" << m_url.host() <<
+				AVHTTP_LOG_ERR("Connect to \'" << m_url.host() <<
 					"\', error message \'" << ec.message() << "\'");
 				return;
 			}
 			else
 			{
-				LOG_DEBUG("Connect to \'" << m_url.host() << "\'.");
+				AVHTTP_LOG_DBG("Connect to \'" << m_url.host() << "\'.");
 			}
 		}
 		else if (m_proxy.type == proxy_settings::socks5 ||
@@ -194,13 +194,13 @@ void http_stream::open(const url& u, boost::system::error_code& ec)
 				socks_proxy_connect(m_sock, ec);
 				if (ec)
 				{
-					LOG_ERROR("Connect to socks proxy \'" << m_proxy.hostname << ":" << m_proxy.port <<
+					AVHTTP_LOG_ERR("Connect to socks proxy \'" << m_proxy.hostname << ":" << m_proxy.port <<
 						"\', error message \'" << ec.message() << "\'");
 					return;
 				}
 				else
 				{
-					LOG_DEBUG("Connect to socks proxy \'" << m_proxy.hostname << ":" << m_proxy.port << "\'.");
+					AVHTTP_LOG_DBG("Connect to socks proxy \'" << m_proxy.hostname << ":" << m_proxy.port << "\'.");
 				}
 			}
 #ifdef AVHTTP_ENABLE_OPENSSL
@@ -209,26 +209,26 @@ void http_stream::open(const url& u, boost::system::error_code& ec)
 				socks_proxy_connect(m_nossl_socket, ec);
 				if (ec)
 				{
-					LOG_ERROR("Connect to socks proxy \'" << m_proxy.hostname << ":" << m_proxy.port <<
+					AVHTTP_LOG_ERR("Connect to socks proxy \'" << m_proxy.hostname << ":" << m_proxy.port <<
 						"\', error message \'" << ec.message() << "\'");
 					return;
 				}
 				else
 				{
-					LOG_DEBUG("Connect to socks proxy \'" << m_proxy.hostname << ":" << m_proxy.port << "\'.");
+					AVHTTP_LOG_DBG("Connect to socks proxy \'" << m_proxy.hostname << ":" << m_proxy.port << "\'.");
 				}
 				// 开始握手.
 				ssl_socket* ssl_sock = m_sock.get<ssl_socket>();
 				ssl_sock->handshake(ec);
 				if (ec)
 				{
-					LOG_ERROR("Handshake to \'" << m_url.host() <<
+					AVHTTP_LOG_ERR("Handshake to \'" << m_url.host() <<
 						"\', error message \'" << ec.message() << "\'");
 					return;
 				}
 				else
 				{
-					LOG_DEBUG("Handshake to \'" << m_url.host() << "\'.");
+					AVHTTP_LOG_DBG("Handshake to \'" << m_url.host() << "\'.");
 				}
 			}
 #endif
@@ -244,26 +244,26 @@ void http_stream::open(const url& u, boost::system::error_code& ec)
 				https_proxy_connect(m_nossl_socket, ec);
 				if (ec)
 				{
-					LOG_ERROR("Connect to http proxy \'" << m_proxy.hostname << ":" << m_proxy.port <<
+					AVHTTP_LOG_ERR("Connect to http proxy \'" << m_proxy.hostname << ":" << m_proxy.port <<
 						"\', error message \'" << ec.message() << "\'");
 					return;
 				}
 				else
 				{
-					LOG_DEBUG("Connect to http proxy \'" << m_proxy.hostname << ":" << m_proxy.port << "\'.");
+					AVHTTP_LOG_DBG("Connect to http proxy \'" << m_proxy.hostname << ":" << m_proxy.port << "\'.");
 				}
 				// 开始握手.
 				ssl_socket* ssl_sock = m_sock.get<ssl_socket>();
 				ssl_sock->handshake(ec);
 				if (ec)
 				{
-					LOG_ERROR("Handshake to \'" << m_url.host() <<
+					AVHTTP_LOG_ERR("Handshake to \'" << m_url.host() <<
 						"\', error message \'" << ec.message() << "\'");
 					return;
 				}
 				else
 				{
-					LOG_DEBUG("Handshake to \'" << m_url.host() << "\'.");
+					AVHTTP_LOG_DBG("Handshake to \'" << m_url.host() << "\'.");
 				}
 			}
 			else
@@ -281,7 +281,7 @@ void http_stream::open(const url& u, boost::system::error_code& ec)
 
 				if (ec)	// 解析域名出错, 直接返回相关错误信息.
 				{
-					LOG_ERROR("Resolve DNS error \'" << m_proxy.hostname <<
+					AVHTTP_LOG_ERR("Resolve DNS error \'" << m_proxy.hostname <<
 						"\', error message \'" << ec.message() << "\'");
 					return ;
 				}
@@ -295,19 +295,19 @@ void http_stream::open(const url& u, boost::system::error_code& ec)
 				}
 				if (ec)
 				{
-					LOG_ERROR("Connect to http proxy \'" << m_proxy.hostname << ":" << m_proxy.port <<
+					AVHTTP_LOG_ERR("Connect to http proxy \'" << m_proxy.hostname << ":" << m_proxy.port <<
 						"\', error message \'" << ec.message() << "\'");
 					return;
 				}
 				else
 				{
-					LOG_DEBUG("Connect to proxy \'" << m_proxy.hostname << ":" << m_proxy.port << "\'.");
+					AVHTTP_LOG_DBG("Connect to proxy \'" << m_proxy.hostname << ":" << m_proxy.port << "\'.");
 				}
 			}
 		}
 		else
 		{
-			LOG_ERROR("Unsupported proxy \'" << m_proxy.type << "\'");
+			AVHTTP_LOG_ERR("Unsupported proxy \'" << m_proxy.type << "\'");
 			// 不支持的操作功能.
 			ec = boost::asio::error::operation_not_supported;
 			return;
@@ -317,7 +317,7 @@ void http_stream::open(const url& u, boost::system::error_code& ec)
 		m_sock.set_option(tcp::no_delay(true), ec);
 		if (ec)
 		{
-			LOG_ERROR("Set option to nodelay, error message \'" << ec.message() << "\'");
+			AVHTTP_LOG_ERR("Set option to nodelay, error message \'" << ec.message() << "\'");
 			return;
 		}
 	}
@@ -325,7 +325,7 @@ void http_stream::open(const url& u, boost::system::error_code& ec)
 	{
 		// socket已经打开.
 		ec = boost::asio::error::already_open;
-		LOG_ERROR("Open socket, error message\'" << ec.message() << "\'");
+		AVHTTP_LOG_ERR("Open socket, error message\'" << ec.message() << "\'");
 		return;
 	}
 
@@ -373,7 +373,7 @@ void http_stream::async_open(const url& u, BOOST_ASIO_MOVE_ARG(Handler) handler)
 	m_protocol = u.protocol();
 	m_url = u;
 
-	LOG_DEBUG("Async open url \'" << u.to_string() << "\'");
+	AVHTTP_LOG_DBG("Async open url \'" << u.to_string() << "\'");
 
 	// 清空一些选项.
 	m_content_type = "";
@@ -392,7 +392,7 @@ void http_stream::async_open(const url& u, BOOST_ASIO_MOVE_ARG(Handler) handler)
 #endif
 		)
 	{
-		LOG_ERROR("Unsupported scheme \'" << m_protocol << "\'");
+		AVHTTP_LOG_ERR("Unsupported scheme \'" << m_protocol << "\'");
 		m_io_service.post(boost::asio::detail::bind_handler(
 			handler, boost::asio::error::operation_not_supported));
 		return;
@@ -415,7 +415,7 @@ void http_stream::async_open(const url& u, BOOST_ASIO_MOVE_ARG(Handler) handler)
 			ssl_sock->add_verify_path(m_ca_directory, ec);
 			if (ec)
 			{
-				LOG_ERROR("Add verify path \'" << m_ca_directory <<
+				AVHTTP_LOG_ERR("Add verify path \'" << m_ca_directory <<
 					"\', error message \'" << ec.message() << "\'");
 				m_io_service.post(boost::asio::detail::bind_handler(
 					handler, ec));
@@ -427,7 +427,7 @@ void http_stream::async_open(const url& u, BOOST_ASIO_MOVE_ARG(Handler) handler)
 			ssl_sock->load_verify_file(m_ca_cert, ec);
 			if (ec)
 			{
-				LOG_ERROR("Load verify file \'" << m_ca_cert <<
+				AVHTTP_LOG_ERR("Load verify file \'" << m_ca_cert <<
 					"\', error message \'" << ec.message() << "\'");
 				m_io_service.post(boost::asio::detail::bind_handler(
 					handler, ec));
@@ -440,7 +440,7 @@ void http_stream::async_open(const url& u, BOOST_ASIO_MOVE_ARG(Handler) handler)
 				boost::asio::ssl::rfc2818_verification(m_url.host()), ec);
 			if (ec)
 			{
-				LOG_ERROR("Set verify callback \'" << m_url.host() <<
+				AVHTTP_LOG_ERR("Set verify callback \'" << m_url.host() <<
 					"\', error message \'" << ec.message() << "\'");
 				m_io_service.post(boost::asio::detail::bind_handler(
 					handler, ec));
@@ -454,7 +454,7 @@ void http_stream::async_open(const url& u, BOOST_ASIO_MOVE_ARG(Handler) handler)
 	if (m_sock.instantiated() && m_sock.is_open())
 	{
 		ec = boost::asio::error::already_open;
-		LOG_ERROR("Open socket, error message\'" <<	ec.message() << "\'");
+		AVHTTP_LOG_ERR("Open socket, error message\'" <<	ec.message() << "\'");
 		m_io_service.post(boost::asio::detail::bind_handler(handler, ec));
 		return;
 	}
@@ -1043,7 +1043,7 @@ void http_stream::request(request_opts& opt, boost::system::error_code& ec)
 	if (!m_sock.is_open())
 	{
 		ec = boost::asio::error::network_reset;
-		LOG_ERROR("Socket is open, error message\'" << ec.message() << "\'");
+		AVHTTP_LOG_ERR("Socket is open, error message\'" << ec.message() << "\'");
 		return;
 	}
 
@@ -1206,7 +1206,7 @@ void http_stream::request(request_opts& opt, boost::system::error_code& ec)
 		int request_size = m_request.size();
 		boost::asio::streambuf::const_buffers_type::const_iterator begin(m_request.data().begin());
 		const char* ptr = boost::asio::buffer_cast<const char*>(*begin);
-		LOG_DEBUG("Request Header:\n" << std::string(ptr, request_size));
+		AVHTTP_LOG_DBG("Request Header:\n" << std::string(ptr, request_size));
 	}
 #endif
 
@@ -1214,7 +1214,7 @@ void http_stream::request(request_opts& opt, boost::system::error_code& ec)
 	boost::asio::write(m_sock, m_request, ec);
 	if (ec)
 	{
-		LOG_ERROR("Send request, error message: \'" << ec.message() <<"\'");
+		AVHTTP_LOG_ERR("Send request, error message: \'" << ec.message() <<"\'");
 		return;
 	}
 
@@ -1222,7 +1222,7 @@ void http_stream::request(request_opts& opt, boost::system::error_code& ec)
 	if (m_request_opts_priv.fake_continue())
 	{
 		ec = errc::fake_continue;
-		LOG_WARNING("Return \'" << ec.message() <<"\', "
+		AVHTTP_LOG_WARN("Return \'" << ec.message() <<"\', "
 			"need call receive_header for continue receive the http header.");
 		return;
 	}
@@ -1242,7 +1242,7 @@ void http_stream::async_request(const request_opts& opt, BOOST_ASIO_MOVE_ARG(Han
 	if (!m_sock.is_open())
 	{
 		ec = boost::asio::error::network_reset;
-		LOG_ERROR("Socket is open, error message\'" << ec.message() << "\'");
+		AVHTTP_LOG_ERR("Socket is open, error message\'" << ec.message() << "\'");
 		handler(ec);
 		return;
 	}
@@ -1408,7 +1408,7 @@ void http_stream::async_request(const request_opts& opt, BOOST_ASIO_MOVE_ARG(Han
 		int request_size = m_request.size();
 		boost::asio::streambuf::const_buffers_type::const_iterator begin(m_request.data().begin());
 		const char* ptr = boost::asio::buffer_cast<const char*>(*begin);
-		LOG_DEBUG("Request Header:\n" << std::string(ptr, request_size));
+		AVHTTP_LOG_DBG("Request Header:\n" << std::string(ptr, request_size));
 	}
 #endif
 
@@ -1440,7 +1440,7 @@ void http_stream::receive_header(boost::system::error_code& ec)
 		boost::asio::read_until(m_sock, m_response, "\r\n", ec);
 		if (ec)
 		{
-			LOG_ERROR("Read status line, error message: \'" << ec.message() <<"\'");
+			AVHTTP_LOG_ERR("Read status line, error message: \'" << ec.message() <<"\'");
 			return;
 		}
 
@@ -1465,7 +1465,7 @@ void http_stream::receive_header(boost::system::error_code& ec)
 			version_major, version_minor, m_status_code))
 		{
 			ec = errc::malformed_status_line;
-			LOG_ERROR("Malformed status line");
+			AVHTTP_LOG_ERR("Malformed status line");
 			return;
 		}
 
@@ -1482,7 +1482,7 @@ void http_stream::receive_header(boost::system::error_code& ec)
 				if (crlf[0] != '\r' || crlf[1] != '\n')
 				{
 					ec = errc::malformed_status_line;
-					LOG_ERROR("Malformed status line");
+					AVHTTP_LOG_ERR("Malformed status line");
 					return;
 				}
 			}
@@ -1490,7 +1490,7 @@ void http_stream::receive_header(boost::system::error_code& ec)
 			{
 				BOOST_ASSERT(0);	// Fuck! 不标准的http服务器！！！
 				ec = errc::malformed_status_line;
-				LOG_ERROR("Malformed status line");
+				AVHTTP_LOG_ERR("Malformed status line");
 				return;
 			}
 
@@ -1515,7 +1515,7 @@ void http_stream::receive_header(boost::system::error_code& ec)
 			break;
 	} // end for.
 
-	LOG_DEBUG("Status code: " << m_status_code);
+	AVHTTP_LOG_DBG("Status code: " << m_status_code);
 
 	// 清除原有的返回选项, 并添加状态码.
 	m_response_opts.clear();
@@ -1538,7 +1538,7 @@ void http_stream::receive_header(boost::system::error_code& ec)
 			ec = errc::malformed_response_headers;
 		else
 			ec = read_err;
-		LOG_ERROR("Header error, error message: \'" << ec.message() << "\'");
+		AVHTTP_LOG_ERR("Header error, error message: \'" << ec.message() << "\'");
 		return;
 	}
 
@@ -1546,14 +1546,14 @@ void http_stream::receive_header(boost::system::error_code& ec)
 	header_string.resize(bytes_transferred);
 	m_response.sgetn(&header_string[0], bytes_transferred);
 
-	LOG_DEBUG("Http header:\n" << header_string);
+	AVHTTP_LOG_DBG("Http header:\n" << header_string);
 
 	// 解析Http Header.
 	if (!detail::parse_http_headers(header_string.begin(), header_string.end(),
 		m_content_type, m_content_length, m_location, m_response_opts.option_all()))
 	{
 		ec = errc::malformed_response_headers;
-		LOG_ERROR("Parse header error, error message: \'" << ec.message() << "\'");
+		AVHTTP_LOG_ERR("Parse header error, error message: \'" << ec.message() << "\'");
 		return;
 	}
 
@@ -1581,7 +1581,7 @@ void http_stream::receive_header(boost::system::error_code& ec)
 			if (inflateInit2(&m_stream, 32+15 ) != Z_OK)
 			{
 				ec = boost::asio::error::operation_not_supported;
-				LOG_ERROR("Init zlib invalid, error message: \'" << ec.message() << "\'");
+				AVHTTP_LOG_ERR("Init zlib invalid, error message: \'" << ec.message() << "\'");
 				return;
 			}
 		}
@@ -1798,7 +1798,7 @@ void http_stream::handle_resolve(const boost::system::error_code& err,
 	}
 	else
 	{
-		LOG_ERROR("Resolve DNS error, \'" << m_url.host() <<
+		AVHTTP_LOG_ERR("Resolve DNS error, \'" << m_url.host() <<
 			"\', error message \'" << err.message() << "\'");
 		// 出错回调.
 		handler(err);
@@ -1811,7 +1811,7 @@ void http_stream::handle_connect(Handler handler,
 {
 	if (!err)
 	{
-		LOG_DEBUG("Connect to \'" << m_url.host() << "\'.");
+		AVHTTP_LOG_DBG("Connect to \'" << m_url.host() << "\'.");
 		// 发起异步请求.
 		async_request(m_request_opts_priv, handler);
 	}
@@ -1820,7 +1820,7 @@ void http_stream::handle_connect(Handler handler,
 		// 检查是否已经尝试了endpoint列表中的所有endpoint.
 		if (++endpoint_iterator == tcp::resolver::iterator())
 		{
-			LOG_ERROR("Connect to \'" << m_url.host() <<
+			AVHTTP_LOG_ERR("Connect to \'" << m_url.host() <<
 				"\', error message \'" << err.message() << "\'");
 			handler(err);
 		}
@@ -1846,7 +1846,7 @@ void http_stream::handle_request(Handler handler, const boost::system::error_cod
 	// 发生错误.
 	if (err)
 	{
-		LOG_ERROR("Send request, error message: \'" << err.message() <<"\'");
+		AVHTTP_LOG_ERR("Send request, error message: \'" << err.message() <<"\'");
 		handler(err);
 		return;
 	}
@@ -1855,7 +1855,7 @@ void http_stream::handle_request(Handler handler, const boost::system::error_cod
 	if (m_request_opts_priv.fake_continue())
 	{
 		boost::system::error_code ec = errc::fake_continue;
-		LOG_WARNING("Return \'" << ec.message() <<"\', "
+		AVHTTP_LOG_WARN("Return \'" << ec.message() <<"\', "
 			"need call receive_header for continue receive the http header.");
 		handler(ec);
 		return;
@@ -1876,7 +1876,7 @@ void http_stream::handle_status(Handler handler, const boost::system::error_code
 	// 发生错误.
 	if (err)
 	{
-		LOG_ERROR("Read status line, error message: \'" << err.message() <<"\'");
+		AVHTTP_LOG_ERR("Read status line, error message: \'" << err.message() <<"\'");
 		handler(err);
 		return;
 	}
@@ -1901,7 +1901,7 @@ void http_stream::handle_status(Handler handler, const boost::system::error_code
 		std::istreambuf_iterator<char>(),
 		version_major, version_minor, m_status_code))
 	{
-		LOG_ERROR("Malformed status line");
+		AVHTTP_LOG_ERR("Malformed status line");
 		handler(errc::malformed_status_line);
 		return;
 	}
@@ -1918,7 +1918,7 @@ void http_stream::handle_status(Handler handler, const boost::system::error_code
 			BOOST_ASSERT(crlf[0] == '\r' && crlf[1] == '\n');
 			if (crlf[0] != '\r' || crlf[1] != '\n')
 			{
-				LOG_ERROR("Malformed status line");
+				AVHTTP_LOG_ERR("Malformed status line");
 				handler(errc::malformed_status_line);
 				return;
 			}
@@ -1926,7 +1926,7 @@ void http_stream::handle_status(Handler handler, const boost::system::error_code
 		else
 		{
 			BOOST_ASSERT(0);	// Fuck! 不标准的http服务器！！！
-			LOG_ERROR("Malformed status line");
+			AVHTTP_LOG_ERR("Malformed status line");
 			handler(errc::malformed_status_line);
 			return;
 		}
@@ -1978,7 +1978,7 @@ void http_stream::handle_header(Handler handler, int bytes_transferred, const bo
 {
 	if (err)
 	{
-		LOG_ERROR("Header error, error message: \'" << err.message() << "\'");
+		AVHTTP_LOG_ERR("Header error, error message: \'" << err.message() << "\'");
 		handler(err);
 		return;
 	}
@@ -1987,8 +1987,8 @@ void http_stream::handle_header(Handler handler, int bytes_transferred, const bo
 	header_string.resize(bytes_transferred);
 	m_response.sgetn(&header_string[0], bytes_transferred);
 
-	LOG_DEBUG("Status code: " << m_status_code);
-	LOG_DEBUG("Http header:\n" << header_string);
+	AVHTTP_LOG_DBG("Status code: " << m_status_code);
+	AVHTTP_LOG_DBG("Http header:\n" << header_string);
 
 	boost::system::error_code ec;
 
@@ -1997,7 +1997,7 @@ void http_stream::handle_header(Handler handler, int bytes_transferred, const bo
 		m_content_type, m_content_length, m_location, m_response_opts.option_all()))
 	{
 		ec = errc::malformed_response_headers;
-		LOG_ERROR("Parse header error, error message: \'" << ec.message() << "\'");
+		AVHTTP_LOG_ERR("Parse header error, error message: \'" << ec.message() << "\'");
 		handler(ec);
 		return;
 	}
@@ -2026,7 +2026,7 @@ void http_stream::handle_header(Handler handler, int bytes_transferred, const bo
 			{
 				// 向用户报告跳转地址错误.
 				ec = errc::invalid_redirect;
-				LOG_ERROR("Location url invalid, error message: \'" << ec.message() << "\'");
+				AVHTTP_LOG_ERR("Location url invalid, error message: \'" << ec.message() << "\'");
 				handler(ec);
 				return;
 			}
@@ -2052,7 +2052,7 @@ void http_stream::handle_header(Handler handler, int bytes_transferred, const bo
 			if (inflateInit2(&m_stream, 32+15 ) != Z_OK)	// 初始化ZLIB库, 每次解压每个chunked的时候, 不需要重新初始化.
 			{
 				ec = boost::asio::error::operation_not_supported;
-				LOG_ERROR("Init zlib invalid, error message: \'" << ec.message() << "\'");
+				AVHTTP_LOG_ERR("Init zlib invalid, error message: \'" << ec.message() << "\'");
 				handler(ec);
 				return;
 			}
@@ -2453,7 +2453,7 @@ void http_stream::socks_proxy_connect(Stream& sock, boost::system::error_code& e
 
 	if (ec)	// 解析域名出错, 直接返回相关错误信息.
 	{
-		LOG_ERROR("Resolve DNS error \'" << s.hostname <<
+		AVHTTP_LOG_ERR("Resolve DNS error \'" << s.hostname <<
 			"\', error message \'" << ec.message() << "\'");
 		return ;
 	}
@@ -2626,7 +2626,7 @@ void http_stream::socks_proxy_handshake(Stream& sock, boost::system::error_code&
 		tcp::resolver::iterator endpoint_iterator = resolver.resolve(query, ec);
 		if (ec)	// 解析域名出错, 直接返回相关错误信息.
 		{
-			LOG_ERROR("Resolve DNS error \'" << host <<
+			AVHTTP_LOG_ERR("Resolve DNS error \'" << host <<
 				"\', error message \'" << ec.message() << "\'");
 			return;
 		}
@@ -2799,7 +2799,7 @@ void http_stream::async_socks_proxy_resolve(const boost::system::error_code& err
 {
 	if (err)
 	{
-		LOG_ERROR("Resolve socks server error, \'" << m_proxy.hostname << ":" << m_proxy.port <<
+		AVHTTP_LOG_ERR("Resolve socks server error, \'" << m_proxy.hostname << ":" << m_proxy.port <<
 			"\', error message \'" << err.message() << "\'");
 		handler(err);
 		return;
@@ -2841,7 +2841,7 @@ void http_stream::handle_connect_socks(Stream& sock, Handler handler,
 		tcp::resolver::iterator end;
 		if (endpoint_iterator == end)
 		{
-			LOG_ERROR("Connect to socks proxy, \'" << m_proxy.hostname << ":" << m_proxy.port <<
+			AVHTTP_LOG_ERR("Connect to socks proxy, \'" << m_proxy.hostname << ":" << m_proxy.port <<
 				"\', error message \'" << err.message() << "\'");
 			handler(err);
 			return;
@@ -2927,7 +2927,7 @@ void http_stream::handle_socks_process(Stream& sock, Handler handler,
 
 	if (err)
 	{
-		LOG_ERROR("Socks proxy process error, \'" << m_proxy.hostname << ":" << m_proxy.port <<
+		AVHTTP_LOG_ERR("Socks proxy process error, \'" << m_proxy.hostname << ":" << m_proxy.port <<
 			"\', error message \'" << err.message() << "\'");
 		handler(err);
 		return;
@@ -3096,7 +3096,7 @@ void http_stream::handle_socks_process(Stream& sock, Handler handler,
 #ifdef AVHTTP_ENABLE_OPENSSL
 				if (m_protocol == "https")
 				{
-					LOG_DEBUG("Connect to socks proxy \'" << m_proxy.hostname << ":" << m_proxy.port << "\'.");
+					AVHTTP_LOG_DBG("Connect to socks proxy \'" << m_proxy.hostname << ":" << m_proxy.port << "\'.");
 
 					// 开始握手.
 					m_proxy_status = ssl_handshake;
@@ -3122,7 +3122,7 @@ void http_stream::handle_socks_process(Stream& sock, Handler handler,
 				case 93: ec = errc::socks_identd_error; break;
 				}
 
-				LOG_ERROR("Socks4 proxy process error, \'" << m_proxy.hostname << ":" << m_proxy.port <<
+				AVHTTP_LOG_ERR("Socks4 proxy process error, \'" << m_proxy.hostname << ":" << m_proxy.port <<
 					"\', error message \'" << ec.message() << "\'");
 				handler(ec);
 				return;
@@ -3132,7 +3132,7 @@ void http_stream::handle_socks_process(Stream& sock, Handler handler,
 #ifdef AVHTTP_ENABLE_OPENSSL
 	case ssl_handshake:
 		{
-			LOG_DEBUG("Handshake to \'" << m_url.host() <<
+			AVHTTP_LOG_DBG("Handshake to \'" << m_url.host() <<
 				"\', error message \'" << err.message() << "\'");
 
 			async_request(m_request_opts_priv, handler);
@@ -3148,7 +3148,7 @@ void http_stream::handle_socks_process(Stream& sock, Handler handler,
 			if (version != 5)	// 版本不等于5, 不支持socks5.
 			{
 				boost::system::error_code ec = errc::socks_unsupported_version;
-				LOG_ERROR("Socks5 response version, \'" << m_proxy.hostname << ":" << m_proxy.port <<
+				AVHTTP_LOG_ERR("Socks5 response version, \'" << m_proxy.hostname << ":" << m_proxy.port <<
 					"\', error message \'" << ec.message() << "\'");
 				handler(ec);
 				return;
@@ -3161,7 +3161,7 @@ void http_stream::handle_socks_process(Stream& sock, Handler handler,
 				if (s.username.empty())
 				{
 					boost::system::error_code ec = errc::socks_username_required;
-					LOG_ERROR("Socks5 response version, \'" << m_proxy.hostname << ":" << m_proxy.port <<
+					AVHTTP_LOG_ERR("Socks5 response version, \'" << m_proxy.hostname << ":" << m_proxy.port <<
 						"\', error message \'" << ec.message() << "\'");
 					handler(ec);
 					return;
@@ -3196,7 +3196,7 @@ void http_stream::handle_socks_process(Stream& sock, Handler handler,
 			if (method == 0)
 			{
 				m_proxy_status = socks5_connect_request;
-				LOG_DEBUG("Socks5 response version, \'" << m_proxy.hostname << ":" << m_proxy.port <<
+				AVHTTP_LOG_DBG("Socks5 response version, \'" << m_proxy.hostname << ":" << m_proxy.port <<
 					"\', error message \'" << err.message() << "\'");
 				handle_socks_process(sock, handler, 0, err);
 				return;
@@ -3214,7 +3214,7 @@ void http_stream::handle_socks_process(Stream& sock, Handler handler,
 			if (version != 1)	// 不支持的版本.
 			{
 				boost::system::error_code ec = errc::socks_unsupported_authentication_version;
-				LOG_ERROR("Socks5 auth status, \'" << m_proxy.hostname << ":" << m_proxy.port <<
+				AVHTTP_LOG_ERR("Socks5 auth status, \'" << m_proxy.hostname << ":" << m_proxy.port <<
 					"\', error message \'" << ec.message() << "\'");
 				handler(ec);
 				return;
@@ -3223,7 +3223,7 @@ void http_stream::handle_socks_process(Stream& sock, Handler handler,
 			if (status != 0)	// 认证错误.
 			{
 				boost::system::error_code ec = errc::socks_authentication_error;
-				LOG_ERROR("Socks5 auth status, \'" << m_proxy.hostname << ":" << m_proxy.port <<
+				AVHTTP_LOG_ERR("Socks5 auth status, \'" << m_proxy.hostname << ":" << m_proxy.port <<
 					"\', error message \'" << ec.message() << "\'");
 				handler(ec);
 				return;
@@ -3245,7 +3245,7 @@ void http_stream::handle_socks_process(Stream& sock, Handler handler,
 			if (version != 5)
 			{
 				boost::system::error_code ec = errc::socks_general_failure;
-				LOG_ERROR("Socks5 result, \'" << m_proxy.hostname << ":" << m_proxy.port <<
+				AVHTTP_LOG_ERR("Socks5 result, \'" << m_proxy.hostname << ":" << m_proxy.port <<
 					"\', error message \'" << ec.message() << "\'");
 				handler(ec);
 				return;
@@ -3265,7 +3265,7 @@ void http_stream::handle_socks_process(Stream& sock, Handler handler,
 				case 7: ec = errc::socks_command_not_supported; break;
 				case 8: ec = boost::asio::error::address_family_not_supported; break;
 				}
-				LOG_ERROR("Socks5 result, \'" << m_proxy.hostname << ":" << m_proxy.port <<
+				AVHTTP_LOG_ERR("Socks5 result, \'" << m_proxy.hostname << ":" << m_proxy.port <<
 					"\', error message \'" << ec.message() << "\'");
 				handler(ec);
 				return;
@@ -3293,7 +3293,7 @@ void http_stream::handle_socks_process(Stream& sock, Handler handler,
 				else
 #endif
 				{
-					LOG_DEBUG("Connect to socks5 proxy \'" << m_proxy.hostname << ":" << m_proxy.port << "\'.");
+					AVHTTP_LOG_DBG("Connect to socks5 proxy \'" << m_proxy.hostname << ":" << m_proxy.port << "\'.");
 					// 没有发生错误, 开始异步发送请求.
 					async_request(m_request_opts_priv, handler);
 					return;
@@ -3325,7 +3325,7 @@ void http_stream::handle_socks_process(Stream& sock, Handler handler,
 			else
 			{
 				boost::system::error_code ec = boost::asio::error::address_family_not_supported;
-				LOG_ERROR("Socks5 result, \'" << m_proxy.hostname << ":" << m_proxy.port <<
+				AVHTTP_LOG_ERR("Socks5 result, \'" << m_proxy.hostname << ":" << m_proxy.port <<
 					"\', error message \'" << ec.message() << "\'");
 				handler(ec);
 				return;
@@ -3339,7 +3339,7 @@ void http_stream::handle_socks_process(Stream& sock, Handler handler,
 #ifdef AVHTTP_ENABLE_OPENSSL
 			if (m_protocol == "https")
 			{
-				LOG_DEBUG("Connect to socks5 proxy \'" << m_proxy.hostname << ":" << m_proxy.port << "\'.");
+				AVHTTP_LOG_DBG("Connect to socks5 proxy \'" << m_proxy.hostname << ":" << m_proxy.port << "\'.");
 				// 开始握手.
 				m_proxy_status = ssl_handshake;
 				ssl_socket* ssl_sock = m_sock.get<ssl_socket>();
@@ -3352,7 +3352,7 @@ void http_stream::handle_socks_process(Stream& sock, Handler handler,
 			else
 #endif
 			{
-				LOG_DEBUG("Connect to socks5 proxy \'" << m_proxy.hostname << ":" << m_proxy.port << "\'.");
+				AVHTTP_LOG_DBG("Connect to socks5 proxy \'" << m_proxy.hostname << ":" << m_proxy.port << "\'.");
 				// 没有发生错误, 开始异步发送请求.
 				async_request(m_request_opts_priv, handler);
 			}
@@ -3393,7 +3393,7 @@ void http_stream::async_https_proxy_resolve(const boost::system::error_code& err
 {
 	if (err)
 	{
-		LOG_ERROR("Connect to http proxy \'" << m_proxy.hostname << ":" << m_proxy.port <<
+		AVHTTP_LOG_ERR("Connect to http proxy \'" << m_proxy.hostname << ":" << m_proxy.port <<
 			"\', error message \'" << err.message() << "\'");
 		handler(err);
 		return;
@@ -3417,7 +3417,7 @@ void http_stream::handle_connect_https_proxy(Stream& sock, Handler handler,
 		tcp::resolver::iterator end;
 		if (endpoint_iterator == end)
 		{
-			LOG_ERROR("Connect to http proxy \'" << m_proxy.hostname << ":" << m_proxy.port <<
+			AVHTTP_LOG_ERR("Connect to http proxy \'" << m_proxy.hostname << ":" << m_proxy.port <<
 				"\', error message \'" << err.message() << "\'");
 			handler(err);
 			return;
@@ -3493,7 +3493,7 @@ void http_stream::handle_connect_https_proxy(Stream& sock, Handler handler,
 		int request_size = m_request.size();
 		boost::asio::streambuf::const_buffers_type::const_iterator begin(m_request.data().begin());
 		const char* ptr = boost::asio::buffer_cast<const char*>(*begin);
-		LOG_DEBUG("Http proxy request Header:\n" << std::string(ptr, request_size));
+		AVHTTP_LOG_DBG("Http proxy request Header:\n" << std::string(ptr, request_size));
 	}
 #endif
 
@@ -3515,7 +3515,7 @@ void http_stream::handle_https_proxy_request(Stream& sock, Handler handler,
 	// 发生错误.
 	if (err)
 	{
-		LOG_ERROR("Connect to http proxy \'" << m_proxy.hostname << ":" << m_proxy.port <<
+		AVHTTP_LOG_ERR("Connect to http proxy \'" << m_proxy.hostname << ":" << m_proxy.port <<
 			"\', error message \'" << err.message() << "\'");
 		handler(err);
 		return;
@@ -3538,7 +3538,7 @@ void http_stream::handle_https_proxy_status(Stream& sock, Handler handler,
 	// 发生错误.
 	if (err)
 	{
-		LOG_ERROR("Connect to http proxy, \'" << m_proxy.hostname << ":" << m_proxy.port <<
+		AVHTTP_LOG_ERR("Connect to http proxy, \'" << m_proxy.hostname << ":" << m_proxy.port <<
 			"\', error message \'" << err.message() << "\'");
 		handler(err);
 		return;
@@ -3556,7 +3556,7 @@ void http_stream::handle_https_proxy_status(Stream& sock, Handler handler,
 		version_major, version_minor, m_status_code))
 	{
 		ec = errc::malformed_status_line;
-		LOG_ERROR("Connect to http proxy, \'" << m_proxy.hostname << ":" << m_proxy.port <<
+		AVHTTP_LOG_ERR("Connect to http proxy, \'" << m_proxy.hostname << ":" << m_proxy.port <<
 			"\', error message \'" << ec.message() << "\'");
 		handler(ec);
 		return;
@@ -3597,7 +3597,7 @@ void http_stream::handle_https_proxy_header(Stream& sock, Handler handler,
 {
 	if (err)
 	{
-		LOG_ERROR("Connect to http proxy, \'" << m_proxy.hostname << ":" << m_proxy.port <<
+		AVHTTP_LOG_ERR("Connect to http proxy, \'" << m_proxy.hostname << ":" << m_proxy.port <<
 			"\', error message \'" << err.message() << "\'");
 		handler(err);
 		return;
@@ -3613,7 +3613,7 @@ void http_stream::handle_https_proxy_header(Stream& sock, Handler handler,
 		m_content_type, m_content_length, m_location, m_response_opts.option_all()))
 	{
 		ec = errc::malformed_response_headers;
-		LOG_ERROR("Connect to http proxy, \'" << m_proxy.hostname << ":" << m_proxy.port <<
+		AVHTTP_LOG_ERR("Connect to http proxy, \'" << m_proxy.hostname << ":" << m_proxy.port <<
 			"\', error message \'" << ec.message() << "\'");
 		handler(ec);
 		return;
@@ -3622,14 +3622,14 @@ void http_stream::handle_https_proxy_header(Stream& sock, Handler handler,
 	if (m_status_code != errc::ok)
 	{
 		ec = make_error_code(static_cast<errc::errc_t>(m_status_code));
-		LOG_ERROR("Connect to http proxy, \'" << m_proxy.hostname << ":" << m_proxy.port <<
+		AVHTTP_LOG_ERR("Connect to http proxy, \'" << m_proxy.hostname << ":" << m_proxy.port <<
 			"\', error message \'" << ec.message() << "\'");
 		// 回调通知.
 		handler(ec);
 		return;
 	}
 
-	LOG_DEBUG("Connect to http proxy \'" << m_proxy.hostname << ":" << m_proxy.port << "\'.");
+	AVHTTP_LOG_DBG("Connect to http proxy \'" << m_proxy.hostname << ":" << m_proxy.port << "\'.");
 
 	// 开始异步握手.
 	ssl_socket* ssl_sock = m_sock.get<ssl_socket>();
@@ -3650,14 +3650,14 @@ void http_stream::handle_https_proxy_handshake(Stream& sock, Handler handler,
 {
 	if (err)
 	{
-		LOG_ERROR("Handshake to \'" << m_url.host() <<
+		AVHTTP_LOG_ERR("Handshake to \'" << m_url.host() <<
 			"\', error message \'" << err.message() << "\'");
 		// 回调通知.
 		handler(err);
 		return;
 	}
 
-	LOG_DEBUG("Handshake to \'" << m_url.host() << "\'.");
+	AVHTTP_LOG_DBG("Handshake to \'" << m_url.host() << "\'.");
 
 	// 清空接收缓冲区.
 	m_response.consume(m_response.size());
@@ -3681,7 +3681,7 @@ void http_stream::https_proxy_connect(Stream& sock, boost::system::error_code& e
 
 	if (ec)	// 解析域名出错, 直接返回相关错误信息.
 	{
-		LOG_ERROR("Resolve DNS error \'" << m_proxy.hostname <<
+		AVHTTP_LOG_ERR("Resolve DNS error \'" << m_proxy.hostname <<
 			"\', error message \'" << ec.message() << "\'");
 		return ;
 	}
