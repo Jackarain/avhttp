@@ -20,6 +20,7 @@
 #include <vector>
 #include <algorithm>
 #include <iterator>
+#include <boost/algorithm/cxx11/copy_if.hpp>
 #include <boost/date_time.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/bind.hpp>
@@ -707,11 +708,6 @@ inline bool cookie_megerable(const cookies::http_cookie& element, const cookies&
 	return true;
 }
 
-inline bool cookie_not_megerable(const cookies::http_cookie& element, const cookies& container)
-{
-	return !cookie_megerable(element, container);
-}
-
 } // namespace detail
 
 // 将两个 cookies 容器合并.
@@ -727,11 +723,9 @@ inline cookies operator+(const cookies& lhs, const cookies& rhs)
 	std::sort(tmp.begin(), tmp.end(),
 		cookies::http_cookie::compare_by_expires(std::greater<boost::posix_time::ptime>()));
 
-	// NOTE: 本来是使用 std::copy_if 的，这样就可以使用 cookie_megerable 作为比较
-	// 但是 c++98 里没有 std::copy_if, 因此使用了 remove_copy_if ,  这样就要把
-	// cookie_megerable 含义反过来，故而有此函数.
-	std::remove_copy_if(tmp.begin(), tmp.end(), std::back_inserter(ret),
-		boost::bind(detail::cookie_not_megerable, _1, boost::ref(ret)));
+	// std::copy_if 的 boost 版本，能在 c++98 下用了，good
+	boost::algorithm::copy_if(tmp.begin(), tmp.end(), std::back_inserter(ret),
+		boost::bind(detail::cookie_megerable, _1, boost::ref(ret)));
 	// 返回完成结果.
 	return ret;
 }
