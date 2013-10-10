@@ -592,7 +592,8 @@ protected:
 	void handle_status(Handler handler, const boost::system::error_code& err);
 
 	template <typename Handler>
-	void handle_header(Handler handler, int bytes_transferred, const boost::system::error_code& err);
+	void handle_header(Handler handler, std::string header_string,
+		int bytes_transferred, const boost::system::error_code& err);
 
 	template <typename MutableBufferSequence, typename Handler>
 	void handle_read(const MutableBufferSequence& buffers,
