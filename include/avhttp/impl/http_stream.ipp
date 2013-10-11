@@ -1998,11 +1998,11 @@ void http_stream::handle_header(Handler handler,
 	std::string temp;
 	temp.resize(bytes_transferred);
 	m_response.sgetn(&temp[0], bytes_transferred);
+	header_string += temp;
 
 	// 如果不是Http header尾部, 则继续读取header.
 	if (temp != "\r\n")
 	{
-		header_string += temp;
 		boost::asio::async_read_until(m_sock, m_response, "\r\n",
 			boost::bind(&http_stream::handle_header<Handler>,
 				this, handler, header_string,
