@@ -864,6 +864,18 @@ file::size_type file::writev(file::size_type file_offset, iovec_t const* bufs, i
 #endif // WIN32
 }
 
+bool file::flush()
+{
+#ifdef WIN32
+	BOOL ret = ::FlushFileBuffers(m_file_handle);
+	return ret ? true : false;
+#else
+	int ret = fsync(m_fd);
+	return ret == 0 ? true : false;
+#endif
+	return false;
+}
+
 file::size_type file::offset(boost::system::error_code& ec)
 {
 #ifdef WIN32

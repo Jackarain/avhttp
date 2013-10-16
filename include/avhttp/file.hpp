@@ -100,6 +100,8 @@ public:
 	AVHTTP_DECL size_type writev(size_type file_offset, iovec_t const* bufs, int num_bufs, boost::system::error_code& ec);
 	AVHTTP_DECL size_type readv(size_type file_offset, iovec_t const* bufs, int num_bufs, boost::system::error_code& ec);
 
+	AVHTTP_DECL bool flush();
+
 	AVHTTP_DECL size_type offset(boost::system::error_code& ec);
 	AVHTTP_DECL file::size_type offset(size_type offset, boost::system::error_code& ec);
 
