@@ -1528,23 +1528,33 @@ void http_stream::receive_header(boost::system::error_code& ec)
 		return;
 	}
 
-	// 接收掉所有Http Header.
-	boost::system::error_code read_err;
-	std::size_t bytes_transferred = boost::asio::read_until(m_sock, m_response, "\r\n\r\n", read_err);
-	if (read_err)
-	{
-		// 说明读到了结束还没有得到Http header, 返回错误的文件头信息而不返回eof.
-		if (read_err == boost::asio::error::eof)
-			ec = errc::malformed_response_headers;
-		else
-			ec = read_err;
-		AVHTTP_LOG_ERR("Header error, error message: \'" << ec.message() << "\'");
-		return;
-	}
-
+	// 循环接收所有http header, 并保存到header_string.
 	std::string header_string;
-	header_string.resize(bytes_transferred);
-	m_response.sgetn(&header_string[0], bytes_transferred);
+	boost::system::error_code read_err;
+	do
+	{
+		std::string temp;
+		std::size_t bytes_transferred = boost::asio::read_until(m_sock, m_response, "\r\n", read_err);
+		if (read_err)
+		{
+			// 说明读到了出错, 还没有得到Http header, 返回错误的文件头信息而不返回eof.
+			if (read_err == boost::asio::error::eof)
+				ec = errc::malformed_response_headers;
+			else
+				ec = read_err;
+			AVHTTP_LOG_ERR("Header error, error message: \'" << ec.message() << "\'");
+			return;
+		}
+
+		// 重新分配空间.
+		temp.resize(bytes_transferred);
+		m_response.sgetn(&temp[0], bytes_transferred);
+		header_string += temp;
+
+		// http header结尾.
+		if (temp == "\r\n")
+			break;
+	} while (true);
 
 	AVHTTP_LOG_DBG("Http header:\n" << header_string);
 
@@ -1963,9 +1973,9 @@ void http_stream::handle_status(Handler handler, const boost::system::error_code
 		}
 
 		// 异步读取所有Http header部分.
-		boost::asio::async_read_until(m_sock, m_response, "\r\n\r\n",
+		boost::asio::async_read_until(m_sock, m_response, "\r\n",
 			boost::bind(&http_stream::handle_header<Handler>,
-				this, handler,
+				this, handler, std::string(""),
 				boost::asio::placeholders::bytes_transferred,
 				boost::asio::placeholders::error
 			)
@@ -1974,7 +1984,8 @@ void http_stream::handle_status(Handler handler, const boost::system::error_code
 }
 
 template <typename Handler>
-void http_stream::handle_header(Handler handler, int bytes_transferred, const boost::system::error_code& err)
+void http_stream::handle_header(Handler handler,
+	std::string header_string, int bytes_transferred, const boost::system::error_code& err)
 {
 	if (err)
 	{
@@ -1983,9 +1994,24 @@ void http_stream::handle_header(Handler handler, int bytes_transferred, const bo
 		return;
 	}
 
-	std::string header_string;
-	header_string.resize(bytes_transferred);
-	m_response.sgetn(&header_string[0], bytes_transferred);
+	// 得到http header的某一行.
+	std::string temp;
+	temp.resize(bytes_transferred);
+	m_response.sgetn(&temp[0], bytes_transferred);
+	header_string += temp;
+
+	// 如果不是Http header尾部, 则继续读取header.
+	if (temp != "\r\n")
+	{
+		boost::asio::async_read_until(m_sock, m_response, "\r\n",
+			boost::bind(&http_stream::handle_header<Handler>,
+				this, handler, header_string,
+				boost::asio::placeholders::bytes_transferred,
+				boost::asio::placeholders::error
+			)
+		);
+		return;
+	}
 
 	AVHTTP_LOG_DBG("Status code: " << m_status_code);
 	AVHTTP_LOG_DBG("Http header:\n" << header_string);
