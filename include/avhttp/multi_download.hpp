@@ -222,7 +222,7 @@ protected:
 
 private:
 
-	inline void change_outstranding(bool addref = true);
+	AVHTTP_DECL void change_outstranding(bool addref = true);
 
 	// 默认根据文件大小自动计算分片大小.
 	AVHTTP_DECL std::size_t default_piece_size(const boost::int64_t& file_size) const;
