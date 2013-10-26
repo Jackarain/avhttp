@@ -87,6 +87,7 @@ void http_stream::open(const url& u, boost::system::error_code& ec)
 	m_request.consume(m_request.size());
 	m_response.consume(m_response.size());
 	m_skip_crlf = true;
+	m_is_chunked = false;
 
 	// 判断获得请求的url类型.
 	if (m_protocol != "http"
@@ -384,6 +385,7 @@ void http_stream::async_open(const url& u, BOOST_ASIO_MOVE_ARG(Handler) handler)
 	m_request.consume(m_request.size());
 	m_response.consume(m_response.size());
 	m_skip_crlf = true;
+	m_is_chunked = false;
 
 	// 判断获得请求的url类型.
 	if (m_protocol != "http"
@@ -1052,6 +1054,8 @@ void http_stream::request(request_opts& opt, boost::system::error_code& ec)
 	// 清空.
 	m_request_opts.clear();
 	m_is_chunked_end = false;
+	m_skip_crlf = true;
+	m_is_chunked = false;
 	m_keep_alive = true;
 	m_body_size = 0;
 
@@ -1251,6 +1255,8 @@ void http_stream::async_request(const request_opts& opt, BOOST_ASIO_MOVE_ARG(Han
 	request_opts opts = opt;
 	// 清空.
 	m_request_opts.clear();
+	m_skip_crlf = true;
+	m_is_chunked = false;
 	m_is_chunked_end = false;
 	m_keep_alive = true;
 	m_body_size = 0;
