@@ -80,8 +80,10 @@ public:
 		if (!m_inited)
 			return *this;
 
+#ifndef AVHTTP_DISABLE_LOGGER_TO_CONSOLE
 		std::cout << v;
 		std::cout.flush();
+#endif
 
 		if (m_file.is_open())
 		{
