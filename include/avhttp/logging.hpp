@@ -191,7 +191,7 @@ Logger_ptr& logger_single(std::string path = ".",
 	avhttp::aux::logger_single<avhttp::logger, boost::shared_ptr<avhttp::logger> >().reset();\
 } while (0)
 
-#if defined(DEBUG) || defined(_DEBUG)
+#if defined(DEBUG) || defined(_DEBUG) || defined(AVHTTP_ENABLE_LOGGER)
 #define AVHTTP_LOG_DBG(message) do { \
 	LOGGER_LOCKS_(); \
 	LOGGER_LOGS_ << avhttp::time_now_string() << "[DEBUG]: " << message << "\n"; \
