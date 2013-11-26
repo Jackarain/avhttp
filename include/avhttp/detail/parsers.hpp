@@ -56,7 +56,7 @@ inline void check_header(const std::string& name, const std::string& value,
 	if (headers_equal(name, "Content-Type"))
 		content_type = value;
 	else if (headers_equal(name, "Content-Length"))
-		content_length = (std::max)(atoi64(value.c_str()), content_length);
+		content_length = (std::max)((boost::int64_t)atoi64(value.c_str()), content_length);
 	else if (headers_equal(name, "Location"))
 		location = value;
 	else if (headers_equal(name, "Content-Range"))
