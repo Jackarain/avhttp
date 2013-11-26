@@ -2163,7 +2163,12 @@ void http_stream::handle_read(const MutableBufferSequence& buffers, Handler hand
 				else
 				{
 					bytes_transferred = read_some_impl(boost::asio::buffer(m_zlib_buffer, 1024), err);
-					m_body_size -= bytes_transferred;				// 统计读取body的字节数.
+
+					// 统计读取body的字节数, 但这个是压缩的数据, 目前还不能完全确定
+					// 未解压的数据长度就是content_length, 因为大多数情况下, 压缩数据
+					// 都是以chunked形式发送.
+					m_body_size += bytes_transferred;
+
 					m_zlib_buffer_size = bytes_transferred;
 					m_stream.avail_in = (uInt)m_zlib_buffer_size;
 					m_stream.next_in = (z_const Bytef *)&m_zlib_buffer[0];

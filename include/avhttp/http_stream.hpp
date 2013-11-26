@@ -781,7 +781,9 @@ private:
 	// 数据内容长度.
 	boost::int64_t m_content_length;
 
-	// body大小.
+	// body大小, 它主要用于在启用了keep_alive的情况下, 提前把
+	// 所接收到的content长度计算出来, 以避免接收到下一个requst
+	// 所返回的http header.
 	std::size_t m_body_size;
 
 	// 重定向的地址.
