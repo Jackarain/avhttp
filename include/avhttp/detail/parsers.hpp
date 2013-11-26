@@ -56,9 +56,22 @@ inline void check_header(const std::string& name, const std::string& value,
 	if (headers_equal(name, "Content-Type"))
 		content_type = value;
 	else if (headers_equal(name, "Content-Length"))
-		content_length = atoi64(value.c_str());
+		content_length = (std::max)(atoi64(value.c_str()), content_length);
 	else if (headers_equal(name, "Location"))
 		location = value;
+	else if (headers_equal(name, "Content-Range"))
+	{
+		std::string::size_type f = value.find('/');
+		if (f != std::string::npos && f++ != std::string::npos)
+		{
+			std::string tmp = value.substr(f);
+			if (!tmp.empty())
+			{
+				boost::int64_t length = atoi64(tmp.c_str());
+				content_length = (std::max)(length, content_length);
+			}
+		}
+	}
 }
 
 #ifdef atoi64
