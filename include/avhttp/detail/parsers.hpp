@@ -656,23 +656,6 @@ inline int str_raw_equal(const char *first, const char *second)
 	return (std::toupper(*first) == std::toupper(*second));
 }
 
-inline int str_raw_nequal(const char *first, const char *second, size_t max)
-{
-	while (*first && *second && max)
-	{
-		if (std::toupper(*first) != std::toupper(*second))
-			break;
-		max--;
-		first++;
-		second++;
-	}
-
-	// they are equal this far.
-	if (0 == max) return 1;
-
-	return std::toupper(*first) == std::toupper(*second);
-}
-
 inline int checkday(const char *check, size_t len)
 {
 	int i;
