@@ -24,6 +24,7 @@
 #include <cstdlib>
 #include <string>
 #include <ctime>
+#include <cstring>
 
 #include <boost/date_time.hpp>
 #include <boost/algorithm/string.hpp>
@@ -49,6 +50,10 @@ namespace detail {
 #  else
 #    define SIZEOF_TIME_T 4
 #  endif
+#endif
+
+#ifdef _MSC_VER
+#	define strcasecmp stricmp
 #endif
 
 inline bool headers_equal(const std::string& a, const std::string& b)
@@ -640,22 +645,6 @@ typedef struct {
 	int tm_year;
 } short_tm;
 
-inline int str_raw_equal(const char *first, const char *second)
-{
-	while (*first && *second)
-	{
-		// get out of the loop as soon as they don't match.
-		if (std::toupper(*first) != std::toupper(*second))
-			break;
-		first++;
-		second++;
-	}
-	// we do the comparison here (possibly again), just to make sure that if the
-	// loop above is skipped because one of the strings reached zero, we must not
-	// return this as a successful match
-	return (std::toupper(*first) == std::toupper(*second));
-}
-
 inline int checkday(const char *check, size_t len)
 {
 	int i;
@@ -668,7 +657,7 @@ inline int checkday(const char *check, size_t len)
 		what = &wkday[0];
 	for (i = 0; i < 7; i++)
 	{
-		if (str_raw_equal(check, what[0]))
+		if (strcasecmp(check, what[0]) == 0)
 		{
 			found = true;
 			break;
@@ -687,7 +676,7 @@ inline int checkmonth(const char *check)
 	what = &month[0];
 	for (i = 0; i < 12; i++)
 	{
-		if (str_raw_equal(check, what[0]))
+		if (strcasecmp(check, what[0]) == 0)
 		{
 			found = true;
 			break;
@@ -710,7 +699,7 @@ inline int checktz(const char *check)
 	what = tz;
 	for (i = 0; i < sizeof(tz) / sizeof(tz[0]); i++)
 	{
-		if (str_raw_equal(check, what->name))
+		if (strcasecmp(check, what->name) == 0)
 		{
 			found = true;
 			break;
@@ -800,8 +789,8 @@ inline bool parse(const char* date, time_t* output)
 			// a name coming up
 			char buf[32] = "";
 			size_t len;
-			sscanf(date, "%31[ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz]",
-				buf);
+
+			sscanf(date, "%31[ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz]", buf);
 			len = strlen(buf);
 
 			if (wdaynum == -1)
@@ -810,6 +799,7 @@ inline bool parse(const char* date, time_t* output)
 				if (wdaynum != -1)
 					found = true;
 			}
+
 			if (!found && (monnum == -1))
 			{
 				monnum = checkmonth(buf);
