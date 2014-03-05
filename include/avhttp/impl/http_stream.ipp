@@ -1456,11 +1456,7 @@ void http_stream::receive_header(boost::system::error_code& ec)
 		// 决定是否读取, 这时, 用户可以使用read_some/async_read_some来读取这个链接上的所有数据.
 		boost::asio::streambuf tempbuf;
 		int response_size = m_response.size();
-		boost::asio::streambuf::const_buffers_type::const_iterator begin(m_response.data().begin());
-		const char* ptr = boost::asio::buffer_cast<const char*>(*begin);
-		std::ostream tempbuf_stream(&tempbuf);
-		tempbuf_stream.write(ptr, response_size);
-
+		boost::asio::buffer_copy(tempbuf.prepare(response_size), m_response.data());
 		// 检查http状态码, version_major和version_minor是http协议的版本号.
 		int version_major = 0;
 		int version_minor = 0;
@@ -1903,10 +1899,7 @@ void http_stream::handle_status(Handler handler, const boost::system::error_code
 	// 决定是否读取, 这时, 用户可以使用read_some/async_read_some来读取这个链接上的所有数据.
 	boost::asio::streambuf tempbuf;
 	int response_size = m_response.size();
-	boost::asio::streambuf::const_buffers_type::const_iterator begin(m_response.data().begin());
-	const char* ptr = boost::asio::buffer_cast<const char*>(*begin);
-	std::ostream tempbuf_stream(&tempbuf);
-	tempbuf_stream.write(ptr, response_size);
+	boost::asio::buffer_copy(tempbuf.prepare(response_size), m_response.data());
 
 	// 检查http状态码, version_major和version_minor是http协议的版本号.
 	int version_major = 0;
