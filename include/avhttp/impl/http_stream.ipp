@@ -1457,6 +1457,7 @@ void http_stream::receive_header(boost::system::error_code& ec)
 		boost::asio::streambuf tempbuf;
 		int response_size = m_response.size();
 		boost::asio::buffer_copy(tempbuf.prepare(response_size), m_response.data());
+		tempbuf.commit(response_size);
 		// 检查http状态码, version_major和version_minor是http协议的版本号.
 		int version_major = 0;
 		int version_minor = 0;
@@ -1900,7 +1901,7 @@ void http_stream::handle_status(Handler handler, const boost::system::error_code
 	boost::asio::streambuf tempbuf;
 	int response_size = m_response.size();
 	boost::asio::buffer_copy(tempbuf.prepare(response_size), m_response.data());
-
+	tempbuf.commit(response_size);
 	// 检查http状态码, version_major和version_minor是http协议的版本号.
 	int version_major = 0;
 	int version_minor = 0;
