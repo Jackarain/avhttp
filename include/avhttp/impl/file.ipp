@@ -1077,35 +1077,37 @@ bool file::set_size(size_type s, boost::system::error_code& ec)
 		}
 #endif // F_PREALLOCATE
 
-		int ret = 0;
-
 #if HAVE_FALLOCATE
-		ret = fallocate(m_fd, 0, 0, s);
-		// if we return 0, everything went fine
-		// the fallocate call succeeded
-		if (ret == 0) return true;
-		// otherwise, something went wrong. If the error
-		// is ENOSYS, just keep going and do it the old-fashioned
-		// way. If fallocate failed with some other error, it
-		// probably means the user should know about it, error out
-		// and report it.
-		if (errno != ENOSYS)
 		{
-			ec.assign(ret, boost::system::generic_category());
-			return false;
+			int ret = fallocate(m_fd, 0, 0, s);
+			// if we return 0, everything went fine
+			// the fallocate call succeeded
+			if (ret == 0) return true;
+			// otherwise, something went wrong. If the error
+			// is ENOSYS, just keep going and do it the old-fashioned
+			// way. If fallocate failed with some other error, it
+			// probably means the user should know about it, error out
+			// and report it.
+			if (errno != ENOSYS)
+			{
+				ec.assign(ret, boost::system::generic_category());
+				return false;
+			}
 		}
 #endif // __linux__
 
 #if AVHTTP_HAS_FALLOCATE
-		// if fallocate failed, we have to use posix_fallocate
-		// which can be painfully slow
-		// if you get a compile error here, you might want to
-		// define AVHTTP_HAS_FALLOCATE to 0.
-		ret = posix_fallocate(m_fd, 0, s);
-		if (ret != 0)
 		{
-			ec = boost::system::error_code(ret, boost::system::generic_category());
-			return false;
+			// if fallocate failed, we have to use posix_fallocate
+			// which can be painfully slow
+			// if you get a compile error here, you might want to
+			// define AVHTTP_HAS_FALLOCATE to 0.
+			int ret = posix_fallocate(m_fd, 0, s);
+			if (ret != 0)
+			{
+				ec = boost::system::error_code(ret, boost::system::generic_category());
+				return false;
+			}
 		}
 #endif // AVHTTP_HAS_FALLOCATE
 	}
