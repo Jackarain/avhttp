@@ -1072,13 +1072,8 @@ inline bool parse_http_date(const std::string& s, boost::posix_time::ptime& t)
 	time_t st = 0;
 	if (!parse(s.c_str(), &st))
 		return false;
-	tm* gmt = gmtime((const time_t*)&st);
-	char time_buf[512] = { 0 };
-	strftime(time_buf, 200, "%a, %d %b %Y %H:%M:%S GMT\r\n", gmt);
-	std::stringstream ss(time_buf);
-	gmt_time_input_face* rfc1123_date = new gmt_time_input_face("%a, %d %b %Y %H:%M:%S GMT");
-	ss.imbue(std::locale(ss.getloc(), rfc1123_date));
-	ss >> t;
+	std::tm* gmt = std::gmtime((const time_t*)&st);
+	t = boost::posix_time::ptime_from_tm(*gmt);
 	if (t != boost::posix_time::not_a_date_time)
 		return true;
 	return false;
@@ -1093,9 +1088,7 @@ inline bool parse_http_date(const std::string& s, time_t& t)
 {
 	boost::posix_time::ptime pt;
 	if (!parse_http_date(s, pt))
-	{
 		return false;
-	}
 	t = ptime_to_time_t(pt);
 	return true;
 }
