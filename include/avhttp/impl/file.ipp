@@ -311,7 +311,7 @@ void file::close()
 	m_open_mode = 0;
 }
 
-static int bufs_size(file::iovec_t const* bufs, int num_bufs)
+inline int bufs_size(file::iovec_t const* bufs, int num_bufs)
 {
 	int size = 0;
 	for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
@@ -1077,7 +1077,7 @@ bool file::set_size(size_type s, boost::system::error_code& ec)
 		}
 #endif // F_PREALLOCATE
 
-		int ret;
+		int ret = 0;
 
 #if HAVE_FALLOCATE
 		ret = fallocate(m_fd, 0, 0, s);

@@ -220,6 +220,9 @@ public:
 	///返回http_stream对象的引用.
 	AVHTTP_DECL http_stream& get_http_stream();
 
+	///反回当前file_upload所使用的io_service的引用.
+	AVHTTP_DECL boost::asio::io_service& get_io_service();
+
 private:
 
 	template <typename Handler>

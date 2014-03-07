@@ -460,6 +460,11 @@ http_stream& file_upload::get_http_stream()
 	return m_http_stream;
 }
 
+boost::asio::io_service& file_upload::get_io_service()
+{
+	return m_io_service;
+}
+
 } // namespace avhttp
 
 #include <boost/asio/unyield.hpp>
