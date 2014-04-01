@@ -286,7 +286,7 @@ public:
 	///从这个http_stream异步读取一些数据.
 	// @param buffers一个或多个用于读取数据的缓冲区, 这个类型必须满足MutableBufferSequence,
 	//  MutableBufferSequence的定义在boost.asio文档中.
-	// http://www.boost.org/doc/libs/1_54_0/doc/html/boost_asio/reference/MutableBufferSequence.html
+	// http://www.boost.org/doc/libs/1_55_0/doc/html/boost_asio/reference/MutableBufferSequence.html
 	// @param handler在读取操作完成或出现错误时, 将被回调, 它满足以下条件:
 	// @begin code
 	//  void handler(
@@ -312,7 +312,7 @@ public:
 
 	///向这个http_stream中发送一些数据.
 	// @param buffers是一个或多个用于发送数据缓冲. 这个类型必须满足ConstBufferSequence, 参考文档:
-	// http://www.boost.org/doc/libs/1_54_0/doc/html/boost_asio/reference/ConstBufferSequence.html
+	// http://www.boost.org/doc/libs/1_55_0/doc/html/boost_asio/reference/ConstBufferSequence.html
 	// @返回实现发送的数据大小.
 	// @备注: 该函数将会阻塞到一直等待数据被发送或发生错误时才返回.
 	// write_some不保证发送完所有数据, 用户需要根据返回值来确定已经发送的数据大小.
@@ -334,7 +334,7 @@ public:
 
 	///向这个http_stream中发送一些数据.
 	// @param buffers是一个或多个用于发送数据缓冲. 这个类型必须满足ConstBufferSequence, 参考文档:
-	// http://www.boost.org/doc/libs/1_54_0/doc/html/boost_asio/reference/ConstBufferSequence.html
+	// http://www.boost.org/doc/libs/1_55_0/doc/html/boost_asio/reference/ConstBufferSequence.html
 	// @返回实现发送的数据大小.
 	// @备注: 该函数将会阻塞到一直等待数据被发送或发生错误时才返回.
 	// write_some不保证发送完所有数据, 用户需要根据返回值来确定已经发送的数据大小.
@@ -352,7 +352,7 @@ public:
 	///从这个http_stream异步发送一些数据.
 	// @param buffers一个或多个用于读取数据的缓冲区, 这个类型必须满足ConstBufferSequence,
 	//  ConstBufferSequence的定义在boost.asio文档中.
-	// http://www.boost.org/doc/libs/1_54_0/doc/html/boost_asio/reference/ConstBufferSequence.html
+	// http://www.boost.org/doc/libs/1_55_0/doc/html/boost_asio/reference/ConstBufferSequence.html
 	// @param handler在发送操作完成或出现错误时, 将被回调, 它满足以下条件:
 	// @begin code
 	//  void handler(
