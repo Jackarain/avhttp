@@ -1,13 +1,26 @@
-#pragma once
+//
+// async_read_body.hpp
+// ~~~~~~~~~~~~~~~~~~~
+//
+// Copyright (c) 2014 Jack (jack dot wgm at gmail dot com)
+// Copyright (C) 2012 - 2014  微蔡 <microcai@fedoraproject.org>
+//
+// Distributed under the Boost Software License, Version 1.0. (See accompanying
+// path LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+//
 
 #ifndef AVHTTP_MISC_HTTP_READBODY_HPP
 #define AVHTTP_MISC_HTTP_READBODY_HPP
+
+#if defined(_MSC_VER) && (_MSC_VER >= 1200)
+# pragma once
+#endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 #include "avhttp/http_stream.hpp"
 #include "avhttp/completion_condition.hpp"
 
 
-namespace avhttp{
+namespace avhttp {
 ///用于http_stream访问url.
 // 这个函数用于http_stream访问指定的url, 数据将保存在用户事先提供的buffers中.
 // @注意:
