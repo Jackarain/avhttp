@@ -25,7 +25,7 @@ AVHTTP_DECL std::size_t read_body(AsyncReadStream& stream,
 	stream.open(url, ec);
 	if (ec)
 		return -1;
-	readed = boost::asio::read(stream, buffers, transfer_response_body(stream.content_length()));
+	readed = boost::asio::read(stream, buffers, transfer_response_body(stream.content_length()), ec);
 
 	if(ec == boost::asio::error::eof && stream.content_length() == -1)
 		ec = boost::system::error_code();
