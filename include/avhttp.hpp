@@ -75,6 +75,8 @@ namespace
 # include "avhttp/async_read_body.hpp"
 #endif
 
+#include "avhttp/read_body.hpp"
+
 #include "avhttp/detail/abi_suffix.hpp"
 
 
