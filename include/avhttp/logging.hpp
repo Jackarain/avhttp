@@ -238,7 +238,8 @@ namespace avhttp {
 		{}
 		~logger()
 		{
-			logger_writer(level_, std::string(oss_.str()), m_disable_cout);
+			std::string message = oss_.str();
+			logger_writer(level_, message, m_disable_cout);
 		}
 
 		template <class T>
@@ -251,6 +252,16 @@ namespace avhttp {
 		std::ostringstream oss_;
 		std::string& level_;
 		bool m_disable_cout;
+	};
+
+	class empty_logger : boost::noncopyable
+	{
+	public:
+		template <class T>
+		empty_logger& operator << (T const& v)
+		{
+			return *this;
+		}
 	};
 
 	static std::string LOGGER_DEBUG_STR = "DEBUG";
@@ -289,12 +300,12 @@ namespace avhttp {
 
 #else
 
-#define AVHTTP_LOG_DBG(message) ((void)0)
-#define AVHTTP_LOG_INFO(message) ((void)0)
-#define AVHTTP_LOG_WARN(message) ((void)0)
-#define AVHTTP_LOG_ERR(message) ((void)0)
-#define AVHTTP_LOG_OUT(message) ((void)0)
-#define AVHTTP_LOG_FILE(message) ((void)0)
+#define AVHTTP_LOG_DBG avhttp::empty_logger()
+#define AVHTTP_LOG_INFO avhttp::empty_logger()
+#define AVHTTP_LOG_WARN avhttp::empty_logger()
+#define AVHTTP_LOG_ERR avhttp::empty_logger()
+#define AVHTTP_LOG_OUT avhttp::empty_logger()
+#define AVHTTP_LOG_FILE avhttp::empty_logger()
 
 #endif
 
