@@ -27,7 +27,7 @@ namespace avhttp {
 
 #define FORMBOUNDARY "----AvHttpFormBoundaryamFja2FyYWlu"
 
-std::string form_boundary()
+inline std::string form_boundary()
 {
 	static boost::uuids::basic_random_generator<boost::mt19937> gen;
 	static std::string random_str = boost::uuids::to_string(boost::uuids::uuid(gen()));
