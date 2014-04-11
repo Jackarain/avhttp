@@ -175,6 +175,9 @@ struct file_upload::open_coro : boost::asio::coroutine
 		boost::system::error_code ec;
 		request_opts opts = m_http_stream.request_options();
 
+	        // 设置边界字符串.
+		m_boundary = m_base_boundary;
+
 		// 设置为POST模式.
 		opts.insert(http_options::request_method, "POST");
 		if (!fake_100)
@@ -182,7 +185,7 @@ struct file_upload::open_coro : boost::asio::coroutine
 		opts.fake_continue(fake_100);
 
 		// 计算Content-Length.
-		std::size_t content_length = calc_content_length(filename, file_of_form, args, ec);
+		std::size_t content_length = calc_content_length(filename, file_of_form, m_base_boundary, args, ec);
 		if (ec)
 		{
 			m_handler(ec);
