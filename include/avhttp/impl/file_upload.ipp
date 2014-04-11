@@ -418,13 +418,13 @@ void file_upload::write_tail()
 template <typename Handler>
 struct file_upload::tail_coro : boost::asio::coroutine
 {
-	tail_coro(std::string& boundary, http_stream& http, Handler handler)
+	tail_coro(std::string& boundary, std::string& base_boundary, http_stream& http, Handler handler)
 		: m_boundary(boundary)
 		, m_http_stream(http)
 		, m_handler(handler)
 	{
 		// 发送结尾.
-		m_boundary = "\r\n--" + m_base_boundary + "--\r\n";
+		m_boundary = "\r\n--" + base_boundary + "--\r\n";
 		boost::asio::async_write(m_http_stream, boost::asio::buffer(m_boundary), *this);
 	}
 
@@ -452,7 +452,7 @@ struct file_upload::tail_coro : boost::asio::coroutine
 template <typename Handler>
 file_upload::tail_coro<Handler> file_upload::make_tail_coro(BOOST_ASIO_MOVE_ARG(Handler) handler)
 {
-	return tail_coro<Handler>(m_boundary, m_http_stream, handler);
+	return tail_coro<Handler>(m_boundary, m_base_boundary, m_http_stream, handler);
 }
 
 template <typename Handler>
