@@ -25,12 +25,12 @@
 
 namespace avhttp {
 
-#define FORMBOUNDARY "----AvHttpFormBoundaryamFja2FyYWlu"
+#define FORMBOUNDARY "----AvHttpFormBound"
 
 inline std::string form_boundary()
 {
-	static boost::uuids::basic_random_generator<boost::mt19937> gen;
-	static std::string random_str = boost::uuids::to_string(boost::uuids::uuid(gen()));
+	boost::uuids::basic_random_generator<boost::mt19937> gen;
+	std::string random_str = boost::uuids::to_string(boost::uuids::uuid(gen()));
 	return FORMBOUNDARY + random_str;
 }
 
@@ -116,11 +116,11 @@ namespace mime_types {
 } // namespace mime_types
 
 inline std::size_t calc_content_length(const std::string& filename, const std::string& file_of_form,
-	const file_upload::form_args& args, boost::system::error_code& ec)
+	const std::string& base_boundary, const file_upload::form_args& args, boost::system::error_code& ec)
 {
 	using mime_types::extension_to_type;
 
-	std::string boundary = form_boundary();
+	std::string boundary = base_boundary;
 	std::string short_filename = fs::path(filename).leaf().string();
 	std::size_t content_length = fs::file_size(filename, ec);
 	std::size_t boundary_size = boundary.size() + 4; // 4 是指 "--" + "\r\n"
@@ -153,6 +153,7 @@ file_upload::file_upload(boost::asio::io_service& io, bool fake_continue)
 	: m_io_service(io)
 	, m_http_stream(io)
 	, m_fake_continue(fake_continue)
+	, m_base_boundary(form_boundary())
 {}
 
 file_upload::~file_upload()
@@ -162,13 +163,14 @@ template <typename Handler>
 struct file_upload::open_coro : boost::asio::coroutine
 {
 	open_coro(http_stream& http, const std::string& url, const std::string& filename, bool& fake_100,
-		const std::string& file_of_form, const form_args& args, std::string& boundary, Handler handler)
+		const std::string& file_of_form, const form_args& args, std::string& boundary, std::string& base_boundary, Handler handler)
 		: m_handler(handler)
 		, m_http_stream(http)
 		, m_filename(filename)
 		, m_file_of_form(file_of_form)
 		, m_form_args(args)
 		, m_boundary(boundary)
+		, m_base_boundary(base_boundary)
 	{
 		boost::system::error_code ec;
 		request_opts opts = m_http_stream.request_options();
@@ -196,7 +198,7 @@ struct file_upload::open_coro : boost::asio::coroutine
 		opts.insert(http_options::content_length, content_length_stream.str());
 
 		// 添加边界等选项并打开url.
-		m_boundary = form_boundary();
+		m_boundary = base_boundary;
 		opts.insert(http_options::content_type, "multipart/form-data; boundary=" + m_boundary);
 		m_boundary = "--" + m_boundary + "\r\n";	// 之后都是单行的分隔.
 		m_http_stream.request_options(opts);
@@ -257,6 +259,7 @@ struct file_upload::open_coro : boost::asio::coroutine
 	const form_args& m_form_args;
 	std::string m_file_of_form;
 	std::string& m_boundary;
+	std::string& m_base_boundary;
 	boost::shared_ptr<std::string> m_content_disposition;
 	form_args::const_iterator m_iter;
 };
@@ -268,7 +271,7 @@ file_upload::make_open_coro(const std::string& url, const std::string& filename,
 {
 	m_form_args = args;
 	return open_coro<Handler>(m_http_stream, url, filename,
-		m_fake_continue, file_of_form, m_form_args, m_boundary, handler);
+		m_fake_continue, file_of_form, m_form_args, m_boundary, m_base_boundary, handler);
 }
 
 template <typename Handler>
@@ -287,7 +290,7 @@ void file_upload::open(const std::string& url, const std::string& filename,
 	m_form_args = args;
 
 	// 设置边界字符串.
-	m_boundary = form_boundary();
+	m_boundary = m_base_boundary;
 
 	// 作为发送名字.
 	std::string short_filename = fs::path(filename).leaf().string();
@@ -296,7 +299,7 @@ void file_upload::open(const std::string& url, const std::string& filename,
 	opts.insert(http_options::request_method, "POST");
 
 	// 计算Content-Length.
-	std::size_t content_length = calc_content_length(filename, file_of_form, args, ec);
+	std::size_t content_length = calc_content_length(filename, file_of_form, m_base_boundary, args, ec);
 	if (ec)
 	{
 		return;
@@ -399,7 +402,7 @@ void file_upload::async_write_some(const ConstBufferSequence& buffers, BOOST_ASI
 void file_upload::write_tail(boost::system::error_code& ec)
 {
 	// 发送结尾.
-	m_boundary = "\r\n--" + form_boundary() + "--\r\n";
+	m_boundary = "\r\n--" + m_base_boundary + "--\r\n";
 	boost::asio::write(m_http_stream, boost::asio::buffer(m_boundary), ec);
 	// 继续读取http header.
 	m_http_stream.receive_header(ec);
@@ -408,7 +411,7 @@ void file_upload::write_tail(boost::system::error_code& ec)
 void file_upload::write_tail()
 {
 	// 发送结尾.
-	m_boundary = "\r\n--" + form_boundary() + "--\r\n";
+	m_boundary = "\r\n--" + m_base_boundary + "--\r\n";
 	boost::asio::write(m_http_stream, boost::asio::buffer(m_boundary));
 	// 继续读取http header.
 	m_http_stream.receive_header();
@@ -423,7 +426,7 @@ struct file_upload::tail_coro : boost::asio::coroutine
 		, m_handler(handler)
 	{
 		// 发送结尾.
-		m_boundary = "\r\n--" + form_boundary() + "--\r\n";
+		m_boundary = "\r\n--" + m_base_boundary + "--\r\n";
 		boost::asio::async_write(m_http_stream, boost::asio::buffer(m_boundary), *this);
 	}
 

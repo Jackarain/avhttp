@@ -250,6 +250,7 @@ private:
 
 	// 边界符.
 	std::string m_boundary;
+	std::string m_base_boundary;
 
 	// 表单参数.
 	form_args m_form_args;
