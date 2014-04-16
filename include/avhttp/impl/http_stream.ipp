@@ -2639,7 +2639,7 @@ void http_stream::socks_proxy_handshake(Stream& sock, boost::system::error_code&
 		write_uint8(3, wp); // address type.
 		BOOST_ASSERT(host.size() <= 255);
 		write_uint8(host.size(), wp);				// domainname size.
-		std::copy(host.begin(), host.end(),wp);		// domainname.
+		std::copy(host.begin(), host.end(), wp);		// domainname.
 		wp += host.size();
 		write_uint16(u.port(), wp);					// port.
 	}

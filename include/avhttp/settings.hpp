@@ -87,7 +87,7 @@ public:
 
 	// 这样就允许这样的应用:
 	// http_stream s;
-	// s.request_options(request_opts()("cookie","XXXXXX"));
+	// s.request_options(request_opts()("cookie", "XXXXXX"));
 	option& operator()(const std::string& key, const std::string& val)
 	{
 		insert(key, val);
@@ -138,11 +138,11 @@ public:
 		return false;
 	}
 
-	// 查找指定的 key 的 value. 没找到返回 ""，　这是个偷懒的帮助.
+	// 查找指定的 key 的 value. 没找到返回 "", 这是个偷懒的帮助.
 	std::string find(const std::string& key) const
 	{
 		std::string v;
-		find(key,v);
+		find(key, v);
 		return v;
 	}
 

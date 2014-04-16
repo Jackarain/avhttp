@@ -197,9 +197,9 @@ namespace detail {
 			ret = entry(entry::int_t);
 			char* end_pointer;
 #if defined WIN32 && !defined __MINGW_H
-			ret.integer() = _strtoi64(val.c_str(),& end_pointer, 10);
+			ret.integer() = _strtoi64(val.c_str(), &end_pointer, 10);
 #else
-			ret.integer() = strtoll(val.c_str(),& end_pointer, 10);
+			ret.integer() = strtoll(val.c_str(), &end_pointer, 10);
 #endif
 			if (end_pointer == val.c_str())
 			{

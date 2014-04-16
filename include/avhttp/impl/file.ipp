@@ -121,7 +121,7 @@ void file::open(fs::path const& path, int mode, boost::system::error_code& ec)
 		// read_write
 		{GENERIC_WRITE | GENERIC_READ, FILE_SHARE_READ, OPEN_ALWAYS, FILE_FLAG_RANDOM_ACCESS},
 		// invalid option
-		{0,0,0,0},
+		{0, 0, 0, 0},
 		// read_only no_buffer
 		{GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, FILE_FLAG_RANDOM_ACCESS | FILE_FLAG_OVERLAPPED | FILE_FLAG_NO_BUFFERING },
 		// write_only no_buffer
@@ -129,7 +129,7 @@ void file::open(fs::path const& path, int mode, boost::system::error_code& ec)
 		// read_write no_buffer
 		{GENERIC_WRITE | GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, OPEN_ALWAYS, FILE_FLAG_RANDOM_ACCESS | FILE_FLAG_OVERLAPPED | FILE_FLAG_NO_BUFFERING },
 		// invalid option
-		{0,0,0,0}
+		{0, 0, 0, 0}
 	};
 
 	const static DWORD attrib_array[] =
