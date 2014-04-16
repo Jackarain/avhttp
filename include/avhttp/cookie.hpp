@@ -31,9 +31,6 @@
 
 namespace avhttp {
 
-class cookies;
-inline cookies operator+(const cookies& lhs, const cookies& rhs);
-
 // 用于管理cookie的实现.
 // 请求前设置cookie, 示例如下:.
 // @begin example
@@ -56,6 +53,10 @@ inline cookies operator+(const cookies& lhs, const cookies& rhs);
 //    std::cout <<　i->name << ":" << i->value << std::endl;
 //  }
 // @end example
+
+class cookies;
+inline cookies operator+(const cookies& lhs, const cookies& rhs);
+
 class cookies
 {
 public:
