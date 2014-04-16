@@ -59,7 +59,7 @@ namespace avhttp {
 			file_num = 3
 		};
 
-		void open(const char * filename, int flag)
+		void open(const char * filename, std::ios_base::openmode flag)
 		{
 			m_auto_mode = false;
 			const char* pos = std::strstr(filename, "*");
