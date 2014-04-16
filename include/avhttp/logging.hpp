@@ -179,8 +179,11 @@ namespace avhttp {
 
 		inline char const* time_now_string()
 		{
-			boost::posix_time::ptime time = boost::posix_time::microsec_clock::local_time();
-			std::string s = boost::posix_time::to_simple_string(time);
+			std::ostringstream oss;
+			boost::posix_time::time_facet* _facet = new boost::posix_time::time_facet("%Y-%m-%d %H:%M:%S.%f");
+			oss.imbue(std::locale(std::locale::classic(), _facet));
+			oss << boost::posix_time::microsec_clock::local_time();
+			std::string s = oss.str();
 			if (s.size() > 3)
 				s = std::string(s.substr(0, s.size() - 3));
 			static char str[200];
