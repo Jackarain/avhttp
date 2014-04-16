@@ -9,8 +9,8 @@
 // path LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef AVHTTP_MISC_HTTP_READBODY_HPP
-#define AVHTTP_MISC_HTTP_READBODY_HPP
+#ifndef AVHTTP_MISC_HTTP_ASYNC_READBODY_HPP
+#define AVHTTP_MISC_HTTP_ASYNC_READBODY_HPP
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
@@ -120,4 +120,4 @@ AVHTTP_DECL void async_read_body(AsyncReadStream& stream,
 
 } // namespace avhttp
 
-#endif // AVHTTP_MISC_HTTP_READBODY_HPP
+#endif // AVHTTP_MISC_HTTP_ASYNC_READBODY_HPP
