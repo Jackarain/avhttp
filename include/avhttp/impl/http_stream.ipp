@@ -3164,7 +3164,7 @@ void http_stream::handle_socks_process(Stream& sock, Handler handler,
 	case ssl_handshake:
 		{
 			AVHTTP_LOG_DBG << "Handshake to \'" << m_url.host() <<
-				"\', error message \'" << err.message() << "\'");
+				"\', error message \'" << err.message() << "\'";
 
 			async_request(m_request_opts_priv, handler);
 		}
