@@ -71,7 +71,7 @@ int main(int argc, char* argv[])
 	std::locale::global(std::locale(""));
 #endif
 
-	AVHTTP_INIT_LOGGER(".", "multi_download.log");
+	AVHTTP_INIT_LOGGER("multi_download.log");
 
 	try {
 		boost::asio::io_service io;
@@ -123,8 +123,6 @@ int main(int argc, char* argv[])
 		std::cerr << e.what() << std::endl;
 		return -1;
 	}
-
-	AVHTTP_UNINIT_LOGGER();
 
 	return 0;
 }
