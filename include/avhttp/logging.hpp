@@ -282,7 +282,7 @@ namespace avhttp {
 
 #define AVHTTP_AUTO_LOGGER(path) do \
 	{ \
-	avhttp::auto_logger_file& file = avhttp::aux::writer_single<avhttp::auto_logger_file>(); \
+		avhttp::auto_logger_file& file = avhttp::aux::writer_single<avhttp::auto_logger_file>(); \
 		std::string filename = "*"; \
 		filename = std::string(path) + filename; \
 		if (!filename.empty()) \
