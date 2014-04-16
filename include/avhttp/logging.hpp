@@ -238,7 +238,7 @@ namespace avhttp {
 		{}
 		~logger()
 		{
-			logger_writer(level_, oss_.str(), m_disable_cout);
+			logger_writer(level_, std::string(oss_.str()), m_disable_cout);
 		}
 
 		template <class T>
