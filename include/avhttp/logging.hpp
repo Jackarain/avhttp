@@ -204,18 +204,34 @@ namespace avhttp {
 #	define LOGGER_DBG_VIEW_(x) ((void)0)
 #endif // WIN32 && LOGGER_DBG_VIEW
 
-	inline void output_console(const std::string& suffix, const std::string& message)
+	static std::string LOGGER_DEBUG_STR = "DEBUG";
+	static std::string LOGGER_INFO_STR = "INFO";
+	static std::string LOGGER_WARN_STR = "WARNING";
+	static std::string LOGGER_ERR_STR = "ERROR";
+	static std::string LOGGER_FILE_STR = "FILE";
+
+	inline void output_console(std::string& level, const std::string& suffix, const std::string& message)
 	{
 #ifdef WIN32
 		HANDLE handle_stdout = GetStdHandle(STD_OUTPUT_HANDLE);
 		CONSOLE_SCREEN_BUFFER_INFO csbi;
 		GetConsoleScreenBufferInfo(handle_stdout, &csbi);
-		SetConsoleTextAttribute(handle_stdout, FOREGROUND_GREEN);
+		if (level == LOGGER_DEBUG_STR || level == LOGGER_INFO_STR)
+			SetConsoleTextAttribute(handle_stdout, FOREGROUND_GREEN);
+		else if (level == LOGGER_WARN_STR)
+			SetConsoleTextAttribute(handle_stdout, FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_INTENSITY);
+		else if (level == LOGGER_ERR_STR)
+			SetConsoleTextAttribute(handle_stdout, FOREGROUND_RED | FOREGROUND_INTENSITY);
 		std::cout << suffix;
 		SetConsoleTextAttribute(handle_stdout, csbi.wAttributes);
 		std::cout << message;
 #else
-		std::cout << "\033[32m" << suffix << "\033[0m" << message;
+		if (level == LOGGER_DEBUG_STR || level == LOGGER_INFO_STR)
+			std::cout << "\033[32m" << suffix << "\033[0m" << message;
+		else if (level == LOGGER_WARN_STR)
+			std::cout << "\033[1;33m" << suffix << "\033[0m" << message;
+		else if (level == LOGGER_ERR_STR)
+			std::cout << "\033[1;31m" << suffix << "\033[0m" << message;
 #endif
 		std::cout.flush();
 	}
@@ -234,7 +250,7 @@ namespace avhttp {
 		LOGGER_DBG_VIEW_(whole);
 #ifndef AVHTTP_DISABLE_LOGGER_TO_CONSOLE
 		if (!disable_cout)
-			output_console(suffix, tmp);
+			output_console(level, suffix, tmp);
 #endif
 	}
 
@@ -276,13 +292,6 @@ namespace avhttp {
 			return *this;
 		}
 	};
-
-	static std::string LOGGER_DEBUG_STR = "DEBUG";
-	static std::string LOGGER_INFO_STR = "INFO";
-	static std::string LOGGER_WARN_STR = "WARNING";
-	static std::string LOGGER_ERR_STR = "ERROR";
-	static std::string LOGGER_FILE_STR = "FILE";
-
 } // namespace avhttp
 
 #define AVHTTP_INIT_LOGGER(logfile) do \
