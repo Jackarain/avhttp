@@ -204,24 +204,37 @@ namespace avhttp {
 #	define LOGGER_DBG_VIEW_(x) ((void)0)
 #endif // WIN32 && LOGGER_DBG_VIEW
 
+	inline void output_console(const std::string& suffix, const std::string& message)
+	{
+#ifdef WIN32
+		HANDLE handle_stdout = GetStdHandle(STD_OUTPUT_HANDLE);
+		CONSOLE_SCREEN_BUFFER_INFO csbi;
+		GetConsoleScreenBufferInfo(handle_stdout, &csbi);
+		SetConsoleTextAttribute(handle_stdout, FOREGROUND_GREEN);
+		std::cout << suffix;
+		SetConsoleTextAttribute(handle_stdout, csbi.wAttributes);
+		std::cout << message;
+#else
+		std::cout << "\033[32m" << suffix << "\033[0m" << message;
+#endif
+		std::cout.flush();
+	}
+
 	inline void logger_writer(std::string& level, std::string& message, bool disable_cout = false)
 	{
 		LOGGER_LOCKS_();
-		std::ostringstream oss;
-		oss << aux::time_now_string() << "[" << level << "]: " << message << std::endl;
-		std::string tmp = oss.str();
+		std::string suffix = aux::time_now_string() + std::string("[") + level + std::string("]: ");
+		std::string tmp = message + "\n";
+		std::string whole = suffix + tmp;
 		if (aux::writer_single<auto_logger_file>().is_open())
 		{
-			aux::writer_single<auto_logger_file>().write(tmp.c_str(), tmp.size());
+			aux::writer_single<auto_logger_file>().write(whole.c_str(), whole.size());
 			aux::writer_single<auto_logger_file>().flush();
 		}
-		LOGGER_DBG_VIEW_(tmp);
+		LOGGER_DBG_VIEW_(whole);
 #ifndef AVHTTP_DISABLE_LOGGER_TO_CONSOLE
 		if (!disable_cout)
-		{
-			std::cout << tmp;
-			std::cout.flush();
-		}
+			output_console(suffix, tmp);
 #endif
 	}
 
