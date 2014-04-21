@@ -12,6 +12,10 @@
 # pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
+#ifdef WIN32
+#	include <Windows.h>	 // for win32 Console api.
+#endif // WIN32
+
 #include <iostream>
 #include <string>
 #include <fstream>
