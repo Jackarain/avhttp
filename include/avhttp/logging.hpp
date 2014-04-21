@@ -210,7 +210,7 @@ namespace avhttp {
 	static std::string LOGGER_ERR_STR = "ERROR";
 	static std::string LOGGER_FILE_STR = "FILE";
 
-	inline void output_console(std::string& level, const std::string& suffix, const std::string& message)
+	inline void output_console(std::string& level, const std::string& prefix, const std::string& message)
 	{
 #ifdef WIN32
 		HANDLE handle_stdout = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -222,16 +222,16 @@ namespace avhttp {
 			SetConsoleTextAttribute(handle_stdout, FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_INTENSITY);
 		else if (level == LOGGER_ERR_STR)
 			SetConsoleTextAttribute(handle_stdout, FOREGROUND_RED | FOREGROUND_INTENSITY);
-		std::cout << suffix;
+		std::cout << prefix;
 		SetConsoleTextAttribute(handle_stdout, csbi.wAttributes);
 		std::cout << message;
 #else
 		if (level == LOGGER_DEBUG_STR || level == LOGGER_INFO_STR)
-			std::cout << "\033[32m" << suffix << "\033[0m" << message;
+			std::cout << "\033[32m" << prefix << "\033[0m" << message;
 		else if (level == LOGGER_WARN_STR)
-			std::cout << "\033[1;33m" << suffix << "\033[0m" << message;
+			std::cout << "\033[1;33m" << prefix << "\033[0m" << message;
 		else if (level == LOGGER_ERR_STR)
-			std::cout << "\033[1;31m" << suffix << "\033[0m" << message;
+			std::cout << "\033[1;31m" << prefix << "\033[0m" << message;
 #endif
 		std::cout.flush();
 	}
@@ -239,9 +239,9 @@ namespace avhttp {
 	inline void logger_writer(std::string& level, std::string& message, bool disable_cout = false)
 	{
 		LOGGER_LOCKS_();
-		std::string suffix = aux::time_now_string() + std::string("[") + level + std::string("]: ");
+		std::string prefix = aux::time_now_string() + std::string("[") + level + std::string("]: ");
 		std::string tmp = message + "\n";
-		std::string whole = suffix + tmp;
+		std::string whole = prefix + tmp;
 		if (aux::writer_single<auto_logger_file>().is_open())
 		{
 			aux::writer_single<auto_logger_file>().write(whole.c_str(), whole.size());
@@ -250,7 +250,7 @@ namespace avhttp {
 		LOGGER_DBG_VIEW_(whole);
 #ifndef AVHTTP_DISABLE_LOGGER_TO_CONSOLE
 		if (!disable_cout)
-			output_console(level, suffix, tmp);
+			output_console(level, prefix, tmp);
 #endif
 	}
 
