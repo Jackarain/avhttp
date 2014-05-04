@@ -268,15 +268,15 @@ file_upload::make_open_coro(const std::string& url, const std::string& filename,
 	const std::string& file_of_form, const form_args& args, BOOST_ASIO_MOVE_ARG(Handler) handler)
 {
 	m_form_args = args;
-	return open_coro<Handler>(m_http_stream, url, filename,
-		m_fake_continue, file_of_form, m_form_args, m_boundary, m_base_boundary, handler);
+	return open_coro<Handler>(m_http_stream, url, filename, m_fake_continue,
+		file_of_form, m_form_args, m_boundary, m_base_boundary, BOOST_ASIO_MOVE_CAST(Handler)(handler));
 }
 
 template <typename Handler>
 void file_upload::async_open(const std::string& url, const std::string& filename,
 	const std::string& file_of_form, const form_args& args, BOOST_ASIO_MOVE_ARG(Handler) handler)
 {
-	make_open_coro<Handler>(url, filename, file_of_form, args, handler);
+	make_open_coro<Handler>(url, filename, file_of_form, args, BOOST_ASIO_MOVE_CAST(Handler)(handler));
 }
 
 void file_upload::open(const std::string& url, const std::string& filename,
@@ -452,13 +452,13 @@ struct file_upload::tail_coro : boost::asio::coroutine
 template <typename Handler>
 file_upload::tail_coro<Handler> file_upload::make_tail_coro(BOOST_ASIO_MOVE_ARG(Handler) handler)
 {
-	return tail_coro<Handler>(m_boundary, m_base_boundary, m_http_stream, handler);
+	return tail_coro<Handler>(m_boundary, m_base_boundary, m_http_stream, BOOST_ASIO_MOVE_CAST(Handler)(handler));
 }
 
 template <typename Handler>
 void file_upload::async_write_tail(BOOST_ASIO_MOVE_ARG(Handler) handler)
 {
-	make_tail_coro<Handler>(handler);
+	make_tail_coro<Handler>(BOOST_ASIO_MOVE_CAST(Handler)(handler));
 }
 
 void file_upload::request_option(request_opts& opts)
