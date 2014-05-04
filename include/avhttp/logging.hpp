@@ -316,7 +316,7 @@ namespace avhttp {
 	} while (0)
 
 
-#if defined(DEBUG) || defined(_DEBUG) || defined(ENABLE_LOGGER)
+#if (defined(DEBUG) || defined(_DEBUG) || defined(ENABLE_LOGGER)) && !defined(DISABLE_LOGGER)
 
 #define AVHTTP_LOG_DBG avhttp::logger(avhttp::LOGGER_DEBUG_STR)
 #define AVHTTP_LOG_INFO avhttp::logger(avhttp::LOGGER_INFO_STR)
