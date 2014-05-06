@@ -227,8 +227,9 @@ namespace avhttp {
 		else if (level == LOGGER_ERR_STR)
 			SetConsoleTextAttribute(handle_stdout, FOREGROUND_RED | FOREGROUND_INTENSITY);
 		std::cout << prefix;
-		SetConsoleTextAttribute(handle_stdout, csbi.wAttributes);
+		SetConsoleTextAttribute(handle_stdout, FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_BLUE);
 		std::cout << message;
+		SetConsoleTextAttribute(handle_stdout, csbi.wAttributes);
 #else
 		if (level == LOGGER_DEBUG_STR || level == LOGGER_INFO_STR)
 			std::cout << "\033[32m" << prefix << "\033[0m" << message;
