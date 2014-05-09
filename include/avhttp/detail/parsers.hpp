@@ -1,4 +1,4 @@
-//
+﻿//
 // parsers.hpp
 // ~~~~~~~~~~~
 //
@@ -52,8 +52,8 @@ namespace detail {
 #  endif
 #endif
 
-#ifdef _MSC_VER
-#	define strcasecmp stricmp
+#if defined(_WIN32)
+#	define strcasecmp lstrcmpi
 #endif
 
 inline bool headers_equal(const std::string& a, const std::string& b)
