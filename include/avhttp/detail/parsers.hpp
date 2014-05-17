@@ -53,7 +53,7 @@ namespace detail {
 #endif
 
 #if defined(_WIN32)
-#	define strcasecmp lstrcmpi
+#	define strcasecmp lstrcmpiA
 #endif
 
 inline bool headers_equal(const std::string& a, const std::string& b)
@@ -424,7 +424,7 @@ bool parse_http_headers(Iterator begin, Iterator end,
 			if (c == '\r')
 				state = linefeed;
 			else if (is_ctl(c))
-				state = fail;
+				state = (c == '\n') ? header_line_start : fail;
 			else
 				value.push_back(c);
 			break;
