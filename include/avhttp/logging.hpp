@@ -16,6 +16,8 @@
 #	include <Windows.h>	 // for win32 Console api.
 #endif // WIN32
 
+#define LOGGER_THREAD_SAFE
+
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -220,8 +222,10 @@ namespace avhttp {
 		HANDLE handle_stdout = GetStdHandle(STD_OUTPUT_HANDLE);
 		CONSOLE_SCREEN_BUFFER_INFO csbi;
 		GetConsoleScreenBufferInfo(handle_stdout, &csbi);
-		if (level == LOGGER_DEBUG_STR || level == LOGGER_INFO_STR)
+		if (level == LOGGER_INFO_STR)
 			SetConsoleTextAttribute(handle_stdout, FOREGROUND_GREEN);
+		else if (level == LOGGER_DEBUG_STR)
+			SetConsoleTextAttribute(handle_stdout, FOREGROUND_GREEN | FOREGROUND_INTENSITY);
 		else if (level == LOGGER_WARN_STR)
 			SetConsoleTextAttribute(handle_stdout, FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_INTENSITY);
 		else if (level == LOGGER_ERR_STR)
@@ -231,8 +235,10 @@ namespace avhttp {
 		std::cout << message;
 		SetConsoleTextAttribute(handle_stdout, csbi.wAttributes);
 #else
-		if (level == LOGGER_DEBUG_STR || level == LOGGER_INFO_STR)
+		if (level == LOGGER_INFO_STR)
 			std::cout << "\033[32m" << prefix << "\033[0m" << message;
+		else if (level == LOGGER_DEBUG_STR)
+			std::cout << "\033[1;32m" << prefix << "\033[0m" << message;
 		else if (level == LOGGER_WARN_STR)
 			std::cout << "\033[1;33m" << prefix << "\033[0m" << message;
 		else if (level == LOGGER_ERR_STR)
