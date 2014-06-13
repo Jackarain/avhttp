@@ -1440,6 +1440,7 @@ void http_stream::receive_header()
 
 void http_stream::receive_header(boost::system::error_code& ec)
 {
+	m_response.consume(m_response.size());
 	// 循环读取.
 	for (;;)
 	{
@@ -1873,7 +1874,7 @@ void http_stream::handle_request(Handler handler, const boost::system::error_cod
 		handler(ec);
 		return;
 	}
-
+	m_response.consume(m_response.size());
 	// 异步读取Http status.
 	boost::asio::async_read_until(m_sock, m_response, "\r\n",
 		boost::bind(&http_stream::handle_status<Handler>,
@@ -1948,7 +1949,7 @@ void http_stream::handle_status(Handler handler, const boost::system::error_code
 	m_response.consume(response_size - tempbuf.size());
 
 	// "continue"表示我们需要继续等待接收状态, 如果是POST我们直接返回让POST有继续发送
-	// 数据的机会.
+	// 数据的机会, 只有GET请求下服务器返回continue, 我们才在这里继续接收下一个continue.
 	if (m_status_code == errc::continue_request &&
 		m_request_opts_priv.find(http_options::request_method) != "POST")
 	{
@@ -1966,6 +1967,7 @@ void http_stream::handle_status(Handler handler, const boost::system::error_code
 		m_response_opts.insert("_status_code", boost::str(boost::format("%d") % m_status_code));
 
 		// 如果为errc::continue_request, 直接回调, 避免在下面读取"\r\n\r\n"上一直等待.
+		// 这里只有可能是POST状态的时候的continue, 才可能进入下面条件.
 		if (m_status_code == errc::continue_request)
 		{
 			handler(make_error_code(static_cast<errc::errc_t>(m_status_code)));
