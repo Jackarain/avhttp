@@ -13,6 +13,9 @@
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
 #ifdef WIN32
+#	ifndef WIN32_LEAN_AND_MEAN
+#		define WIN32_LEAN_AND_MEAN
+#	endif // !WIN32_LEAN_AND_MEAN
 #	include <Windows.h>	 // for win32 Console api.
 #endif // WIN32
 
