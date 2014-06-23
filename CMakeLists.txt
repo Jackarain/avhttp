@@ -32,6 +32,7 @@ set_target_properties(libavhttp
 		CLEAN_DIRECT_OUTPUT 1)
 
 add_executable(avhttp example/multi_download.cpp)
+add_executable(form example/form.cpp)
 
 target_link_libraries(libavhttp ${ZLIB_LIBRARIES})
 
@@ -47,3 +48,4 @@ if (UNIX AND NOT APPLE)
 endif()
 
 target_link_libraries(avhttp libavhttp)
+target_link_libraries(form libavhttp)
