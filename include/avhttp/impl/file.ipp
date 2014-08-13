@@ -145,7 +145,7 @@ void file::open(fs::path const& path, int mode, boost::system::error_code& ec)
 	BOOST_ASSERT((mode & mode_mask) < sizeof(mode_array)/sizeof(mode_array[0]));
 	open_mode_t const& m = mode_array[mode & mode_mask];
 	DWORD a = attrib_array[(mode & attribute_mask) >> 12];
-
+	ec = boost::system::error_code();
 	m_file_handle = ::CreateFileA(m_path.c_str(), m.rw_mode, m.share_mode, 0
 		, m.create_mode, m.flags | (a ? a : FILE_ATTRIBUTE_NORMAL), 0);
 
