@@ -45,9 +45,9 @@ namespace avhttp {
 	//  {
 	//     AVHTTP_AUTO_LOGGER(".");					// 在当前目录创建以日期命名的日志文件.
 	//     // 也可 AVHTTP_INIT_LOGGER("example.log");	// 指定日志文件名.
-	//     AVHTTP_LOG_DEBUG << "Initialized.";
+	//     AVHTTP_LOG_DBG << "Initialized.";
 	//     std::string result = do_something();
-	//     AVHTTP_LOG_DEBUG << "do_something return : " << result;	// 输出do_something返回结果到日志.
+	//     AVHTTP_LOG_DBG << "do_something return : " << result;	// 输出do_something返回结果到日志.
 	//     ...
 	//  }
 	// @end example
