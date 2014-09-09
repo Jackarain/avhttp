@@ -70,6 +70,9 @@ file::file()
 #if defined WIN32 || defined __linux__
 	, m_sector_size(0)
 #endif
+#if defined WIN32 || defined __linux__ || defined DEBUG
+	, m_page_size(0)
+#endif
 {}
 
 file::file(fs::path const& p, int m, boost::system::error_code& ec)
@@ -79,6 +82,12 @@ file::file(fs::path const& p, int m, boost::system::error_code& ec)
 	: m_fd(-1)
 #endif
 	, m_open_mode(0)
+#if defined WIN32 || defined __linux__
+	, m_sector_size(0)
+#endif
+#if defined WIN32 || defined __linux__ || defined DEBUG
+	, m_page_size(0)
+#endif
 {
 	open(p, m, ec);
 }
@@ -100,6 +109,8 @@ void file::open(fs::path const& p, int m)
 
 void file::open(fs::path const& path, int mode, boost::system::error_code& ec)
 {
+	ec = boost::system::error_code();
+
 	close();
 
 #ifdef WIN32
@@ -145,13 +156,12 @@ void file::open(fs::path const& path, int mode, boost::system::error_code& ec)
 	BOOST_ASSERT((mode & mode_mask) < sizeof(mode_array)/sizeof(mode_array[0]));
 	open_mode_t const& m = mode_array[mode & mode_mask];
 	DWORD a = attrib_array[(mode & attribute_mask) >> 12];
-	ec = boost::system::error_code();
 	m_file_handle = ::CreateFileA(m_path.c_str(), m.rw_mode, m.share_mode, 0
 		, m.create_mode, m.flags | (a ? a : FILE_ATTRIBUTE_NORMAL), 0);
 
 	if (m_file_handle == INVALID_HANDLE_VALUE)
 	{
-		ec = boost::system::error_code(GetLastError(), boost::system::system_category());
+		ec = boost::system::error_code(::GetLastError(), boost::system::system_category());
 		return;
 	}
 
@@ -300,7 +310,7 @@ void file::close()
 
 #ifdef WIN32
 	if (m_file_handle == INVALID_HANDLE_VALUE) return;
-	CloseHandle(m_file_handle);
+	::CloseHandle(m_file_handle);
 	m_file_handle = INVALID_HANDLE_VALUE;
 	m_path.clear();
 #else
@@ -309,6 +319,9 @@ void file::close()
 	m_fd = -1;
 #endif
 	m_open_mode = 0;
+#if defined WIN32 || defined __linux__ || defined DEBUG
+	m_page_size = 0;
+#endif
 }
 
 inline int bufs_size(file::iovec_t const* bufs, int num_bufs)
@@ -372,6 +385,8 @@ file::size_type file::read(char* buf, int size)
 file::size_type file::readv(file::size_type file_offset,
 	iovec_t const* bufs, int num_bufs, boost::system::error_code& ec)
 {
+	ec = boost::system::error_code();
+
 	BOOST_ASSERT((m_open_mode & rw_mask) == read_only || (m_open_mode & rw_mask) == read_write);
 	BOOST_ASSERT(bufs);
 	BOOST_ASSERT(num_bufs > 0);
@@ -388,7 +403,7 @@ file::size_type file::readv(file::size_type file_offset,
 		LARGE_INTEGER position = { 0 };
 		if (::SetFilePointerEx(m_file_handle, position, &position, FILE_CURRENT) == FALSE)
 		{
-			ec = boost::system::error_code(GetLastError(), boost::system::system_category());
+			ec = boost::system::error_code(::GetLastError(), boost::system::system_category());
 			return -1;
 		}
 		file_offset = position.QuadPart;
@@ -455,7 +470,7 @@ file::size_type file::readv(file::size_type file_offset,
 		offs.QuadPart = file_offset;
 		if (::SetFilePointerEx(m_file_handle, offs, &offs, FILE_BEGIN) == FALSE)
 		{
-			ec = boost::system::error_code(GetLastError(), boost::system::system_category());
+			ec = boost::system::error_code(::GetLastError(), boost::system::system_category());
 			return -1;
 		}
 
@@ -465,7 +480,7 @@ file::size_type file::readv(file::size_type file_offset,
 			if (::ReadFile(m_file_handle, (char*)i->iov_base
 				, (DWORD)i->iov_len, &intermediate, 0) == FALSE)
 			{
-				ec = boost::system::error_code(GetLastError(), boost::system::system_category());
+				ec = boost::system::error_code(::GetLastError(), boost::system::system_category());
 				return -1;
 			}
 			ret += intermediate;
@@ -502,16 +517,16 @@ file::size_type file::readv(file::size_type file_offset,
 	size = num_pages * m_page_size;
 	if (::ReadFileScatter(m_file_handle, segment_array, size, 0, &ol) == 0)
 	{
-		DWORD last_error = GetLastError();
+		DWORD last_error = ::GetLastError();
 		if (last_error != ERROR_IO_PENDING)
 		{
-			ec = boost::system::error_code(GetLastError(), boost::system::system_category());
+			ec = boost::system::error_code(::GetLastError(), boost::system::system_category());
 			::CloseHandle(ol.hEvent);
 			return -1;
 		}
 		if (::GetOverlappedResult(m_file_handle, &ol, &ret, true) == 0)
 		{
-			ec = boost::system::error_code(GetLastError(), boost::system::system_category());
+			ec = boost::system::error_code(::GetLastError(), boost::system::system_category());
 			::CloseHandle(ol.hEvent);
 			return -1;
 		}
@@ -604,6 +619,8 @@ file::size_type file::write(size_type offset, const char* buf, int size)
 
 file::size_type file::writev(file::size_type file_offset, iovec_t const* bufs, int num_bufs, boost::system::error_code& ec)
 {
+	ec = boost::system::error_code();
+
 	BOOST_ASSERT((m_open_mode & rw_mask) == write_only || (m_open_mode & rw_mask) == read_write);
 	BOOST_ASSERT(bufs);
 	BOOST_ASSERT(num_bufs > 0);
@@ -620,7 +637,7 @@ file::size_type file::writev(file::size_type file_offset, iovec_t const* bufs, i
 		LARGE_INTEGER position = { 0 };
 		if (::SetFilePointerEx(m_file_handle, position, &position, FILE_CURRENT) == FALSE)
 		{
-			ec = boost::system::error_code(GetLastError(), boost::system::system_category());
+			ec = boost::system::error_code(::GetLastError(), boost::system::system_category());
 			return -1;
 		}
 		file_offset = position.QuadPart;
@@ -690,7 +707,7 @@ file::size_type file::writev(file::size_type file_offset, iovec_t const* bufs, i
 		offs.QuadPart = file_offset;
 		if (::SetFilePointerEx(m_file_handle, offs, &offs, FILE_BEGIN) == FALSE)
 		{
-			ec = boost::system::error_code(GetLastError(), boost::system::system_category());
+			ec = boost::system::error_code(::GetLastError(), boost::system::system_category());
 			return -1;
 		}
 
@@ -700,7 +717,7 @@ file::size_type file::writev(file::size_type file_offset, iovec_t const* bufs, i
 			if (::WriteFile(m_file_handle, (char const*)i->iov_base
 				, (DWORD)i->iov_len, &intermediate, 0) == FALSE)
 			{
-				ec = boost::system::error_code(GetLastError(), boost::system::system_category());
+				ec = boost::system::error_code(::GetLastError(), boost::system::system_category());
 				return -1;
 			}
 			ret += intermediate;
@@ -752,16 +769,16 @@ file::size_type file::writev(file::size_type file_offset, iovec_t const* bufs, i
 
 	if (::WriteFileGather(m_file_handle, segment_array, size, 0, &ol) == 0)
 	{
-		if (GetLastError() != ERROR_IO_PENDING)
+		if (::GetLastError() != ERROR_IO_PENDING)
 		{
-			ec = boost::system::error_code(GetLastError(), boost::system::system_category());
+			ec = boost::system::error_code(::GetLastError(), boost::system::system_category());
 			::CloseHandle(ol.hEvent);
 			return -1;
 		}
 		DWORD tmp;
 		if (::GetOverlappedResult(m_file_handle, &ol, &tmp, true) == 0)
 		{
-			ec = boost::system::error_code(GetLastError(), boost::system::system_category());
+			ec = boost::system::error_code(::GetLastError(), boost::system::system_category());
 			::CloseHandle(ol.hEvent);
 			return -1;
 		}
@@ -777,7 +794,7 @@ file::size_type file::writev(file::size_type file_offset, iovec_t const* bufs, i
 
 		if (f == INVALID_HANDLE_VALUE)
 		{
-			ec = boost::system::error_code(GetLastError(), boost::system::system_category());
+			ec = boost::system::error_code(::GetLastError(), boost::system::system_category());
 			return -1;
 		}
 
@@ -786,12 +803,12 @@ file::size_type file::writev(file::size_type file_offset, iovec_t const* bufs, i
 		if (::SetFilePointerEx(f, offs, &offs, FILE_BEGIN) == FALSE)
 		{
 			::CloseHandle(f);
-			ec = boost::system::error_code(GetLastError(), boost::system::system_category());
+			ec = boost::system::error_code(::GetLastError(), boost::system::system_category());
 			return -1;
 		}
 		if (::SetEndOfFile(f) == FALSE)
 		{
-			ec = boost::system::error_code(GetLastError(), boost::system::system_category());
+			ec = boost::system::error_code(::GetLastError(), boost::system::system_category());
 			::CloseHandle(f);
 			return -1;
 		}
@@ -878,11 +895,12 @@ bool file::flush()
 
 file::size_type file::offset(boost::system::error_code& ec)
 {
+	ec = boost::system::error_code();
 #ifdef WIN32
 	LARGE_INTEGER position = { 0 };
 	if (::SetFilePointerEx(m_file_handle, position, &position, FILE_CURRENT) == FALSE)
 	{
-		ec = boost::system::error_code(GetLastError(), boost::system::system_category());
+		ec = boost::system::error_code(::GetLastError(), boost::system::system_category());
 		return -1;
 	}
 	return position.QuadPart;
@@ -899,12 +917,13 @@ file::size_type file::offset(boost::system::error_code& ec)
 
 file::size_type file::offset(file::size_type offset, boost::system::error_code& ec)
 {
+	ec = boost::system::error_code();
 #ifdef WIN32
 	LARGE_INTEGER offs;
 	offs.QuadPart = offset;
 	if (::SetFilePointerEx(m_file_handle, offs, &offs, FILE_BEGIN) == FALSE)
 	{
-		ec = boost::system::error_code(GetLastError(), boost::system::system_category());
+		ec = boost::system::error_code(::GetLastError(), boost::system::system_category());
 		return -1;
 	}
 	return offs.QuadPart;
@@ -973,7 +992,7 @@ file::size_type file::phys_offset(file::size_type offset)
 	if (::DeviceIoControl(m_file_handle, FSCTL_GET_RETRIEVAL_POINTERS, &in
 		, sizeof(in), &out, sizeof(out), &out_bytes, 0) == 0)
 	{
-		DWORD error = GetLastError();
+		DWORD error = ::GetLastError();
 		BOOST_ASSERT(error != ERROR_INVALID_PARAMETER);
 
 		// insufficient buffer error is expected, but we're
@@ -993,6 +1012,7 @@ file::size_type file::phys_offset(file::size_type offset)
 
 bool file::set_size(size_type s, boost::system::error_code& ec)
 {
+	ec = boost::system::error_code();
 	BOOST_ASSERT(is_open());
 	BOOST_ASSERT(s >= 0);
 
@@ -1001,7 +1021,7 @@ bool file::set_size(size_type s, boost::system::error_code& ec)
 	LARGE_INTEGER cur_size;
 	if (::GetFileSizeEx(m_file_handle, &cur_size) == FALSE)
 	{
-		ec = boost::system::error_code(GetLastError(), boost::system::system_category());
+		ec = boost::system::error_code(::GetLastError(), boost::system::system_category());
 		return false;
 	}
 	offs.QuadPart = s;
@@ -1012,12 +1032,12 @@ bool file::set_size(size_type s, boost::system::error_code& ec)
 	{
 		if (::SetFilePointerEx(m_file_handle, offs, &offs, FILE_BEGIN) == FALSE)
 		{
-			ec.assign(GetLastError(), boost::system::system_category());
+			ec.assign(::GetLastError(), boost::system::system_category());
 			return false;
 		}
 		if (::SetEndOfFile(m_file_handle) == FALSE)
 		{
-			ec.assign(GetLastError(), boost::system::system_category());
+			ec.assign(::GetLastError(), boost::system::system_category());
 			return false;
 		}
 	}
@@ -1029,7 +1049,7 @@ bool file::set_size(size_type s, boost::system::error_code& ec)
 		DWORD high_dword = 0;
 		offs.LowPart = ::GetCompressedFileSizeA(m_path.c_str(), &high_dword);
 		offs.HighPart = high_dword;
-		ec.assign(GetLastError(), boost::system::system_category());
+		ec.assign(::GetLastError(), boost::system::system_category());
 		if (ec) return false;
 		if (offs.QuadPart != s)
 		{
@@ -1117,11 +1137,12 @@ bool file::set_size(size_type s, boost::system::error_code& ec)
 
 file::size_type file::get_size(boost::system::error_code& ec) const
 {
+	ec = boost::system::error_code();
 #ifdef WIN32
 	LARGE_INTEGER file_size;
 	if (!::GetFileSizeEx(m_file_handle, &file_size))
 	{
-		ec = boost::system::error_code(GetLastError(), boost::system::system_category());
+		ec = boost::system::error_code(::GetLastError(), boost::system::system_category());
 		return -1;
 	}
 	return file_size.QuadPart;
@@ -1158,8 +1179,8 @@ file::size_type file::sparse_end(size_type start) const
 		, &in, sizeof(FILE_ALLOCATED_RANGE_BUFFER)
 		, &buffer, sizeof(FILE_ALLOCATED_RANGE_BUFFER), &bytes_returned, 0))
 	{
-		int err = GetLastError();
-		if (GetLastError() != ERROR_INSUFFICIENT_BUFFER) return start;
+		int err = ::GetLastError();
+		if (err != ERROR_INSUFFICIENT_BUFFER) return start;
 	}
 
 	// if there are no allocated regions within the rest
