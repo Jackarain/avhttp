@@ -51,6 +51,22 @@ namespace avhttp {
 	//     ...
 	//  }
 	// @end example
+	//
+	// 一些可选参数:
+	// AVHTTP_LOG_FILE_NUM, 定义 AVHTTP_LOG_FILE_NUM 可指定最大连续运行日志文件个数, 超出将删除旧日志文件.
+	// 默认是每天生成按日期的日志文件, 所以, AVHTTP_LOG_FILE_NUM参数也相当是指定保留日志的天数.
+	//
+	// AVHTTP_LOG_FILE_BUFFER, 定义写入日志文件的写入缓冲大小, 默认为系统指定大小.
+	// 该参数实际上指定的是 std::ofstream 的写入缓冲大小.
+
+
+#ifndef AVHTTP_LOG_FILE_NUM
+#	define AVHTTP_LOG_FILE_NUM 3
+#endif
+
+#ifndef AVHTTP_LOG_FILE_BUFFER
+#	define AVHTTP_LOG_FILE_BUFFER -1
+#endif
 
 	class auto_logger_file
 	{
@@ -63,10 +79,6 @@ namespace avhttp {
 
 		typedef boost::shared_ptr<std::ofstream> ofstream_ptr;
 		typedef std::map<std::string, ofstream_ptr> loglist;
-
-		enum {
-			file_num = 3
-		};
 
 		void open(const char * filename, std::ios_base::openmode flag)
 		{
@@ -111,8 +123,10 @@ namespace avhttp {
 			{
 				of.reset(new std::ofstream);
 				of->open(fn.c_str(), std::ios_base::out | std::ios_base::app);
+				if (AVHTTP_LOG_FILE_BUFFER != -1)
+					of->rdbuf()->pubsetbuf(NULL, AVHTTP_LOG_FILE_BUFFER);
 				m_log_list.insert(std::make_pair(fn, of));
-				if (m_log_list.size() > file_num)
+				if (m_log_list.size() > AVHTTP_LOG_FILE_NUM)
 				{
 					iter = m_log_list.begin();
 					fn = iter->first;
