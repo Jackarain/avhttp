@@ -892,10 +892,6 @@ void multi_download::handle_read(const int index,
 
 	// 用于计算下载速率.
 	m_download_rate->bytes += bytes_transferred;
-	// 统计本次已经下载的总字节数.
-	object.bytes_transferred += bytes_transferred;
-	// 统计总下载字节数.
-	object.bytes_downloaded += bytes_transferred;
 
 	// 保存数据, 当远程服务器断开时, ec为eof, 保证数据全部写入.
 	if (m_storage && bytes_transferred != 0 && (!ec || ec == boost::asio::error::eof))
@@ -913,7 +909,10 @@ void multi_download::handle_read(const int index,
 		m_storage->write(object.buffer.c_array(), offset, bytes_transferred);
 	}
 
-
+	// 统计本次已经下载的总字节数.
+	object.bytes_transferred += bytes_transferred;
+	// 统计总下载字节数.
+	object.bytes_downloaded += bytes_transferred;
 
 	// 如果发生错误或终止.
 	if (ec || m_abort)
