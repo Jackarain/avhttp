@@ -63,31 +63,18 @@ struct multi_download::http_stream_object
 	bool direct_reconnect;
 };
 
-struct multi_download::byte_rate
+struct multi_download::download_stat
 {
-	byte_rate()
-		: seconds(5)
-		, index(0)
-		, current_byte_rate(0)
-	{
-		last_byte_rate.resize(seconds);
-		for (int i = 0; i < seconds; i++)
-		{
-			last_byte_rate[i] = 0;
-		}
-	}
+	download_stat()
+		: bytes(0)
+		, rate(0)
+	{}
 
-	// 用于统计速率的时间.
-	const int seconds;
+	// 字节每秒计数.
+	int bytes;
 
-	// 最后的byte_rate.
-	std::vector<int> last_byte_rate;
-
-	// last_byte_rate的下标.
-	int index;
-
-	// 当前byte_rate.
-	int current_byte_rate;
+	// 下载速率.
+	int rate;
 };
 
 struct multi_download::auto_outstanding
@@ -112,7 +99,7 @@ multi_download::multi_download(boost::asio::io_service& io)
 	, m_keep_alive(false)
 	, m_file_size(-1)
 	, m_timer(io)
-	, m_byte_rate(new byte_rate())
+	, m_download_rate(new download_stat())
 	, m_number_of_connections(0)
 	, m_time_total(0)
 	, m_download_point(0)
@@ -814,7 +801,7 @@ boost::int64_t multi_download::bytes_download() const
 
 int multi_download::download_rate() const
 {
-	return m_byte_rate->current_byte_rate;
+	return m_download_rate->rate;
 }
 
 void multi_download::download_rate_limit(int rate)
@@ -903,6 +890,13 @@ void multi_download::handle_read(const int index,
 	change_outstranding(false);
 	http_stream_object& object = *object_ptr;
 
+	// 用于计算下载速率.
+	m_download_rate->bytes += bytes_transferred;
+	// 统计本次已经下载的总字节数.
+	object.bytes_transferred += bytes_transferred;
+	// 统计总下载字节数.
+	object.bytes_downloaded += bytes_transferred;
+
 	// 保存数据, 当远程服务器断开时, ec为eof, 保证数据全部写入.
 	if (m_storage && bytes_transferred != 0 && (!ec || ec == boost::asio::error::eof))
 	{
@@ -919,11 +913,7 @@ void multi_download::handle_read(const int index,
 		m_storage->write(object.buffer.c_array(), offset, bytes_transferred);
 	}
 
-	// 统计本次已经下载的总字节数.
-	object.bytes_transferred += bytes_transferred;
 
-	// 统计总下载字节数.
-	object.bytes_downloaded += bytes_transferred;
 
 	// 如果发生错误或终止.
 	if (ec || m_abort)
@@ -940,9 +930,6 @@ void multi_download::handle_read(const int index,
 		// 超时, 一旦超时将尝试重新发起连接进行请求.
 		return;
 	}
-
-	// 用于计算下载速率.
-	m_byte_rate->last_byte_rate[m_byte_rate->index] += bytes_transferred;
 
 	// 判断请求区间的数据已经下载完成, 如果下载完成, 则分配新的区间, 发起新的请求.
 	if (m_accept_multi && object.bytes_transferred >= object.request_range.size())
@@ -1500,17 +1487,8 @@ void multi_download::on_tick(const boost::system::error_code& e)
 
 	// 用于计算动态下载速率.
 	{
-		int bytes_count = 0;
-
-		for (int i = 0; i < m_byte_rate->seconds; i++)
-			bytes_count += m_byte_rate->last_byte_rate[i];
-
-		m_byte_rate->current_byte_rate = (double)bytes_count / m_byte_rate->seconds;
-
-		if (m_byte_rate->index + 1 >= m_byte_rate->seconds)
-			m_byte_rate->last_byte_rate[m_byte_rate->index = 0] = 0;
-		else
-			m_byte_rate->last_byte_rate[++m_byte_rate->index] = 0;
+		m_download_rate->rate = static_cast<int>((m_download_rate->rate * 7.0 + m_download_rate->bytes) / 8.0);
+		m_download_rate->bytes = 0;
 	}
 
 	// 计算限速.

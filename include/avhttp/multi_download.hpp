@@ -53,8 +53,8 @@ class multi_download : public boost::noncopyable
 	typedef boost::shared_ptr<http_stream_object> http_object_ptr;
 
 	// 用于计算下载速率.
-	struct byte_rate;
-	typedef boost::shared_ptr<byte_rate> byte_rate_ptr;
+	struct download_stat;
+	typedef boost::shared_ptr<download_stat> download_stat_ptr;
 
 	// 用于帮助multi_download自动计算outstranding.
 	struct auto_outstanding;
@@ -265,7 +265,7 @@ private:
 	boost::asio::deadline_timer m_timer;
 
 	// 动态计算速率.
-	byte_rate_ptr m_byte_rate;
+	download_stat_ptr m_download_rate;
 
 	// 实际连接数.
 	int m_number_of_connections;
