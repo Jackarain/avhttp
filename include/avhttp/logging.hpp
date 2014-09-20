@@ -88,7 +88,7 @@ namespace avhttp {
 			{
 				m_auto_mode = true;
 				char save_path[65536] = { 0 };
-				int len = pos - filename;
+				std::ptrdiff_t len = pos - filename;
 				if (len < 0 || len > 65536)
 					return;
 				strncpy(save_path, filename, pos - filename);
@@ -112,7 +112,8 @@ namespace avhttp {
 		{
 			if (!m_auto_mode)
 			{
-				m_file.write(str, size);
+				if (m_file.is_open())
+					m_file.write(str, size);
 				return;
 			}
 
@@ -202,9 +203,13 @@ namespace avhttp {
 
 		inline char const* time_now_string()
 		{
-			std::ostringstream oss;
-			boost::posix_time::time_facet* _facet = new boost::posix_time::time_facet("%Y-%m-%d %H:%M:%S.%f");
-			oss.imbue(std::locale(std::locale::classic(), _facet));
+			static std::ostringstream oss;
+			if (oss.str().empty())
+			{
+				boost::posix_time::time_facet* _facet = new boost::posix_time::time_facet("%Y-%m-%d %H:%M:%S.%f");
+				oss.imbue(std::locale(std::locale::classic(), _facet));
+			}
+			oss.str("");
 			oss << boost::posix_time::microsec_clock::local_time();
 			std::string s = oss.str();
 			if (s.size() > 3)
@@ -215,11 +220,11 @@ namespace avhttp {
 		}
 	}
 
-#ifdef LOGGER_THREAD_SAFE
+#ifndef DISABLE_LOGGER_THREAD_SAFE
 #	define LOGGER_LOCKS_() boost::mutex::scoped_lock lock(aux::lock_single<boost::mutex>())
 #else
 #	define LOGGER_LOCKS_() ((void)0)
-#endif // LOGGER_THREAD_SAFE
+#endif // DISABLE_LOGGER_THREAD_SAFE
 
 #if defined(WIN32) && defined(LOGGER_DBG_VIEW)
 #	define LOGGER_DBG_VIEW_(x) do { ::OutputDebugStringA(x.c_str()); } while (0)
