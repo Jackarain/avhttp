@@ -1480,7 +1480,9 @@ void multi_download::on_tick(const boost::system::error_code& e)
 	}
 	else
 	{
-		// 已经终止.
+		// 整个下载已经终止.
+		if (m_file_meta.is_open())
+			m_file_meta.close();
 		return;
 	}
 
