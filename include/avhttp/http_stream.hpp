@@ -244,6 +244,17 @@ public:
 	template <typename Handler>
 	void async_open(const url& u, BOOST_ASIO_MOVE_ARG(Handler) handler);
 
+	template<class Handler>
+	BOOST_ASIO_INITFN_RESULT_TYPE(Handler, void(boost::system::error_code))
+		yield_open(const url& u, BOOST_ASIO_MOVE_ARG(Handler) handler)
+	{
+		boost::asio::detail::async_result_init<Handler, void(boost::system::error_code)> init(BOOST_ASIO_MOVE_CAST(Handler)(handler));
+
+		async_open(u, init.handler);
+
+		return init.result.get();
+	}
+
 	///从这个http_stream中读取一些数据.
 	// @param buffers一个或多个读取数据的缓冲区, 这个类型必须满足MutableBufferSequence,
 	// MutableBufferSequence的定义在boost.asio文档中.
@@ -309,6 +320,17 @@ public:
 	// boost.array或std.vector作为数据容器.
 	template <typename MutableBufferSequence, typename Handler>
 	void async_read_some(const MutableBufferSequence& buffers, BOOST_ASIO_MOVE_ARG(Handler) handler);
+
+	template<typename MutableBufferSequence, typename Handler>
+	BOOST_ASIO_INITFN_RESULT_TYPE(Handler, void(boost::system::error_code, std::size_t))
+		yield_read_some(const MutableBufferSequence& buffers, BOOST_ASIO_MOVE_ARG(Handler) handler)
+	{
+		boost::asio::detail::async_result_init<Handler, void(boost::system::error_code, std::size_t)> init(BOOST_ASIO_MOVE_CAST(Handler)(handler));
+
+		async_read_some(buffers, init.handler);
+
+		return init.result.get();
+	}
 
 	///向这个http_stream中发送一些数据.
 	// @param buffers是一个或多个用于发送数据缓冲. 这个类型必须满足ConstBufferSequence, 参考文档:
@@ -429,6 +451,17 @@ public:
 	template <typename Handler>
 	void async_request(const request_opts& opt, BOOST_ASIO_MOVE_ARG(Handler) handler);
 
+	template<class Handler>
+	BOOST_ASIO_INITFN_RESULT_TYPE(Handler, void(boost::system::error_code))
+		yield_request(const request_opts& opt, BOOST_ASIO_MOVE_ARG(Handler) handler)
+	{
+		boost::asio::detail::async_result_init<Handler, void(boost::system::error_code)> init(BOOST_ASIO_MOVE_CAST(Handler)(handler));
+
+		async_request(opt, init.handler);
+
+		return init.result.get();
+	}
+
 	///接收一个http头信息, 失败将抛出一个boost::system::system_error异常.
 	// @备注: 该函数将开始接收一个http头(直到遇到\r\n\r\n)并解析, 解析结果将
 	// 在response_options中.
@@ -462,6 +495,17 @@ public:
 	// @end example
 	template <typename Handler>
 	void async_receive_header(BOOST_ASIO_MOVE_ARG(Handler) handler);
+
+	template<class Handler>
+	BOOST_ASIO_INITFN_RESULT_TYPE(Handler, void(boost::system::error_code))
+		yield_receive_header(BOOST_ASIO_MOVE_ARG(Handler) handler)
+	{
+		boost::asio::detail::async_result_init<Handler, void(boost::system::error_code)> init(BOOST_ASIO_MOVE_CAST(Handler)(handler));
+
+		async_receive_header(init.handler);
+
+		return init.result.get();
+	}
 
 	///清除读写缓冲区数据.
 	// @备注: 非线程安全! 不应在正在进行读写操作时进行该操作!

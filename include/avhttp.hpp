@@ -62,6 +62,7 @@ namespace
 #ifndef AVHTTP_DISABLE_FILE_UPLOAD
 # if (BOOST_VERSION >= 105400)
 #  include "avhttp/file_upload.hpp"
+#  include <boost/asio/spawn.hpp>
 # endif
 #endif
 #ifndef AVHTTP_DISABLE_MULTI_DOWNLOAD
