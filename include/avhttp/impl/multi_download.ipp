@@ -1226,7 +1226,8 @@ void multi_download::handle_start(Handler handler, http_object_ptr object_ptr, c
 		{
 			// 位图打开失败, 无所谓, 下载过程中会创建新的位图, 删除meta文件.
 			m_file_meta.close();
-			fs::remove(m_settings.meta_file, err);
+			boost::system::error_code ignore;
+			fs::remove(m_settings.meta_file, ignore);
 		}
 	}
 
