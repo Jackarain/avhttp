@@ -8,7 +8,7 @@ namespace avhttp {
 
 	typedef std::map<std::string, std::string> KeyValues;
 
-	std::string map_to_query(const KeyValues& key_values)
+	AVHTTP_DECL std::string map_to_query(const KeyValues& key_values)
 	{
 		if(key_values.size() == 0)
 		{
@@ -27,7 +27,7 @@ namespace avhttp {
 		return std::string(temp.begin(), temp.begin() + temp.size() - 1);
 	}
 
-	void post_form(http_stream& stream, const KeyValues& key_values)
+	AVHTTP_DECL void post_form(http_stream& stream, const KeyValues& key_values)
 	{
 		const std::string& body = map_to_query(key_values);
 		request_opts opts = stream.request_options();
