@@ -521,7 +521,7 @@ void multi_download::start(const std::string& u, const settings& s, boost::syste
 	change_outstranding(true);
 	// 开启定时器, 执行任务.
 	m_timer.expires_from_now(boost::posix_time::seconds(1));
-	m_timer.async_wait(boost::bind(&multi_download::on_tick, this, boost::asio::placeholders::error));
+	m_timer.async_wait(boost::bind(&multi_download::on_tick, this, HandlerWrapper(), boost::asio::placeholders::error));
 
 	return;
 }
@@ -535,6 +535,15 @@ void multi_download::async_start(const std::string& u, Handler handler)
 
 template <typename Handler>
 void multi_download::async_start(const std::string& u, const settings& s, Handler handler)
+{
+	async_start(u, s, handler, HandlerWrapper());
+}
+template <typename StartupHandler, typename CompletionHandler>
+void multi_download::async_start(
+	const std::string& u,
+	const settings& s,
+	StartupHandler handler,
+	CompletionHandler completion_handler)
 {
 	// 清空所有连接.
 	{
@@ -576,11 +585,13 @@ void multi_download::async_start(const std::string& u, const settings& s, Handle
 	h.check_certificate(m_settings.check_certificate);
 
 	change_outstranding(true);
-	typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
+
 	h.async_open(m_final_url,
-		boost::bind(&multi_download::handle_start<HandlerWrapper>,
+		boost::bind(&multi_download::handle_start,
 			this,
-			HandlerWrapper(handler), obj,
+			HandlerWrapper(handler),
+			HandlerWrapper(completion_handler),
+			obj,
 			boost::asio::placeholders::error
 		)
 	);
@@ -1095,8 +1106,11 @@ void multi_download::handle_request(const int index,
 	);
 }
 
-template <typename Handler>
-void multi_download::handle_start(Handler handler, http_object_ptr object_ptr, const boost::system::error_code& ec)
+void multi_download::handle_start(
+	HandlerWrapper startup_handler,
+	HandlerWrapper completion_handler,
+	http_object_ptr object_ptr,
+	const boost::system::error_code& ec)
 {
 	auto_outstanding ao(*this);
 	change_outstranding(false);
@@ -1104,11 +1118,9 @@ void multi_download::handle_start(Handler handler, http_object_ptr object_ptr, c
 	// 打开失败则退出.
 	if (ec)
 	{
-		handler(ec);
+		startup_handler(ec);
 		return;
 	}
-
-	boost::system::error_code err;
 
 	// 下面使用引用http_stream_object对象.
 	http_stream_object& object = *object_ptr;
@@ -1234,7 +1246,9 @@ void multi_download::handle_start(Handler handler, http_object_ptr object_ptr, c
 	// 判断文件是否已经下载完成, 完成则直接返回.
 	if (m_downlaoded_field.is_full())
 	{
-		handler(err);
+		boost::system::error_code no_err;
+		startup_handler(no_err);
+		completion_handler(no_err);
 		return;
 	}
 
@@ -1250,11 +1264,14 @@ void multi_download::handle_start(Handler handler, http_object_ptr object_ptr, c
 	BOOST_ASSERT(m_storage);
 
 	// 打开文件, 构造文件名.
-	m_storage->open(boost::filesystem::path(file_name()), err);
-	if (err)
 	{
-		handler(err);
-		return;
+		boost::system::error_code fopen_err;
+		m_storage->open(boost::filesystem::path(file_name()), fopen_err);
+		if (fopen_err)
+		{
+			startup_handler(fopen_err);
+			return;
+		}
 	}
 
 	// 处理默认设置.
@@ -1332,10 +1349,11 @@ void multi_download::handle_start(Handler handler, http_object_ptr object_ptr, c
 
 			if (need_reopen)
 			{
-				h.close(err);	// 关闭原来的连接, 需要请求新的区间.
-				if (err)
+				boost::system::error_code stream_close_err;
+				h.close(stream_close_err);	// 关闭原来的连接, 需要请求新的区间.
+				if (stream_close_err)
 				{
-					handler(err);
+					startup_handler(stream_close_err);
 					return;
 				}
 
@@ -1451,15 +1469,15 @@ void multi_download::handle_start(Handler handler, http_object_ptr object_ptr, c
 
 	// 开启定时器, 执行任务.
 	m_timer.expires_from_now(boost::posix_time::seconds(1));
-	m_timer.async_wait(boost::bind(&multi_download::on_tick, this, boost::asio::placeholders::error));
+	m_timer.async_wait(boost::bind(&multi_download::on_tick, this, completion_handler, boost::asio::placeholders::error));
 
 	// 回调通知用户, 已经成功启动下载.
-	handler(ec);
+	startup_handler(ec);
 
 	return;
 }
 
-void multi_download::on_tick(const boost::system::error_code& e)
+void multi_download::on_tick(HandlerWrapper completion_handler, const boost::system::error_code& e)
 {
 	auto_outstanding ao(*this);
 	change_outstranding(false);
@@ -1474,16 +1492,29 @@ void multi_download::on_tick(const boost::system::error_code& e)
 	// 每隔1秒进行一次on_tick.
 	if (!m_abort && !e)
 	{
-		change_outstranding(true);
-		m_timer.expires_from_now(boost::posix_time::seconds(1));
-		m_timer.async_wait(boost::bind(&multi_download::on_tick,
-			this, boost::asio::placeholders::error));
+			change_outstranding(true);
 	}
 	else
 	{
 		// 整个下载已经终止.
 		if (m_file_meta.is_open())
+		{
 			m_file_meta.close();
+		}
+		m_storage.reset();
+		if(completion_handler)
+		{
+			if (e)
+			{
+				completion_handler(e);
+			}
+			else
+			{
+				boost::system::error_code code = boost::system::errc::make_error_code(boost::system::errc::operation_canceled);
+				completion_handler(code);
+			}
+		}
+		
 		return;
 	}
 
@@ -1617,10 +1648,29 @@ void multi_download::on_tick(const boost::system::error_code& e)
 		boost::system::error_code ignore;
 		m_abort = true;
 		m_timer.cancel(ignore);
-		// 通知wait_for_complete退出.
-		boost::mutex::scoped_lock l(m_quit_mtx);
-		m_quit_cond.notify_one();
+		if (m_file_meta.is_open())
+		{
+			m_file_meta.close();
+		}
+		m_storage.reset();
+
+		{
+			// 通知wait_for_complete退出.
+			boost::mutex::scoped_lock l(m_quit_mtx);
+			m_quit_cond.notify_one();
+		}
+		if (completion_handler)
+		{
+			completion_handler(boost::system::errc::make_error_code(boost::system::errc::success));
+		}
+		change_outstranding(false);
 		return;
+	}
+	else
+	{
+		m_timer.expires_from_now(boost::posix_time::seconds(1));
+		m_timer.async_wait(boost::bind(&multi_download::on_tick,
+			this, completion_handler, boost::asio::placeholders::error));
 	}
 }
 
