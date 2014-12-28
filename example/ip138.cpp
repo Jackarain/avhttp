@@ -1,4 +1,4 @@
-///这个示例是用于从IP138.COM网站获得IP或域名所对应的地理位置.
+﻿///这个示例是用于从IP138.COM网站获得IP或域名所对应的地理位置.
 #include <iostream>
 #include <boost/array.hpp>
 #include <boost/regex.hpp>

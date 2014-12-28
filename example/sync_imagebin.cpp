@@ -1,4 +1,4 @@
-// upload image to imagebin.org
+﻿// upload image to imagebin.org
 #include <iostream>
 #include <boost/noncopyable.hpp>
 #include <boost/array.hpp>

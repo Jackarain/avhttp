@@ -1,4 +1,4 @@
-// 通过avhttp提供的file_upload将图片上传到imagebin.org
+﻿// 通过avhttp提供的file_upload将图片上传到imagebin.org
 #include <iostream>
 #include <boost/noncopyable.hpp>
 #include <boost/array.hpp>

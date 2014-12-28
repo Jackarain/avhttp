@@ -1,4 +1,4 @@
-//
+﻿//
 // Copyright (c) 2013 Jack (jack dot wgm at gmail dot com)
 // Copyright (c) 2008 Arvid Norberg All rights reserved.
 //

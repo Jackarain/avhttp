@@ -1,4 +1,4 @@
-//
+﻿//
 // detail/handler_type_requirements.hpp
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //

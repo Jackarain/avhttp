@@ -1,4 +1,4 @@
-#ifndef AVHTTP_POST_FORM_HPP
+﻿#ifndef AVHTTP_POST_FORM_HPP
 #define AVHTTP_POST_FORM_HPP
 #include "avhttp/http_stream.hpp"
 #include <boost/format.hpp>
