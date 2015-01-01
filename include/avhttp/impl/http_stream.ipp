@@ -1578,9 +1578,16 @@ void http_stream::receive_header(boost::system::error_code& ec)
 		if (found == std::string::npos)
 		{
 			// 查询location中是否有协议相关标识, 如果没有http或https前辍, 则添加.
-			std::string prefix = m_url.to_string(
-				url::protocol_component|url::host_component|url::port_component);
-			m_location = prefix + "/" + m_location;
+			std::string temp = m_url.to_string();
+			std::size_t pos = temp.find_last_of('/');
+			if (pos == std::string::npos)
+			{
+				m_location = temp + "/" + m_location;
+			}
+			else
+			{
+				m_location = temp.substr(0, pos + 1) + m_location;
+			}
 		}
 	}
 
@@ -2037,9 +2044,16 @@ void http_stream::handle_header(Handler handler,
 		if (found == std::string::npos)
 		{
 			// 查询location中是否有协议相关标识, 如果没有http或https前辍, 则添加.
-			std::string prefix = m_url.to_string(
-				url::protocol_component|url::host_component|url::port_component);
-			m_location = prefix + "/" + m_location;
+			std::string temp = m_url.to_string();
+			std::size_t pos = temp.find_last_of('/');
+			if (pos == std::string::npos)
+			{
+				m_location = temp + "/" + m_location;
+			}
+			else
+			{
+				m_location = temp.substr(0, pos + 1) + m_location;
+			}
 		}
 	}
 
