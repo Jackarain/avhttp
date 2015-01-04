@@ -636,7 +636,10 @@ private:
 				if (!detail::parse_http_date(i->second, cookie_tmp.expires))
 				{
 					boost::int64_t time = -1;
-					int ret = std::sscanf(i->second.c_str(), "%lld", &time);	// 使用秒做cookie过期时间, 直接在当前时间加上这个秒数.
+					#ifndef PRId64
+					#	define PRId64 "lld"
+					#endif
+					int ret = std::sscanf(i->second.c_str(), "%" PRId64, &time);	// 使用秒做cookie过期时间, 直接在当前时间加上这个秒数.
 					if (ret == 1)
 						cookie_tmp.expires = boost::posix_time::second_clock::local_time() + boost::posix_time::seconds(time);
 					else
