@@ -5,8 +5,8 @@
 // Email:  jack.wgm@gmail.com
 //
 
-#ifndef LOGGING_HPP
-#define LOGGING_HPP
+#ifndef AVHTTP_LOGGING_HPP
+#define AVHTTP_LOGGING_HPP
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
@@ -364,4 +364,4 @@ namespace avhttp {
 
 #endif
 
-#endif // LOGGING_HPP
+#endif // AVHTTP_LOGGING_HPP
