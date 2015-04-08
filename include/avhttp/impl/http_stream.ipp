@@ -2708,7 +2708,7 @@ void http_stream::socks_proxy_handshake(Stream& sock, boost::system::error_code&
 	else if (s.type == proxy_settings::socks4)
 		bytes_to_read = 8;
 
-	BOOST_ASSERT(bytes_to_read == 0);
+	BOOST_ASSERT(bytes_to_read != 0);
 
 	m_response.consume(m_response.size());
 	boost::asio::read(sock, m_response,
