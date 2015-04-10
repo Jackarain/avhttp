@@ -2885,6 +2885,7 @@ void http_stream::handle_connect_socks(Stream& sock, Handler handler,
 
 	if (err)
 	{
+		endpoint_iterator++;
 		tcp::resolver::iterator end;
 		if (endpoint_iterator == end)
 		{
@@ -2895,7 +2896,6 @@ void http_stream::handle_connect_socks(Stream& sock, Handler handler,
 		}
 
 		// 继续尝试连接下一个IP.
-		endpoint_iterator++;
 		boost::asio::async_connect(sock.lowest_layer(), endpoint_iterator,
 			boost::bind(&http_stream::handle_connect_socks<Stream, Handler>,
 				this, boost::ref(sock), handler,
