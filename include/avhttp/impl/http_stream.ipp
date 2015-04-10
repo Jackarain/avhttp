@@ -2720,11 +2720,11 @@ void http_stream::socks_proxy_handshake(Stream& sock, boost::system::error_code&
 	int version = read_uint8(rp);
 	int response = read_uint8(rp);
 
-	if (version == 5)
+	if (s.type == proxy_settings::socks5 || s.type == proxy_settings::socks5_pw)
 	{
-		if (s.type != proxy_settings::socks5 && s.type != proxy_settings::socks5_pw)
+		if (version != 5)
 		{
-			// 请求的socks协议不是sock5.
+			// 请求的socks5协议但是实际上不是socks5？.
 			ec = errc::socks_unsupported_version;
 			return;
 		}
@@ -2784,7 +2784,7 @@ void http_stream::socks_proxy_handshake(Stream& sock, boost::system::error_code&
 			return;
 		}
 	}
-	else if (version == 4)
+	else if (s.type == proxy_settings::socks4)
 	{
 		// 90: request granted.
 		// 91: request rejected or failed.
