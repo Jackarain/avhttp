@@ -634,7 +634,8 @@ public:
 	typedef typename lowest_layer_type::protocol_type protocol_type;
 
 	explicit variant_stream(boost::asio::io_service& ios)
-		: m_io_service(ios), m_variant(boost::blank()) {}
+		: m_io_service(ios), m_variant(boost::blank())
+	{}
 
 	template <class S>
 	void instantiate(boost::asio::io_service& ios)
