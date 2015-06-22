@@ -242,7 +242,8 @@ public:
 	// @备注: handler也可以使用boost.bind来绑定一个符合规定的函数作
 	// 为async_open的参数handler.
 	template <typename Handler>
-	void async_open(const url& u, BOOST_ASIO_MOVE_ARG(Handler) handler);
+	inline BOOST_ASIO_INITFN_RESULT_TYPE(Handler, void(boost::system::error_code))
+		async_open(const url& u, BOOST_ASIO_MOVE_ARG(Handler) handler);
 
 	///从这个http_stream中读取一些数据.
 	// @param buffers一个或多个读取数据的缓冲区, 这个类型必须满足MutableBufferSequence,
@@ -570,6 +571,8 @@ public:
 protected:
 
 	// 内部相关实现, 非外部接口.
+	template <typename Handler>
+	void async_open_impl(const url& u, BOOST_ASIO_MOVE_ARG(Handler) handler);
 
 	template <typename MutableBufferSequence>
 	std::size_t read_some_impl(const MutableBufferSequence& buffers,
