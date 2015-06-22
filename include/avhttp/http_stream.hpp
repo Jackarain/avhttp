@@ -309,7 +309,8 @@ public:
 	// 关于示例中的boost::asio::buffer用法可以参考boost中的文档. 它可以接受一个
 	// boost.array或std.vector作为数据容器.
 	template <typename MutableBufferSequence, typename Handler>
-	void async_read_some(const MutableBufferSequence& buffers, BOOST_ASIO_MOVE_ARG(Handler) handler);
+	inline BOOST_ASIO_INITFN_RESULT_TYPE(Handler, void(boost::system::error_code, std::size_t))
+		async_read_some(const MutableBufferSequence& buffers, BOOST_ASIO_MOVE_ARG(Handler) handler);
 
 	///向这个http_stream中发送一些数据.
 	// @param buffers是一个或多个用于发送数据缓冲. 这个类型必须满足ConstBufferSequence, 参考文档:
@@ -574,7 +575,10 @@ protected:
 	template <typename Handler>
 	void async_open_impl(const url& u, BOOST_ASIO_MOVE_ARG(Handler) handler);
 
-	template <typename MutableBufferSequence>
+	template <typename MutableBufferSequence, typename Handler>
+	void async_read_some_impl(const MutableBufferSequence& buffers, BOOST_ASIO_MOVE_ARG(Handler) handler);
+
+	template < typename MutableBufferSequence >
 	std::size_t read_some_impl(const MutableBufferSequence& buffers,
 		boost::system::error_code& ec);
 

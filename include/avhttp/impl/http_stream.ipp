@@ -822,7 +822,24 @@ std::size_t http_stream::read_some(const MutableBufferSequence& buffers,
 }
 
 template <typename MutableBufferSequence, typename Handler>
-void http_stream::async_read_some(const MutableBufferSequence& buffers, BOOST_ASIO_MOVE_ARG(Handler) handler)
+inline BOOST_ASIO_INITFN_RESULT_TYPE(Handler, void(boost::system::error_code, std::size_t))
+http_stream::async_read_some(const MutableBufferSequence& buffers, BOOST_ASIO_MOVE_ARG(Handler) handler)
+{
+	using namespace boost::asio;
+
+	//BOOST_ASIO_CONNECT_HANDLER_CHECK(RealHandler, handler) type_check;
+	boost::asio::detail::async_result_init<
+		Handler, void(boost::system::error_code, std::size_t)> init(
+		BOOST_ASIO_MOVE_CAST(Handler)(handler));
+
+	async_read_some_impl<MutableBufferSequence,
+		BOOST_ASIO_HANDLER_TYPE(Handler, void(boost::system::error_code, std::size_t))
+	>(buffers, BOOST_ASIO_MOVE_CAST(BOOST_ASIO_HANDLER_TYPE(Handler, void(boost::system::error_code, std::size_t)))(init.handler));
+	return init.result.get();
+}
+
+template <typename MutableBufferSequence, typename Handler>
+void http_stream::async_read_some_impl(const MutableBufferSequence& buffers, BOOST_ASIO_MOVE_ARG(Handler) handler)
 {
 	AVHTTP_READ_HANDLER_CHECK(Handler, handler) type_check;
 
