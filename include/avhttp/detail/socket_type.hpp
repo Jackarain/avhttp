@@ -590,7 +590,9 @@ namespace aux
 
 	template <class LowestLayer>
 	struct lowest_layer_visitor
+#ifdef BOOST_NO_CXX14_GENERIC_LAMBDAS
 		: boost::static_visitor<LowestLayer&>
+#endif
 	{
 		template <class T>
 		LowestLayer& operator()(T* p) const
@@ -921,7 +923,6 @@ public:
 			aux::lowest_layer_visitor<lowest_layer_type>(), m_variant
 			);
 	}
-
 private:
 	boost::asio::io_service& m_io_service;
 	variant_type m_variant;
