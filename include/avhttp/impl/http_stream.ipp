@@ -165,7 +165,7 @@ void http_stream::open(const url& u, boost::system::error_code& ec)
 			{
 				AVHTTP_LOG_ERR << "Resolve DNS error \'" << m_url.host() <<
 					"\', error message \'" << ec.message() << "\'";
-				return ;
+				return;
 			}
 
 			// 尝试连接解析出来的服务器地址.
@@ -269,42 +269,42 @@ void http_stream::open(const url& u, boost::system::error_code& ec)
 			}
 			else
 #endif
-			if (m_protocol == "http")
-			{
-				// 开始解析端口和主机名.
-				tcp::resolver resolver(m_io_service);
-				std::ostringstream port_string;
-				port_string.imbue(std::locale("C"));
-				port_string << m_proxy.port;
-				tcp::resolver::query query(m_proxy.hostname, port_string.str());
-				tcp::resolver::iterator endpoint_iterator = resolver.resolve(query, ec);
-				tcp::resolver::iterator end;
+				if (m_protocol == "http")
+				{
+					// 开始解析端口和主机名.
+					tcp::resolver resolver(m_io_service);
+					std::ostringstream port_string;
+					port_string.imbue(std::locale("C"));
+					port_string << m_proxy.port;
+					tcp::resolver::query query(m_proxy.hostname, port_string.str());
+					tcp::resolver::iterator endpoint_iterator = resolver.resolve(query, ec);
+					tcp::resolver::iterator end;
 
-				if (ec)	// 解析域名出错, 直接返回相关错误信息.
-				{
-					AVHTTP_LOG_ERR << "Resolve DNS error \'" << m_proxy.hostname <<
-						"\', error message \'" << ec.message() << "\'";
-					return ;
-				}
+					if (ec)	// 解析域名出错, 直接返回相关错误信息.
+					{
+						AVHTTP_LOG_ERR << "Resolve DNS error \'" << m_proxy.hostname <<
+							"\', error message \'" << ec.message() << "\'";
+						return;
+					}
 
-				// 尝试连接解析出来的代理服务器地址.
-				ec = boost::asio::error::host_not_found;
-				while (ec && endpoint_iterator != end)
-				{
-					m_sock.close(ec);
-					m_sock.connect(*endpoint_iterator++, ec);
+					// 尝试连接解析出来的代理服务器地址.
+					ec = boost::asio::error::host_not_found;
+					while (ec && endpoint_iterator != end)
+					{
+						m_sock.close(ec);
+						m_sock.connect(*endpoint_iterator++, ec);
+					}
+					if (ec)
+					{
+						AVHTTP_LOG_ERR << "Connect to http proxy \'" << m_proxy.hostname << ":" << m_proxy.port <<
+							"\', error message \'" << ec.message() << "\'";
+						return;
+					}
+					else
+					{
+						AVHTTP_LOG_DBG << "Connect to proxy \'" << m_proxy.hostname << ":" << m_proxy.port << "\'.";
+					}
 				}
-				if (ec)
-				{
-					AVHTTP_LOG_ERR << "Connect to http proxy \'" << m_proxy.hostname << ":" << m_proxy.port <<
-						"\', error message \'" << ec.message() << "\'";
-					return;
-				}
-				else
-				{
-					AVHTTP_LOG_DBG << "Connect to proxy \'" << m_proxy.hostname << ":" << m_proxy.port << "\'.";
-				}
-			}
 		}
 		else
 		{
@@ -359,7 +359,24 @@ void http_stream::open(const url& u, boost::system::error_code& ec)
 }
 
 template <typename Handler>
-void http_stream::async_open(const url& u, BOOST_ASIO_MOVE_ARG(Handler) handler)
+	inline BOOST_ASIO_INITFN_RESULT_TYPE(Handler, void(boost::system::error_code))
+		http_stream::async_open(const url& u, BOOST_ASIO_MOVE_ARG(Handler) handler)
+{
+	using namespace boost::asio;
+
+	//BOOST_ASIO_CONNECT_HANDLER_CHECK(RealHandler, handler) type_check;
+	boost::asio::detail::async_result_init<
+		Handler, void(boost::system::error_code)> init(
+		BOOST_ASIO_MOVE_CAST(Handler)(handler));
+
+	async_open_impl<
+		BOOST_ASIO_HANDLER_TYPE(Handler, void(boost::system::error_code))
+	>(u, BOOST_ASIO_MOVE_CAST(BOOST_ASIO_HANDLER_TYPE(Handler, void(boost::system::error_code)))(init.handler));
+	return init.result.get();
+}
+
+template <typename Handler>
+void http_stream::async_open_impl(const url& u, BOOST_ASIO_MOVE_ARG(Handler) handler)
 {
 	AVHTTP_OPEN_HANDLER_CHECK(Handler, handler) type_check;
 
@@ -805,7 +822,24 @@ std::size_t http_stream::read_some(const MutableBufferSequence& buffers,
 }
 
 template <typename MutableBufferSequence, typename Handler>
-void http_stream::async_read_some(const MutableBufferSequence& buffers, BOOST_ASIO_MOVE_ARG(Handler) handler)
+inline BOOST_ASIO_INITFN_RESULT_TYPE(Handler, void(boost::system::error_code, std::size_t))
+http_stream::async_read_some(const MutableBufferSequence& buffers, BOOST_ASIO_MOVE_ARG(Handler) handler)
+{
+	using namespace boost::asio;
+
+	//BOOST_ASIO_CONNECT_HANDLER_CHECK(RealHandler, handler) type_check;
+	boost::asio::detail::async_result_init<
+		Handler, void(boost::system::error_code, std::size_t)> init(
+		BOOST_ASIO_MOVE_CAST(Handler)(handler));
+
+	async_read_some_impl<MutableBufferSequence,
+		BOOST_ASIO_HANDLER_TYPE(Handler, void(boost::system::error_code, std::size_t))
+	>(buffers, BOOST_ASIO_MOVE_CAST(BOOST_ASIO_HANDLER_TYPE(Handler, void(boost::system::error_code, std::size_t)))(init.handler));
+	return init.result.get();
+}
+
+template <typename MutableBufferSequence, typename Handler>
+void http_stream::async_read_some_impl(const MutableBufferSequence& buffers, BOOST_ASIO_MOVE_ARG(Handler) handler)
 {
 	AVHTTP_READ_HANDLER_CHECK(Handler, handler) type_check;
 
@@ -2708,7 +2742,7 @@ void http_stream::socks_proxy_handshake(Stream& sock, boost::system::error_code&
 	else if (s.type == proxy_settings::socks4)
 		bytes_to_read = 8;
 
-	BOOST_ASSERT(bytes_to_read == 0);
+	BOOST_ASSERT(bytes_to_read != 0);
 
 	m_response.consume(m_response.size());
 	boost::asio::read(sock, m_response,
@@ -2720,11 +2754,11 @@ void http_stream::socks_proxy_handshake(Stream& sock, boost::system::error_code&
 	int version = read_uint8(rp);
 	int response = read_uint8(rp);
 
-	if (version == 5)
+	if (s.type == proxy_settings::socks5 || s.type == proxy_settings::socks5_pw)
 	{
-		if (s.type != proxy_settings::socks5 && s.type != proxy_settings::socks5_pw)
+		if (version != 5)
 		{
-			// 请求的socks协议不是sock5.
+			// 请求的socks5协议但是实际上不是socks5？.
 			ec = errc::socks_unsupported_version;
 			return;
 		}
@@ -2784,7 +2818,7 @@ void http_stream::socks_proxy_handshake(Stream& sock, boost::system::error_code&
 			return;
 		}
 	}
-	else if (version == 4)
+	else if (s.type == proxy_settings::socks4)
 	{
 		// 90: request granted.
 		// 91: request rejected or failed.
@@ -2885,6 +2919,7 @@ void http_stream::handle_connect_socks(Stream& sock, Handler handler,
 
 	if (err)
 	{
+		endpoint_iterator++;
 		tcp::resolver::iterator end;
 		if (endpoint_iterator == end)
 		{
@@ -2895,7 +2930,6 @@ void http_stream::handle_connect_socks(Stream& sock, Handler handler,
 		}
 
 		// 继续尝试连接下一个IP.
-		endpoint_iterator++;
 		boost::asio::async_connect(sock.lowest_layer(), endpoint_iterator,
 			boost::bind(&http_stream::handle_connect_socks<Stream, Handler>,
 				this, boost::ref(sock), handler,
@@ -3461,6 +3495,7 @@ void http_stream::handle_connect_https_proxy(Stream& sock, Handler handler,
 {
 	if (err)
 	{
+		endpoint_iterator++;
 		tcp::resolver::iterator end;
 		if (endpoint_iterator == end)
 		{
@@ -3471,7 +3506,6 @@ void http_stream::handle_connect_https_proxy(Stream& sock, Handler handler,
 		}
 
 		// 继续尝试连接下一个IP.
-		endpoint_iterator++;
 		boost::asio::async_connect(sock.lowest_layer(), endpoint_iterator,
 			boost::bind(&http_stream::handle_connect_https_proxy<Stream, Handler>,
 				this, boost::ref(sock), handler,
