@@ -529,6 +529,12 @@ bool content_disposition_filename(Iterator begin, Iterator end, std::string& fil
 	return true;
 }
 
+// 转换ptime到time_t.
+inline time_t ptime_to_time_t(const boost::posix_time::ptime& pt)
+{
+	static boost::posix_time::ptime epoch(boost::gregorian::date(1970, 1, 1));
+	return time_t((pt - epoch).total_seconds());
+}
 
 namespace {
 
