@@ -529,12 +529,6 @@ bool content_disposition_filename(Iterator begin, Iterator end, std::string& fil
 	return true;
 }
 
-// 转换ptime到time_t.
-inline time_t ptime_to_time_t(const boost::posix_time::ptime& pt)
-{
-	struct tm tm = boost::posix_time::to_tm(pt);
-	return std::mktime(&tm);
-}
 
 namespace {
 
@@ -1086,10 +1080,8 @@ inline bool parse_http_date(const std::string& s, boost::posix_time::ptime& t)
 // 返回true表示解析成功, 返回false表示解析失败.
 inline bool parse_http_date(const std::string& s, time_t& t)
 {
-	boost::posix_time::ptime pt;
-	if (!parse_http_date(s, pt))
+	if (!parse(s.c_str(), &t))
 		return false;
-	t = ptime_to_time_t(pt);
 	return true;
 }
 
