@@ -152,8 +152,8 @@ inline std::size_t calc_content_length(const std::string& filename, const std::s
 file_upload::file_upload(boost::asio::io_service& io, bool fake_continue)
 	: m_io_service(io)
 	, m_http_stream(io)
-	, m_fake_continue(fake_continue)
 	, m_base_boundary(form_boundary())
+	, m_fake_continue(fake_continue)
 {}
 
 file_upload::~file_upload()

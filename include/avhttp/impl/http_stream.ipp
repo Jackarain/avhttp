@@ -807,7 +807,7 @@ std::size_t http_stream::read_some(const MutableBufferSequence& buffers,
 	// 如果启用了keep_alive, 则计算是否读取body完成, 如果完成, 则直接返回0而不是去读取.
 	if (m_keep_alive)
 	{
-		if (m_content_length != -1 && m_body_size == m_content_length)
+		if (m_content_length != -1 && m_body_size == static_cast<std::size_t>(m_content_length))
 		{
 			return 0;
 		}
@@ -989,7 +989,7 @@ void http_stream::async_read_some_impl(const MutableBufferSequence& buffers, BOO
 		{
 			if (m_keep_alive)
 			{
-				if (m_content_length != -1 && m_body_size == m_content_length)
+				if (m_content_length != -1 && m_body_size == static_cast<std::size_t>(m_content_length))
 				{
 					m_io_service.post(
 						boost::asio::detail::bind_handler(handler, ec, 0));

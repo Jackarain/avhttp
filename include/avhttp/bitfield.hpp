@@ -156,7 +156,7 @@ public:
         { return byte != rhs.byte || bit != rhs.bit; }
 
         const_iterator& operator+(boost::uint64_t rhs)
-        { for (int i = 0; i < rhs; i++)inc(); return *this; }
+        { for (uint64_t i = 0; i < rhs; i++)inc(); return *this; }
 
     private:
         void inc()
