@@ -42,7 +42,22 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <sys/statvfs.h>
+
+#if !defined(__APPLE__) && !defined(__OpenBSD__) && !defined(__ANDROID__)
+#     include <sys/statvfs.h>
+#     define BOOST_STATVFS statvfs
+#     define BOOST_STATVFS_F_FRSIZE vfs.f_frsize
+#else
+#     ifdef __ANDROID__
+#     include <sys/vfs.h>
+#     endif
+#     ifdef __OpenBSD__
+#     include <sys/param.h>
+#     endif
+#     include <sys/mount.h>
+#     define BOOST_STATVFS statfs
+#     define BOOST_STATVFS_F_FRSIZE static_cast<boost::uintmax_t>(vfs.f_bsize)
+#endif
 
 #endif
 
@@ -243,12 +258,14 @@ int file::pos_alignment() const
 {
 	// on linux and windows, file offsets needs
 	// to be aligned to the disk sector size
-#if defined __linux__
+#ifdef __ANDROID__
+	return 1;
+#elif defined __linux__
 	if (m_sector_size == 0)
 	{
-		struct statvfs fs;
-		if (fstatvfs(m_fd, &fs) == 0)
-			m_sector_size = fs.f_bsize;
+		struct BOOST_STATVFS vfs;
+		if (fstatvfs(m_fd, &vfs) == 0)
+			m_sector_size = BOOST_STATVFS_F_FRSIZE ;
 		else
 			m_sector_size = 4096;
 	}

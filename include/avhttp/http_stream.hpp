@@ -98,7 +98,7 @@ namespace avhttp {
 //  	}
 //  	~downloader()
 //  	{}
-//  
+//
 //  public:
 //  	void handle_open(const boost::system::error_code& ec)
 //  	{
@@ -115,7 +115,7 @@ namespace avhttp {
 // 					boost::asio::placeholders::error));
 //  		}
 //  	}
-//  
+//
 //  	void handle_read(int bytes_transferred, const boost::system::error_code& ec)
 //  	{
 //  		if (!ec)
@@ -127,7 +127,7 @@ namespace avhttp {
 //  				boost::asio::placeholders::error));
 //  		}
 //  	}
-//  
+//
 //  private:
 //  	boost::asio::io_service& m_io_service;
 //  	avhttp::http_stream m_stream;
