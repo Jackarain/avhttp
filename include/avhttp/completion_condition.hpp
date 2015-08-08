@@ -40,7 +40,7 @@ struct transfer_response_body_t
 		if(m_content_length > 0 )
 		{
 			// just the same boost::asio::transfer_exactly
-			return (!!err || bytes_transferred >= m_content_length) ? 0 :
+			return (!!err || static_cast<boost::int64_t>(bytes_transferred) >= m_content_length) ? 0 :
 			(m_content_length - bytes_transferred < default_max_transfer_size
 				? m_content_length - bytes_transferred : std::size_t(default_max_transfer_size));
 		}

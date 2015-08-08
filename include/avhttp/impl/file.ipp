@@ -81,12 +81,12 @@ file::file()
 #else
 	: m_fd(-1)
 #endif
+#if defined WIN32 || defined __linux__ || defined DEBUG
+	, m_page_size(0)
+#endif
 	, m_open_mode(0)
 #if defined WIN32 || defined __linux__
 	, m_sector_size(0)
-#endif
-#if defined WIN32 || defined __linux__ || defined DEBUG
-	, m_page_size(0)
 #endif
 {}
 
@@ -96,12 +96,12 @@ file::file(fs::path const& p, int m, boost::system::error_code& ec)
 #else
 	: m_fd(-1)
 #endif
+#if defined WIN32 || defined __linux__ || defined DEBUG
+	, m_page_size(0)
+#endif
 	, m_open_mode(0)
 #if defined WIN32 || defined __linux__
 	, m_sector_size(0)
-#endif
-#if defined WIN32 || defined __linux__ || defined DEBUG
-	, m_page_size(0)
 #endif
 {
 	open(p, m, ec);
@@ -603,7 +603,7 @@ file::size_type file::readv(file::size_type file_offset,
 			return -1;
 		}
 		ret += tmp;
-		if (tmp < i->iov_len) break;
+		if (static_cast<std::size_t>(tmp) < i->iov_len) break;
 	}
 	return ret;
 
@@ -889,7 +889,7 @@ file::size_type file::writev(file::size_type file_offset, iovec_t const* bufs, i
 			return -1;
 		}
 		ret += tmp;
-		if (tmp < i->iov_len) break;
+		if (static_cast<std::size_t>(tmp) < i->iov_len) break;
 	}
 	return ret;
 

@@ -590,7 +590,9 @@ namespace aux
 
 	template <class LowestLayer>
 	struct lowest_layer_visitor
+#ifdef BOOST_NO_CXX14_GENERIC_LAMBDAS
 		: boost::static_visitor<LowestLayer&>
+#endif
 	{
 		template <class T>
 		LowestLayer& operator()(T* p) const
@@ -634,26 +636,23 @@ public:
 	typedef typename lowest_layer_type::protocol_type protocol_type;
 
 	explicit variant_stream(boost::asio::io_service& ios)
-		: m_io_service(ios), m_variant(boost::blank()) {}
+		: m_io_service(ios), m_variant(boost::blank())
+	{}
 
 	template <class S>
 	void instantiate(boost::asio::io_service& ios)
 	{
 		BOOST_ASSERT(&ios ==& m_io_service);
-		std::auto_ptr<S> owned(new S(ios));
 		boost::apply_visitor(aux::delete_visitor(), m_variant);
-		m_variant = owned.get();
-		owned.release();
+		m_variant = new S(ios);
 	}
 
 	template <class S>
 	void instantiate(boost::asio::ip::tcp::socket& socket)
 	{
 		BOOST_ASSERT(&socket.get_io_service() ==& m_io_service);
-		std::auto_ptr<S> owned(new S(socket, m_io_service));
 		boost::apply_visitor(aux::delete_visitor(), m_variant);
-		m_variant = owned.get();
-		owned.release();
+		m_variant = new S(socket, m_io_service);
 	}
 
 	template <class S>
@@ -920,7 +919,6 @@ public:
 			aux::lowest_layer_visitor<lowest_layer_type>(), m_variant
 			);
 	}
-
 private:
 	boost::asio::io_service& m_io_service;
 	variant_type m_variant;

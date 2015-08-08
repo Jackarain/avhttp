@@ -883,7 +883,7 @@ void multi_download::handle_open(const int index,
 	);
 }
 
-void multi_download::handle_read(const int index, 
+void multi_download::handle_read(const int index,
 	http_object_ptr object_ptr, int bytes_transferred, const boost::system::error_code& ec)
 {
 	auto_outstanding ao(*this);
@@ -1600,7 +1600,7 @@ void multi_download::on_tick(const boost::system::error_code& e)
 	}
 
 	// 统计操作功能完成的http_stream的个数.
-	int done = 0;
+	std::size_t done = 0;
 	for (std::size_t i = 0; i < m_streams.size(); i++)
 	{
 		http_object_ptr& object_item_ptr = m_streams[i];
@@ -1701,7 +1701,7 @@ bool multi_download::open_meta(const fs::path& file_path)
 
 		buffer.resize(size);
 		const std::streamsize num = m_file_meta.read(&buffer[0], size);
-		if (num != size)
+		if (num != static_cast<std::streamsize>(size))
 		{
 			return false;
 		}
