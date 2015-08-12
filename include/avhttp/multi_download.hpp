@@ -148,6 +148,46 @@ public:
 	template <typename Handler>
 	void async_start(const std::string& u, const settings& s, Handler handler);
 
+	///异步启动下载, 启动完成将回调对应的Handler.
+	// @param u 将要下载的URL.
+	// @param s 下载设置参数信息.
+	// @param startup_handler 将被调用在启动完成时. 它必须满足以下条件:
+	// @param completion_handler 当下载完成后，必须满足以下条件将被调用：
+	// @begin code
+	//  void handler(
+	//    const boost::system::error_code& ec // 用于返回操作状态.
+	//  );
+	// @end code
+	// @begin example
+	//  void start_handler(const boost::system::error_code& ec)
+	//  {
+	//    if (!ec)
+	//    {
+	//      // 启动下载成功!
+	//    }
+	//  }
+	//  ...
+	//  void finish_handler(const boost::system::error_code& ec)
+	//  {
+	//    if (!ec)
+	//    {
+	//      // download completed successfully
+	//    }
+	//    else
+	//    {
+	//      // download was canceled/failed
+	//    }
+	//  }
+	//  ...
+	//  avhttp::multi_download h(io_service);
+	//  settings s;
+	//  h.async_open("http://www.boost.org", s, start_handler, finish_handler);
+	// @end example
+	// @备注: handler也可以使用boost.bind来绑定一个符合规定的函数作
+	// 为async_start的参数handler.
+	template <typename StartupHandler, typename CompletionHandler>
+	void async_start(const std::string& u, const settings& s, StartupHandler startup_handler, CompletionHandler completion_handler);
+
 	// stop当前所有连接, 停止工作.
 	AVHTTP_DECL void stop();
 
@@ -200,7 +240,8 @@ public:
 	AVHTTP_DECL int download_rate_limit() const;
 
 protected:
-
+	typedef boost::function<void (boost::system::error_code)> HandlerWrapper;
+protected:
 	AVHTTP_DECL void handle_open(const int index,
 		http_object_ptr object_ptr, const boost::system::error_code& ec);
 
@@ -210,10 +251,13 @@ protected:
 	AVHTTP_DECL void handle_request(const int index,
 		http_object_ptr object_ptr, const boost::system::error_code& ec);
 
-	template <typename Handler>
-	void handle_start(Handler handler, http_object_ptr object_ptr, const boost::system::error_code& ec);
+	AVHTTP_DECL void handle_start(
+		HandlerWrapper startup_handler,
+		HandlerWrapper completion_handler,
+		http_object_ptr object_ptr,
+		const boost::system::error_code& ec);
 
-	AVHTTP_DECL void on_tick(const boost::system::error_code& e);
+	AVHTTP_DECL void on_tick(HandlerWrapper completion_handler, const boost::system::error_code& e);
 
 	AVHTTP_DECL bool allocate_range(range& r);
 
