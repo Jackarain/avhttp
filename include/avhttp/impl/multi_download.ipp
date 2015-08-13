@@ -106,6 +106,7 @@ multi_download::multi_download(boost::asio::io_service& io)
 	, m_drop_size(-1)
 	, m_outstanding(0)
 	, m_abort(true)
+	, m_load_complete(false)
 {}
 
 multi_download::~multi_download()
@@ -352,6 +353,7 @@ void multi_download::start(const std::string& u, const settings& s, boost::syste
 
 	// 修改终止状态.
 	m_abort = false;
+	m_load_complete = false;
 
 	// 连接计数置为1.
 	m_number_of_connections = 1;
@@ -565,6 +567,7 @@ void multi_download::async_start(
 
 	// 设置状态.
 	m_abort = false;
+	m_load_complete = false;
 
 	// 创建一个http_stream对象.
 	http_object_ptr obj = boost::make_shared<http_stream_object>();
@@ -1021,6 +1024,7 @@ void multi_download::handle_read(const int index,
 			(m_file_size != -1 && object.bytes_downloaded == m_file_size))
 		{
 			m_abort = true;
+			m_load_complete = true;
 			boost::system::error_code ignore;
 			m_timer.cancel(ignore);
 			return;
@@ -1297,6 +1301,7 @@ void multi_download::handle_start(
 
 	// 修改终止状态.
 	m_abort = false;
+	m_load_complete = false;
 
 	// 连接计数置为1.
 	m_number_of_connections = 1;
@@ -1504,14 +1509,23 @@ void multi_download::on_tick(HandlerWrapper completion_handler, const boost::sys
 		m_storage.reset();
 		if(completion_handler)
 		{
-			if (e)
+			if (m_load_complete)
 			{
-				completion_handler(e);
+				// Donload has been stopped or finished successfuly.
+				// Report that operation suceed.
+				completion_handler(boost::system::errc::make_error_code(boost::system::errc::success));
 			}
 			else
 			{
-				boost::system::error_code code = boost::system::errc::make_error_code(boost::system::errc::operation_canceled);
-				completion_handler(code);
+				if (e)
+				{
+					completion_handler(e);
+				}
+				else
+				{
+					boost::system::error_code code = boost::system::errc::make_error_code(boost::system::errc::operation_canceled);
+					completion_handler(code);
+				}
 			}
 		}
 		
@@ -1647,6 +1661,7 @@ void multi_download::on_tick(HandlerWrapper completion_handler, const boost::sys
 	{
 		boost::system::error_code ignore;
 		m_abort = true;
+		m_load_complete = true;
 		m_timer.cancel(ignore);
 		if (m_file_meta.is_open())
 		{
