@@ -587,6 +587,7 @@ private:
 
 				if (c == '\"' || c == '\'')
 				{
+					value.push_back(c);
 					state = cookie_value_qouted;
 					continue;
 				}
