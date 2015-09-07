@@ -523,6 +523,7 @@ private:
 			cookie_name,
 			cookie_value_start,
 			cookie_value,
+			cookie_value_qouted,
 			cookie_bad
 		} state = cookie_name_start;
 
@@ -585,7 +586,11 @@ private:
 				}
 
 				if (c == '\"' || c == '\'')
+				{
+					value.push_back(c);
+					state = cookie_value_qouted;
 					continue;
+				}
 
 				if (detail::is_char(c))
 				{
@@ -606,6 +611,15 @@ private:
 				else if (detail::is_char(c))
 					value.push_back(c);
 				else
+					state = cookie_bad;
+				break;
+			case cookie_value_qouted:
+				value.push_back(c);
+				if (c == '\"' || c == '\"' || c == '\'')
+				{
+					state = cookie_value;
+				}
+				else if (!detail::is_char(c))
 					state = cookie_bad;
 				break;
 			case cookie_bad:
