@@ -20,6 +20,29 @@ if (UNIX AND NOT APPLE AND DEBUG)
 	add_definitions(-DDEBUG)
 endif()
 
+if (MINGW)
+	include(CheckCXXSourceCompiles)
+
+	set(CHECK_FILE_ALLOCATED_RANGE_BUFFER_STRUCT_DEFINED
+"
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <winioctl.h>
+
+int main()
+{
+	_FILE_ALLOCATED_RANGE_BUFFER alloc_buf;
+	return 0;
+}")
+
+	check_cxx_source_compiles("${CHECK_FILE_ALLOCATED_RANGE_BUFFER_STRUCT_DEFINED}"
+		HAVE_FILE_ALLOCATED_RANGE_BUFFER)
+
+	if (HAVE_FILE_ALLOCATED_RANGE_BUFFER)
+		add_definitions(-DHAVE_FILE_ALLOCATED_RANGE_BUFFER)
+	endif()
+endif()
+
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(include)
 
@@ -49,3 +72,6 @@ endif()
 
 target_link_libraries(avhttp libavhttp)
 target_link_libraries(form libavhttp)
+
+install(DIRECTORY include/ DESTINATION include)
+install(DIRECTORY example/ DESTINATION share/avhttp/examples)
