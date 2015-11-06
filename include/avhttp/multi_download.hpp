@@ -354,6 +354,7 @@ private:
 
 	// 是否中止工作.
 	bool m_abort;
+	bool m_load_complete;
 };
 
 } // avhttp
