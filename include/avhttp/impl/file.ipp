@@ -1178,11 +1178,15 @@ file::size_type file::sparse_end(size_type start) const
 {
 #ifdef WIN32
 #if defined(__MINGW32__) || defined(MINGW32)
+#ifndef HAVE_FILE_ALLOCATED_RANGE_BUFFER
 	typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		LARGE_INTEGER FileOffset;
 		LARGE_INTEGER Length;
 	} FILE_ALLOCATED_RANGE_BUFFER, *PFILE_ALLOCATED_RANGE_BUFFER;
+#endif
+#ifndef FSCTL_QUERY_ALLOCATED_RANGES
 #define FSCTL_QUERY_ALLOCATED_RANGES ((0x9 << 16) | (1 << 14) | (51 << 2) | 3)
+#endif
 #endif
 	FILE_ALLOCATED_RANGE_BUFFER buffer;
 	DWORD bytes_returned = 0;

@@ -53,7 +53,10 @@ namespace detail {
 #endif
 
 #if defined(_WIN32)
-#	define strcasecmp lstrcmpiA
+#  if defined(strcasecmp)
+#    undef strcasecmp
+#  endif
+#  define strcasecmp lstrcmpiA
 #endif
 
 inline bool headers_equal(const std::string& a, const std::string& b)
