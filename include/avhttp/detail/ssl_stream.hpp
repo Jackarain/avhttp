@@ -76,6 +76,17 @@ public:
 		m_sock.set_verify_callback(callback, ec);
 	}
 
+	template <typename VerifyMode>
+	void set_verify_mode(VerifyMode m)
+	{
+		m_sock.set_verify_mode(m);
+	}
+
+	template <typename VerifyMode>
+	void set_verify_mode(VerifyMode m, boost::system::error_code& ec)
+	{
+		m_sock.set_verify_mode(m, ec);
+	}
 #ifndef BOOST_NO_EXCEPTIONS
 	void connect(endpoint_type const& endpoint)
 	{
