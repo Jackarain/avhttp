@@ -1838,7 +1838,7 @@ template <typename Handler>
 void http_stream::handle_resolve(const boost::system::error_code& err,
 	tcp::resolver::iterator endpoint_iterator, Handler handler)
 {
-	if (!err)
+	if (!err && (endpoint_iterator != tcp::resolver::iterator()))
 	{
 		// 发起异步连接.
 		// !!!备注: 由于m_sock可能是ssl, 那么连接的握手相关实现被封装到ssl_stream
