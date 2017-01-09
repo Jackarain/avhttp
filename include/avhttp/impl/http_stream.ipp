@@ -1838,18 +1838,25 @@ template <typename Handler>
 void http_stream::handle_resolve(const boost::system::error_code& err,
 	tcp::resolver::iterator endpoint_iterator, Handler handler)
 {
-	if (!err && (endpoint_iterator != tcp::resolver::iterator()))
+	if (!err)
 	{
-		// 发起异步连接.
-		// !!!备注: 由于m_sock可能是ssl, 那么连接的握手相关实现被封装到ssl_stream
-		// 了, 所以, 如果需要使用boost::asio::async_connect的话, 需要在http_stream
-		// 中实现握手操作, 否则将会得到一个错误.
-		m_sock.async_connect(tcp::endpoint(*endpoint_iterator),
-			boost::bind(&http_stream::handle_connect<Handler>,
-				this, handler, endpoint_iterator,
-				boost::asio::placeholders::error
-			)
-		);
+		if (endpoint_iterator != tcp::resolver::iterator())
+		{
+			// 发起异步连接.
+			// !!!备注: 由于m_sock可能是ssl, 那么连接的握手相关实现被封装到ssl_stream
+			// 了, 所以, 如果需要使用boost::asio::async_connect的话, 需要在http_stream
+			// 中实现握手操作, 否则将会得到一个错误.
+			m_sock.async_connect(tcp::endpoint(*endpoint_iterator),
+				boost::bind(&http_stream::handle_connect<Handler>,
+					this, handler, endpoint_iterator,
+					boost::asio::placeholders::error
+				)
+			);
+			return;
+		}
+		boost::system::error_code ec = boost::asio::error::not_found;
+		handler(ec);
+		return;
 	}
 	else
 	{
