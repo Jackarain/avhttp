@@ -137,6 +137,8 @@ void http_stream::open(const url& u, boost::system::error_code& ec)
 		{
 			ssl_sock->set_verify_mode(boost::asio::ssl::verify_peer);
 
+			SSL_set_tlsext_host_name(ssl_sock->native_handle(), m_url.host().c_str());
+
 			ssl_sock->set_verify_callback(
 				boost::asio::ssl::rfc2818_verification(m_url.host()), ec);
 			if (ec)
@@ -458,6 +460,8 @@ void http_stream::async_open_impl(const url& u, BOOST_ASIO_MOVE_ARG(Handler) han
 		if (m_check_certificate)
 		{
 			ssl_sock->set_verify_mode(boost::asio::ssl::verify_peer);
+
+			SSL_set_tlsext_host_name(ssl_sock->native_handle(), m_url.host().c_str());
 
 			ssl_sock->set_verify_callback(
 				boost::asio::ssl::rfc2818_verification(m_url.host()), ec);

@@ -87,6 +87,12 @@ public:
 	{
 		m_sock.set_verify_mode(m, ec);
 	}
+
+	typename boost::asio::ssl::stream<Stream>::native_handle_type native_handle()
+	{
+		return m_sock.native_handle();
+	}
+
 #ifndef BOOST_NO_EXCEPTIONS
 	void connect(endpoint_type const& endpoint)
 	{
