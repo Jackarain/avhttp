@@ -173,8 +173,7 @@ public:
 			f.write(memo.c_str(), memo.size());
 		}
 
-		std::vector<http_cookie>::const_iterator i = m_cookies.begin();
-		for (; i != m_cookies.end(); i++)
+		for (auto i = m_cookies.cbegin(); i != m_cookies.cend(); i++)
 		{
 			const http_cookie& cookie = *i;
 			std::string tmp;
@@ -224,7 +223,7 @@ public:
 
 			// value.
 			f.write(cookie.value.c_str(), cookie.value.size());
-			f.write("\t\n", 1);
+			f.write("\t\n", 2);
 		}
 	}
 

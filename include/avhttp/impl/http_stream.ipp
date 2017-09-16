@@ -83,7 +83,6 @@ void http_stream::open(const url& u, boost::system::error_code& ec)
 	m_status_code = 0;
 	m_content_length = -1;
 	m_body_size = 0;
-	m_content_type = "";
 	m_request.consume(m_request.size());
 	m_response.consume(m_response.size());
 	m_skip_crlf = true;
@@ -402,7 +401,6 @@ void http_stream::async_open_impl(const url& u, BOOST_ASIO_MOVE_ARG(Handler) han
 	m_status_code = 0;
 	m_content_length = -1;
 	m_body_size = 0;
-	m_content_type = "";
 	m_request.consume(m_request.size());
 	m_response.consume(m_response.size());
 	m_skip_crlf = true;
