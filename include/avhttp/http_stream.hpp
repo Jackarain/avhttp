@@ -600,7 +600,7 @@ protected:
 
 	template <typename Handler>
 	void handle_header(Handler handler, std::string header_string,
-		int bytes_transferred, const boost::system::error_code& err);
+		std::size_t bytes_transferred, const boost::system::error_code& err);
 
 	template <typename MutableBufferSequence, typename Handler>
 	void handle_read(const MutableBufferSequence& buffers,
@@ -641,7 +641,7 @@ protected:
 
 	template <typename Stream, typename Handler>
 	void handle_socks_process(Stream& sock, Handler handler,
-		int bytes_transferred, const boost::system::error_code& err);
+		std::size_t bytes_transferred, const boost::system::error_code& err);
 
 #ifdef AVHTTP_ENABLE_OPENSSL
 	// 实现CONNECT指令, 用于请求目标为https主机时使用.
@@ -666,7 +666,7 @@ protected:
 
 	template <typename Stream, typename Handler>
 	void handle_https_proxy_header(Stream& sock, Handler handler,
-		int bytes_transferred, const boost::system::error_code& err);
+		std::size_t bytes_transferred, const boost::system::error_code& err);
 
 	template <typename Stream, typename Handler>
 	void handle_https_proxy_handshake(Stream& sock, Handler handler,

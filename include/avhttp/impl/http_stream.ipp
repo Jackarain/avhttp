@@ -459,6 +459,7 @@ void http_stream::async_open_impl(const url& u, BOOST_ASIO_MOVE_ARG(Handler) han
 		}
 		if (m_check_certificate)
 		{
+
 			ssl_sock->set_verify_mode(boost::asio::ssl::verify_peer);
 
 			SSL_set_tlsext_host_name(ssl_sock->native_handle(), m_url.host().c_str());
@@ -863,7 +864,7 @@ void http_stream::async_read_some_impl(const MutableBufferSequence& buffers, BOO
 #endif
 			)
 		{
-			int bytes_transferred = 0;
+			std::size_t bytes_transferred = 0;
 			int response_size = m_response.size();
 
 			// 是否跳过CRLF, 除第一次读取第一段数据外, 后面的每个chunked都需要将
@@ -1848,6 +1849,8 @@ void http_stream::handle_resolve(const boost::system::error_code& err,
 {
 	if (!err)
 	{
+		// access it, maybe this is invalid!
+		this->m_body_size = 0;
 		if (endpoint_iterator != tcp::resolver::iterator())
 		{
 			// 发起异步连接.
@@ -1879,6 +1882,7 @@ template <typename Handler>
 void http_stream::handle_connect(Handler handler,
 	tcp::resolver::iterator endpoint_iterator, const boost::system::error_code& err)
 {
+	this->m_body_size = 0;
 	if (!err)
 	{
 		AVHTTP_LOG_DBG << "Connect to \'" << m_url.host() << "\'.";
@@ -2043,7 +2047,7 @@ void http_stream::handle_status(Handler handler, const boost::system::error_code
 
 template <typename Handler>
 void http_stream::handle_header(Handler handler,
-	std::string header_string, int bytes_transferred, const boost::system::error_code& err)
+	std::string header_string, std::size_t bytes_transferred, const boost::system::error_code& err)
 {
 	if (err)
 	{
@@ -3017,7 +3021,7 @@ void http_stream::handle_connect_socks(Stream& sock, Handler handler,
 
 template <typename Stream, typename Handler>
 void http_stream::handle_socks_process(Stream& sock, Handler handler,
-	int bytes_transferred, const boost::system::error_code& err)
+	std::size_t bytes_transferred, const boost::system::error_code& err)
 {
 	using namespace avhttp::detail;
 
@@ -3689,7 +3693,7 @@ void http_stream::handle_https_proxy_status(Stream& sock, Handler handler,
 
 template <typename Stream, typename Handler>
 void http_stream::handle_https_proxy_header(Stream& sock, Handler handler,
-	int bytes_transferred, const boost::system::error_code& err)
+	std::size_t bytes_transferred, const boost::system::error_code& err)
 {
 	if (err)
 	{

@@ -21,6 +21,8 @@ BOOST_STATIC_ASSERT_MSG(BOOST_VERSION >= 105400, "You must use boost-1.54 or lat
 #include "avhttp/http_stream.hpp"
 #include "avhttp/completion_condition.hpp"
 
+#include <boost/asio/yield.hpp>
+
 namespace avhttp {
 namespace detail {
 
@@ -39,7 +41,7 @@ public:
 
 	void operator()(const boost::system::error_code& ec, std::size_t bytes_transferred = 0)
 	{
-		BOOST_ASIO_CORO_REENTER(this)
+		reenter(this)
 		{
 			if(!ec)
 			{
@@ -119,5 +121,7 @@ AVHTTP_DECL void async_read_body(AsyncReadStream& stream,
 }
 
 } // namespace avhttp
+
+#include <boost/asio/unyield.hpp>
 
 #endif // AVHTTP_MISC_HTTP_ASYNC_READBODY_HPP

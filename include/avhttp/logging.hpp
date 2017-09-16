@@ -31,6 +31,7 @@
 #include <boost/noncopyable.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include "detail/utf8.hpp"
 
 namespace avhttp {
 
@@ -252,9 +253,12 @@ namespace avhttp {
 			SetConsoleTextAttribute(handle_stdout, FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_INTENSITY);
 		else if (level == LOGGER_ERR_STR)
 			SetConsoleTextAttribute(handle_stdout, FOREGROUND_RED | FOREGROUND_INTENSITY);
-		std::cout << prefix;
+		std::wstring l = avhttp::detail::utf8_wide(prefix);
+		WriteConsoleW(GetStdHandle(STD_OUTPUT_HANDLE), l.data(), (DWORD)l.length(), nullptr, nullptr);
+
 		SetConsoleTextAttribute(handle_stdout, FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_BLUE);
-		std::cout << message;
+		l = avhttp::detail::utf8_wide(message);
+		WriteConsoleW(GetStdHandle(STD_OUTPUT_HANDLE), l.data(), (DWORD)l.length(), nullptr, nullptr);
 		SetConsoleTextAttribute(handle_stdout, csbi.wAttributes);
 #else
 		if (level == LOGGER_INFO_STR)

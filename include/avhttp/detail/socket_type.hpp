@@ -582,7 +582,9 @@ namespace aux
 
 		IOService& operator()(boost::blank) const
 		{
-			return *(IOService*)0;
+			BOOST_ASSERT(false && "logic error");
+			static IOService io;
+			return io;
 		}
 	};
 

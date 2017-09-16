@@ -89,8 +89,12 @@ public:
 		// 基于 过期时间进行排序.
 		template<typename Compare>
 		struct compare_by_expires_t
-			: std::binary_function<cookie_t, cookie_t, bool>
 		{
+			typedef cookie_t first_argument_type;
+			typedef cookie_t second_argument_type;
+
+			typedef bool result_type;
+
 			compare_by_expires_t(const Compare& comp)
 			  : m_comp(comp)
 			{
@@ -456,9 +460,9 @@ public:
 	}
 
 private:
-	struct http_cookie_is_same_name
+	struct http_cookie_is_not_same_name
 	{
-		http_cookie_is_same_name(const std::string & name)
+		http_cookie_is_not_same_name(const std::string & name)
 		  : m_name(name)
 		{}
 
@@ -474,8 +478,10 @@ public:
 	// 删除指定名称的cookie.
 	void remove_cookie(const std::string& name)
 	{
-		std::remove_if(m_cookies.begin(), m_cookies.end(),
-			http_cookie_is_same_name(name) );
+		decltype(m_cookies) new_cookies;
+		std::swap(m_cookies, new_cookies);
+		std::copy_if(new_cookies.begin(), new_cookies.end(),
+			std::back_inserter(m_cookies), http_cookie_is_not_same_name(name));
 	}
 
 	// 清除所有cookie.
@@ -653,8 +659,6 @@ private:
 					int ret = std::sscanf(i->second.c_str(), "%ld", &time);	// 使用秒做cookie过期时间, 直接在当前时间加上这个秒数.
 					if (ret == 1)
 						cookie_tmp.expires = boost::posix_time::second_clock::local_time() + boost::posix_time::seconds(time);
-					else
-						BOOST_ASSERT(0);	// for debug.
 				}
 				tmp.erase(i++);
 			}

@@ -76,6 +76,7 @@ public:
 		m_sock.set_verify_callback(callback, ec);
 	}
 
+
 	template <typename VerifyMode>
 	void set_verify_mode(VerifyMode m)
 	{
