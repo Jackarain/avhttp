@@ -621,7 +621,7 @@ private:
 				break;
 			case cookie_value_qouted:
 				value.push_back(c);
-				if (c == '\"' || c == '\"' || c == '\'')
+				if (c == '\"' || c == '\'')
 				{
 					state = cookie_value;
 				}
