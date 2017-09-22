@@ -173,9 +173,8 @@ public:
 			f.write(memo.c_str(), memo.size());
 		}
 
-		for (auto i = m_cookies.cbegin(); i != m_cookies.cend(); i++)
+		for (const auto& cookie : m_cookies)
 		{
-			const http_cookie& cookie = *i;
 			std::string tmp;
 
 			// domain.
