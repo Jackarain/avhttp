@@ -23,7 +23,6 @@ script:
     - make
     - ./avhttp http://www.boost.org/LICENSE_1_0.txt
     - ./avhttp https://github.com/blog
-    - ./avhttp http://optimate.dl.sourceforge.net/project/avplayer/exe/release-2013-03-13.7z
     - cat ./multi_download.log
 
 branches:
