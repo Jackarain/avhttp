@@ -43,7 +43,7 @@ public:
 	{
 		reenter(this)
 		{
-			if(!ec)
+			if(!ec || ec == avhttp::errc::accepted)
 			{
 				BOOST_ASIO_CORO_YIELD boost::asio::async_read(
 					m_stream, m_buffers, transfer_response_body(m_stream.content_length()), *this);

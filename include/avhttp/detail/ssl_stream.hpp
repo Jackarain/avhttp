@@ -31,7 +31,7 @@ class ssl_stream
 public:
 
 	explicit ssl_stream(boost::asio::io_service& io_service)
-		: m_context(io_service, boost::asio::ssl::context::sslv23_client)
+		: m_context(boost::asio::ssl::context::sslv23_client)
 		, m_sock(io_service, m_context)
 	{
 		boost::system::error_code ec;
@@ -41,7 +41,7 @@ public:
 
 	template <typename Arg>
 	explicit ssl_stream(Arg& arg, boost::asio::io_service& io_service)
-		: m_context(io_service, boost::asio::ssl::context::sslv23_client)
+		: m_context(boost::asio::ssl::context::sslv23_client)
 		, m_sock(arg, m_context)
 	{
 		boost::system::error_code ec;
@@ -56,7 +56,6 @@ public:
 	typedef typename lowest_layer_type::endpoint_type endpoint_type;
 	typedef typename lowest_layer_type::protocol_type protocol_type;
 	typedef typename boost::asio::ssl::stream<Stream> sock_type;
-	typedef typename boost::asio::ssl::stream<Stream>::impl_type impl_type;
 
 	typedef boost::function<void(boost::system::error_code const&)> handler_type;
 
@@ -281,10 +280,10 @@ public:
 		return m_sock.next_layer();
 	}
 
-	impl_type impl()
-	{
-		return m_sock.impl();
-	}
+// 	impl_type impl()
+// 	{
+// 		return m_sock.impl();
+// 	}
 
 	template <typename SettableSocketOption>
 	boost::system::error_code set_option(const SettableSocketOption& option,
