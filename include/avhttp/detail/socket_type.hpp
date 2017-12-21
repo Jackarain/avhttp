@@ -637,12 +637,12 @@ public:
 	typedef typename lowest_layer_type::endpoint_type endpoint_type;
 	typedef typename lowest_layer_type::protocol_type protocol_type;
 
-	explicit variant_stream(boost::asio::io_service& ios)
+	explicit variant_stream(boost::asio::io_context& ios)
 		: m_io_service(ios), m_variant(boost::blank())
 	{}
 
 	template <class S>
-	void instantiate(boost::asio::io_service& ios)
+	void instantiate(boost::asio::io_context& ios)
 	{
 		BOOST_ASSERT(&ios ==& m_io_service);
 		boost::apply_visitor(aux::delete_visitor(), m_variant);
@@ -909,7 +909,7 @@ public:
 			);
 	}
 
-	boost::asio::io_service& get_io_service()
+	boost::asio::io_context& get_io_service()
 	{
 		return m_io_service;
 	}
@@ -922,7 +922,7 @@ public:
 			);
 	}
 private:
-	boost::asio::io_service& m_io_service;
+	boost::asio::io_context& m_io_service;
 	variant_type m_variant;
 };
 

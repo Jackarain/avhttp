@@ -22,7 +22,7 @@
 
 namespace avhttp {
 
-http_stream::http_stream(boost::asio::io_service& io)
+http_stream::http_stream(boost::asio::io_context& io)
 	: m_io_service(io)
 	, m_resolver(io)
 	, m_sock(io)
@@ -1724,7 +1724,7 @@ bool http_stream::is_open() const
 	return m_sock.is_open();
 }
 
-boost::asio::io_service& http_stream::get_io_service()
+boost::asio::io_context& http_stream::get_io_service()
 {
 	return m_io_service;
 }

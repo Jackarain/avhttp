@@ -64,7 +64,7 @@ class multi_download : public boost::noncopyable
 public:
 
 	/// Constructor.
-	AVHTTP_DECL explicit multi_download(boost::asio::io_service& io);
+	AVHTTP_DECL explicit multi_download(boost::asio::io_context& io);
 
 	/// Destructor.
 	AVHTTP_DECL ~multi_download();
@@ -274,7 +274,7 @@ private:
 
 private:
 	// io_service引用.
-	boost::asio::io_service& m_io_service;
+	boost::asio::io_context& m_io_service;
 
 	// 每一个http_stream_obj是一个http连接.
 	// 注意: 容器中的http_object_ptr只能在on_tick一处进行写操作, 并且确保其它地方

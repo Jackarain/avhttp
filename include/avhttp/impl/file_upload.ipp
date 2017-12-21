@@ -149,7 +149,7 @@ inline std::size_t calc_content_length(const std::string& filename, const std::s
 	return content_length;
 }
 
-file_upload::file_upload(boost::asio::io_service& io, bool fake_continue)
+file_upload::file_upload(boost::asio::io_context& io, bool fake_continue)
 	: m_io_service(io)
 	, m_http_stream(io)
 	, m_base_boundary(form_boundary())
@@ -471,7 +471,7 @@ http_stream& file_upload::get_http_stream()
 	return m_http_stream;
 }
 
-boost::asio::io_service& file_upload::get_io_service()
+boost::asio::io_context& file_upload::get_io_service()
 {
 	return m_io_service;
 }

@@ -26,7 +26,7 @@ namespace avhttp {
 // WebForm文件上传组件.
 // 根据RFC1867(http://www.servlets.com/rfcs/rfc1867.txt)实现.
 // @begin example
-// 	boost::asio::io_service io;
+// 	boost::asio::io_context io;
 // 	avhttp::file_upload upload(io);
 // 	avhttp::file_upload::form_agrs fields;
 // 	fields["username"] = "Cai";
@@ -72,7 +72,7 @@ public:
 	// @param fake_continue指定启用fake-continue消息.
 	// fake continue消息用于在http服务器不支持100的时候,
 	// 在async_open/open打开时, 返回一个fake continue.
-	AVHTTP_DECL explicit file_upload(boost::asio::io_service& io, bool fake_continue = false);
+	AVHTTP_DECL explicit file_upload(boost::asio::io_context& io, bool fake_continue = false);
 
 	/// Destructor.
 	AVHTTP_DECL virtual ~file_upload();
@@ -221,7 +221,7 @@ public:
 	AVHTTP_DECL http_stream& get_http_stream();
 
 	///反回当前file_upload所使用的io_service的引用.
-	AVHTTP_DECL boost::asio::io_service& get_io_service();
+	AVHTTP_DECL boost::asio::io_context& get_io_service();
 
 private:
 
@@ -243,7 +243,7 @@ private:
 private:
 
 	// io_service引用.
-	boost::asio::io_service& m_io_service;
+	boost::asio::io_context& m_io_service;
 
 	// http_stream对象.
 	http_stream m_http_stream;

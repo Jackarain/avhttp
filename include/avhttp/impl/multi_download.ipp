@@ -93,7 +93,7 @@ struct multi_download::auto_outstanding
 	multi_download &obj;
 };
 
-multi_download::multi_download(boost::asio::io_service& io)
+multi_download::multi_download(boost::asio::io_context& io)
 	: m_io_service(io)
 	, m_accept_multi(false)
 	, m_keep_alive(false)

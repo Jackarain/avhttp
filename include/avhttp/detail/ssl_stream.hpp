@@ -30,7 +30,7 @@ class ssl_stream
 {
 public:
 
-	explicit ssl_stream(boost::asio::io_service& io_service)
+	explicit ssl_stream(boost::asio::io_context& io_service)
 		: m_context(boost::asio::ssl::context::sslv23_client)
 		, m_sock(io_service, m_context)
 	{
@@ -40,7 +40,7 @@ public:
 	}
 
 	template <typename Arg>
-	explicit ssl_stream(Arg& arg, boost::asio::io_service& io_service)
+	explicit ssl_stream(Arg& arg, boost::asio::io_context& io_service)
 		: m_context(boost::asio::ssl::context::sslv23_client)
 		, m_sock(arg, m_context)
 	{
@@ -265,7 +265,7 @@ public:
 		return const_cast<sock_type&>(m_sock).next_layer().local_endpoint(ec);
 	}
 
-	boost::asio::io_service& get_io_service()
+	boost::asio::io_context& get_io_service()
 	{
 		return m_sock.get_io_service();
 	}

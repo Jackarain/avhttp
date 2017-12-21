@@ -54,7 +54,7 @@ namespace avhttp {
 // @begin example
 //  try
 //  {
-//  	boost::asio::io_service io_service;
+//  	boost::asio::io_context io_service;
 //  	avhttp::http_stream h(io_service);
 //  	avhttp::request_opts opt;
 //
@@ -84,7 +84,7 @@ namespace avhttp {
 //  class downloader
 //  {
 //  public:
-//  	downloader(boost::asio::io_service& io)
+//  	downloader(boost::asio::io_context& io)
 //  		: m_io_service(io)
 //  		, m_stream(io)
 //  	{
@@ -129,14 +129,14 @@ namespace avhttp {
 //  	}
 //
 //  private:
-//  	boost::asio::io_service& m_io_service;
+//  	boost::asio::io_context& m_io_service;
 //  	avhttp::http_stream m_stream;
 //  	boost::array<char, 1024> m_buffer;
 //  };
 //
 //  int main(int argc, char* argv[])
 //  {
-//		boost::asio::io_service io;
+//		boost::asio::io_context io;
 //		downloader d(io);
 //		io.run();
 //		return 0;
@@ -147,7 +147,7 @@ namespace avhttp {
 // @begin example
 // 	int main(int argc, char* argv[])
 // 	{
-// 		boost::asio::io_service io;
+// 		boost::asio::io_context io;
 // 		avhttp::http_stream h(io);
 //
 // 		h.open("http://www.boost.org/LICENSE_1_0.txt");
@@ -164,7 +164,7 @@ namespace avhttp {
 // @begin example
 // 	int main(int argc, char* argv[])
 // 	{
-// 		boost::asio::io_service io;
+// 		boost::asio::io_context io;
 // 		avhttp::http_stream h(io);
 //
 // 		h.open("http://www.boost.org/LICENSE_1_0.txt");
@@ -184,7 +184,7 @@ class http_stream
 public:
 
 	/// Constructor.
-	AVHTTP_DECL explicit http_stream(boost::asio::io_service& io);
+	AVHTTP_DECL explicit http_stream(boost::asio::io_context& io);
 
 	/// Destructor.
 	AVHTTP_DECL virtual ~http_stream();
@@ -486,7 +486,7 @@ public:
 	AVHTTP_DECL bool is_open() const;
 
 	///反回当前http_stream所使用的io_service的引用.
-	AVHTTP_DECL boost::asio::io_service& get_io_service();
+	AVHTTP_DECL boost::asio::io_context& get_io_service();
 
 	///设置最大重定向次数.
 	// @param n 指定最大重定向次数, 为0表示禁用重定向.
@@ -723,7 +723,7 @@ protected:
 private:
 
 	// io_service引用.
-	boost::asio::io_service& m_io_service;
+	boost::asio::io_context& m_io_service;
 
 	// 解析HOST.
 	tcp::resolver m_resolver;
