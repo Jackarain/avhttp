@@ -1,4 +1,4 @@
-//
+﻿//
 // Copyright (c) 2013 Jack (jack dot wgm at gmail dot com)
 // Copyright (c) 2008 Arvid Norberg All rights reserved.
 //
@@ -28,8 +28,8 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 
-#ifndef __BITFIELD_HPP__
-#define __BITFIELD_HPP__
+#ifndef AVHTTP_BITFIELD_HPP
+#define AVHTTP_BITFIELD_HPP
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
@@ -52,7 +52,7 @@ public:
     { resize(bits, val); }
     bitfield(char const* b, int bits): m_bytes(0), m_size(0)
     { assign(b, bits); }
-    bitfield(bitfield const &rhs): m_bytes(0), m_size(0), m_own(false)
+    bitfield(bitfield const& rhs): m_bytes(0), m_size(0), m_own(false)
     { assign(rhs.bytes(), rhs.size()); }
 
     void borrow_bytes(char* b, int bits)
@@ -97,7 +97,7 @@ public:
 
     char const* bytes() const { return (char*)m_bytes; }
 
-    bitfield& operator=(bitfield const &rhs)
+    bitfield& operator=(bitfield const& rhs)
     {
         assign(rhs.bytes(), rhs.size());
         return *this;
@@ -137,7 +137,7 @@ public:
         typedef bool value_type;
         typedef ptrdiff_t difference_type;
         typedef bool const* pointer;
-        typedef bool &reference;
+        typedef bool& reference;
         typedef std::forward_iterator_tag iterator_category;
 
         bool operator*() { return (*byte & bit) != 0; }
@@ -149,14 +149,14 @@ public:
         { const_iterator ret(*this); dec(); return ret; }
 
         const_iterator(): byte(0), bit(0x80) {}
-        bool operator==(const_iterator const &rhs) const
+        bool operator==(const_iterator const& rhs) const
         { return byte == rhs.byte && bit == rhs.bit; }
 
-        bool operator!=(const_iterator const &rhs) const
+        bool operator!=(const_iterator const& rhs) const
         { return byte != rhs.byte || bit != rhs.bit; }
 
         const_iterator& operator+(boost::uint64_t rhs)
-        { for (int i = 0; i < rhs; i++)inc(); return *this; }
+        { for (uint64_t i = 0; i < rhs; i++)inc(); return *this; }
 
     private:
         void inc()
@@ -272,5 +272,5 @@ private:
 
 } // namespace avhttp
 
-#endif // __BITFIELD_HPP__
+#endif // AVHTTP_BITFIELD_HPP
 

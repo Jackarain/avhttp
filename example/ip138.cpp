@@ -1,4 +1,4 @@
-///这个示例是用于从IP138.COM网站获得IP或域名所对应的地理位置.
+﻿///这个示例是用于从IP138.COM网站获得IP或域名所对应的地理位置.
 #include <iostream>
 #include <boost/array.hpp>
 #include <boost/regex.hpp>
@@ -27,23 +27,20 @@ int main(int argc, char* argv[])
 
 	std::string result;
 	boost::asio::streambuf response;
-	while (!ec)
+	std::istream is(&h);
+
+	try
 	{
-		// 每次读取一行.
-		std::size_t bytes_transferred = boost::asio::read_until(h, response, "\r\n", ec);
-		if (bytes_transferred > 0)
+		while (is.good())
 		{
-			std::string s;
-			// 查找是否有ul1的标签.
-			s.resize(response.size());
-			response.sgetn(&s[0], bytes_transferred);
-			std::size_t pos = s.find("<ul class=\"ul1\"><li>");
+			std::getline(is, result);
+			std::size_t pos = result.find("<ul class=\"ul1\"><li>");
 			if (pos == std::string::npos)
 				continue;
 			// 匹配出地址信息.
 			boost::cmatch what;
 			boost::regex ex("<ul class=\"ul1\"><li>(.*)?<\\/li><li>");
-			if(boost::regex_search(s.c_str(), what, ex))
+			if(boost::regex_search(result.c_str(), what, ex))
 			{
 				result = std::string(what[1]);
 				std::string gbk_ex;
@@ -52,15 +49,21 @@ int main(int argc, char* argv[])
 				gbk_ex += "(.*)";
 				ex.assign(gbk_ex);
 				if(boost::regex_search(result.c_str(), what, ex))
+				{
 					result = std::string(what[1]);
+					// 输出地址信息.
+					if (!result.empty())
+						std::cout << result << std::endl;
+				}
 				break;
 			}
 		}
 	}
-
-	// 输出地址信息.
-	if (!result.empty())
-		std::cout << result << std::endl;
+	catch (std::exception& e)
+	{
+		std::cerr << e.what() << std::endl;
+		return -1;
+	}
 
 	return 0;
 }

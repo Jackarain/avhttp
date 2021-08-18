@@ -1,4 +1,4 @@
-//
+﻿//
 // entry.hpp
 // ~~~~~~~~~
 //
@@ -31,8 +31,8 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 
-#ifndef __ENTRY_HPP__
-#define __ENTRY_HPP__
+#ifndef AVHTTP_ENTRY_HPP
+#define AVHTTP_ENTRY_HPP
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
@@ -115,28 +115,28 @@ public:
 		return m_type;
 	}
 
-	entry(dictionary_type const &v)
+	entry(dictionary_type const& v)
 		: m_type(undefined_t)
 	{
 		new(m_data) dictionary_type(v);
 		m_type = dictionary_t;
 	}
 
-	entry(string_type const &v)
+	entry(string_type const& v)
 		: m_type(undefined_t)
 	{
 		new(m_data) string_type(v);
 		m_type = string_t;
 	}
 
-	entry(list_type const &v)
+	entry(list_type const& v)
 		: m_type(undefined_t)
 	{
 		new(m_data) list_type(v);
 		m_type = list_t;
 	}
 
-	entry(integer_type const &v)
+	entry(integer_type const& v)
 		: m_type(undefined_t)
 	{
 		new(m_data) integer_type(v);
@@ -153,7 +153,7 @@ public:
 		construct(t);
 	}
 
-	entry(entry const &e)
+	entry(entry const& e)
 		: m_type(undefined_t)
 	{
 		copy(e);
@@ -161,7 +161,7 @@ public:
 
 	~entry(void) { destruct(); }
 
-	bool operator==(entry const &e) const
+	bool operator==(entry const& e) const
 	{
 		if (m_type != e.m_type) return false;
 
@@ -182,34 +182,34 @@ public:
 	}
 
 	// void operator=(lazy_entry const&);
-	void operator=(entry const &e)
+	void operator=(entry const& e)
 	{
 		destruct();
 		copy(e);
 	}
 
-	void operator=(dictionary_type const &v)
+	void operator=(dictionary_type const& v)
 	{
 		destruct();
 		new(m_data) dictionary_type(v);
 		m_type = dictionary_t;
 	}
 
-	void operator=(string_type const &v)
+	void operator=(string_type const& v)
 	{
 		destruct();
 		new(m_data) string_type(v);
 		m_type = string_t;
 	}
 
-	void operator=(list_type const &v)
+	void operator=(list_type const& v)
 	{
 		destruct();
 		new(m_data) list_type(v);
 		m_type = list_t;
 	}
 
-	void operator=(integer_type const &v)
+	void operator=(integer_type const& v)
 	{
 		destruct();
 		new(m_data) integer_type(v);
@@ -292,7 +292,7 @@ public:
 		return *reinterpret_cast<const dictionary_type*>(m_data);
 	}
 
-	void swap(entry &e)
+	void swap(entry& e)
 	{
 		// not implemented
 		BOOST_ASSERT(false);
@@ -309,7 +309,7 @@ public:
 		return ret->second;
 	}
 
-	entry& operator[](std::string const &key)
+	entry& operator[](std::string const& key)
 	{
 		dictionary_type::iterator i = dict().find(key);
 		if (i != dict().end()) return i->second;
@@ -327,7 +327,7 @@ public:
 		return i->second;
 	}
 
-	const entry& operator[](std::string const &key) const
+	const entry& operator[](std::string const& key) const
 	{
 		return (*this)[key.c_str()];
 	}
@@ -337,32 +337,32 @@ public:
 	{
 		dictionary_type::iterator i = dict().find(key);
 		if (i == dict().end()) return 0;
-		return &i->second;
+		return& i->second;
 	}
 
 	entry const* find_key(char const* key) const
 	{
 		dictionary_type::const_iterator i = dict().find(key);
 		if (i == dict().end()) return 0;
-		return &i->second;
+		return& i->second;
 	}
 
-	entry* find_key(std::string const &key)
+	entry* find_key(std::string const& key)
 	{
 		dictionary_type::iterator i = dict().find(key);
 		if (i == dict().end()) return 0;
-		return &i->second;
+		return& i->second;
 	}
 
-	entry const* find_key(std::string const &key) const
+	entry const* find_key(std::string const& key) const
 	{
 		dictionary_type::const_iterator i = dict().find(key);
 		if (i == dict().end()) return 0;
-		return &i->second;
+		return& i->second;
 	}
 
 #ifdef _DEBUG
-	void print(std::ostream &os, int indent = 0) const
+	void print(std::ostream& os, int indent = 0) const
 	{
 		BOOST_ASSERT(indent >= 0);
 		for (int i = 0; i < indent; ++i) os << " ";
@@ -450,7 +450,7 @@ protected:
 		m_type = t;
 	}
 
-	void copy(const entry &e)
+	void copy(const entry& e)
 	{
 		switch (e.type())
 		{
@@ -528,4 +528,4 @@ private:
 
 } // namespace avhttp
 
-#endif // __ENTRY_HPP__
+#endif // AVHTTP_ENTRY_HPP

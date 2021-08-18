@@ -1,4 +1,4 @@
-//
+﻿//
 // file.hpp
 // ~~~~~~~~
 //
@@ -8,8 +8,8 @@
 // path LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef __FILE_HPP__
-#define __FILE_HPP__
+#ifndef AVHTTP_FILE_HPP
+#define AVHTTP_FILE_HPP
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
@@ -18,97 +18,132 @@
 #include <boost/noncopyable.hpp>
 #include <boost/filesystem/fstream.hpp>
 
-#include "avhttp/storage_interface.hpp"
-
 namespace avhttp {
 
-using std::ios;
-
-class file
-	: public storage_interface
-	, public boost::noncopyable
+class file : public boost::noncopyable
 {
 public:
-	file() {}
-	virtual ~file() { close(); }
+	enum
+	{
+		// when a file is opened with no_buffer
+		// file offsets have to be aligned to
+		// pos_alignment() and buffer addresses
+		// to buf_alignment() and read/write sizes
+		// to size_alignment()
+		read_only = 0,
+		write_only = 1,
+		read_write = 2,
+		rw_mask = read_only | write_only | read_write,
+		no_buffer = 4,
+		mode_mask = rw_mask | no_buffer,
+		sparse = 8,
+
+		attribute_hidden = 0x1000,
+		attribute_executable = 0x2000,
+		attribute_mask = attribute_hidden | attribute_executable
+	};
+
+#ifdef WIN32
+	struct iovec_t
+	{
+		void* iov_base;
+		size_t iov_len;
+	};
+#else
+	typedef iovec iovec_t;
+#endif
+
+	// use a typedef for the type of iovec_t::iov_base
+	// since it may differ
+#ifdef __sparc__
+	typedef char* iovec_base_t;
+#else
+	typedef void* iovec_base_t;
+#endif
+
+	typedef boost::int64_t size_type;
+	typedef boost::uint64_t unsigned_size_type;
 
 public:
+	AVHTTP_DECL explicit file();
+	AVHTTP_DECL explicit file(fs::path const& p, int m, boost::system::error_code& ec);
+	AVHTTP_DECL ~file(void);
 
-	// 存储组件初始化.
-	// @param file_path指定了文件名路径信息.
-	// @param ec在出错时保存了详细的错误信息.
-	virtual void open(const fs::path &file_path, boost::system::error_code &ec)
-	{
-		ec = boost::system::error_code();
-		m_fstream.open(file_path, ios::binary|ios::in|ios::out);
-		if (!m_fstream.is_open())
-		{
-			m_fstream.clear();
-			m_fstream.open(file_path, ios::trunc|ios::binary|ios::out|ios::in);
-		}
-		if (!m_fstream.is_open())
-		{
-			ec = boost::system::errc::make_error_code(boost::system::errc::bad_file_descriptor);
-			return;
-		}
-		m_fstream.clear();
-	}
+	AVHTTP_DECL void open(fs::path const& p, int m);
+	AVHTTP_DECL void open(fs::path const& p, int m, boost::system::error_code& ec);
+	AVHTTP_DECL bool is_open() const;
+	AVHTTP_DECL void close();
+	AVHTTP_DECL bool set_size(size_type size, boost::system::error_code& ec);
 
-	///是否打开.
-	inline bool is_open() const
-	{
-		return m_fstream.is_open();
-	}
+	AVHTTP_DECL int open_mode() const { return m_open_mode; }
 
-	// 关闭存储组件.
-	virtual void close()
-	{
-		m_fstream.close();
-	}
+	// when opened in unbuffered mode, this is the
+	// required alignment of file_offsets. i.e.
+	// any (file_offset & (pos_alignment()-1)) == 0
+	// is a precondition to read and write operations
+	AVHTTP_DECL int pos_alignment() const;
 
-	// 写入数据.
-	// @param buf是需要写入的数据缓冲.
-	// @param offset是写入的偏移位置.
-	// @param size指定了写入的数据缓冲大小.
-	// @返回值为实际写入的字节数, 返回-1表示写入失败.
-	virtual std::streamsize write(const char *buf, boost::uint64_t offset, int size)
-	{
-		m_fstream.seekp(offset, ios::beg);
-		m_fstream.write(buf, size);
-		if (m_fstream.good())
-		{
-			m_fstream.flush();
-			return size;
-		}
-		return 0;
-	}
+	// when opened in unbuffered mode, this is the
+	// required alignment of buffer addresses
+	AVHTTP_DECL int buf_alignment() const;
 
-	// 读取数据.
-	// @param buf是需要读取的数据缓冲.
-	// @param offset是读取的偏移位置.
-	// @param size指定了读取的数据缓冲大小.
-	// @返回值为实际读取的字节数, 返回-1表示读取失败.
-	virtual std::streamsize read(char *buf, boost::uint64_t offset, int size)
-	{
-		m_fstream.seekg(offset, ios::beg);
-		m_fstream.read(buf, size);
-		if (m_fstream.good())
-		{
-			return m_fstream.gcount();
-		}
-		return 0;
-	}
+	// read/write buffer sizes needs to be aligned to
+	// this when in unbuffered mode
+	AVHTTP_DECL int size_alignment() const;
 
-protected:
-	boost::filesystem::fstream m_fstream;
+	AVHTTP_DECL size_type write(const char* buf, int size);
+	AVHTTP_DECL size_type read(char* buf, int size);
+
+	AVHTTP_DECL size_type write(size_type offset, const char* buf, int size);
+	AVHTTP_DECL size_type read(size_type offset, char* buf, int size);
+
+	AVHTTP_DECL size_type writev(size_type file_offset, iovec_t const* bufs, int num_bufs, boost::system::error_code& ec);
+	AVHTTP_DECL size_type readv(size_type file_offset, iovec_t const* bufs, int num_bufs, boost::system::error_code& ec);
+
+	AVHTTP_DECL bool flush();
+
+	AVHTTP_DECL size_type offset(boost::system::error_code& ec);
+	AVHTTP_DECL file::size_type offset(size_type offset, boost::system::error_code& ec);
+
+	AVHTTP_DECL size_type get_size(boost::system::error_code& ec) const;
+
+	// return the offset of the first byte that
+	// belongs to a data-region
+	AVHTTP_DECL size_type sparse_end(size_type start) const;
+
+	AVHTTP_DECL size_type phys_offset(size_type offset);
+
+#ifdef WIN32
+	AVHTTP_DECL HANDLE native_handle() const { return m_file_handle; }
+#else
+	AVHTTP_DECL int native_handle() const { return m_fd; }
+#endif
+
+private:
+
+#ifdef WIN32
+	HANDLE m_file_handle;
+	std::string m_path;
+#else
+	int m_fd;
+#endif
+#if defined WIN32 || defined __linux__ || defined DEBUG
+	AVHTTP_DECL void init_file() const;
+	mutable int m_page_size;
+#endif
+	int m_open_mode;
+#if defined WIN32 || defined __linux__
+	mutable int m_sector_size;
+#endif
+#if defined WIN32
+	mutable int m_cluster_size;
+#endif
 };
 
-// 默认存储对象.
-static storage_interface* default_storage_constructor()
-{
-	return new file();
-}
+} // namespace avhttp
 
-}
+#if defined(AVHTTP_HEADER_ONLY)
+#	include "avhttp/impl/file.ipp"
+#endif
 
-#endif // __FILE_HPP__
+#endif // AVHTTP_FILE_HPP

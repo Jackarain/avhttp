@@ -1,19 +1,25 @@
+﻿//
+// Copyright (C) 2013 Jack.
 //
-// logging.hpp
-// ~~~~~~~~~~~
-//
-// Copyright (c) 2013 Jack (jack dot wgm at gmail dot com)
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// Author: jack
+// Email:  jack.wgm@gmail.com
 //
 
-#ifndef __LOGGING_H__
-#define __LOGGING_H__
+#ifndef AVHTTP_LOGGING_HPP
+#define AVHTTP_LOGGING_HPP
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
+
+#ifdef WIN32
+#	ifndef WIN32_LEAN_AND_MEAN
+#		define WIN32_LEAN_AND_MEAN
+#	endif // !WIN32_LEAN_AND_MEAN
+#	include <Windows.h>	 // for win32 Console api.
+#endif // WIN32
+
+#define LOGGER_THREAD_SAFE
 
 #include <iostream>
 #include <string>
@@ -21,205 +27,345 @@
 
 #include <boost/thread/mutex.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/make_shared.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include "detail/utf8.hpp"
 
 namespace avhttp {
 
-namespace fs = boost::filesystem;
+	///内部使用的简易日志类.
+	// 使用说明:
+	//	在程序入口(如:main)函数调用 INIT_LOGGER 宏, 它有两个参数, 第一个参数指定了日志文件保存
+	//	的路径, 第二个参数指定了日志文件保存的文件名, 详细见INIT_LOGGER.
+	//	然后就可以使用LOG_DBG/LOG_INFO/LOG_WARN/LOG_ERR这几个宏来输出日志信息.
+	// @begin example
+	//  #include "logging.hpp"
+	//  int main()
+	//  {
+	//     AVHTTP_AUTO_LOGGER(".");					// 在当前目录创建以日期命名的日志文件.
+	//     // 也可 AVHTTP_INIT_LOGGER("example.log");	// 指定日志文件名.
+	//     AVHTTP_LOG_DBG << "Initialized.";
+	//     std::string result = do_something();
+	//     AVHTTP_LOG_DBG << "do_something return : " << result;	// 输出do_something返回结果到日志.
+	//     ...
+	//  }
+	// @end example
+	//
+	// 一些可选参数:
+	// AVHTTP_LOG_FILE_NUM, 定义 AVHTTP_LOG_FILE_NUM 可指定最大连续运行日志文件个数, 超出将删除旧日志文件.
+	// 默认是每天生成按日期的日志文件, 所以, AVHTTP_LOG_FILE_NUM参数也相当是指定保留日志的天数.
+	//
+	// AVHTTP_LOG_FILE_BUFFER, 定义写入日志文件的写入缓冲大小, 默认为系统指定大小.
+	// 该参数实际上指定的是 std::ofstream 的写入缓冲大小.
 
-///内部使用的简易日志类.
-// 使用说明:
-//	在程序入口(如:main)函数调用 INIT_LOGGER 宏, 它有两个参数, 第一个参数指定了日志文件保存
-//	的路径, 第二个参数指定了日志文件保存的文件名, 详细见INIT_LOGGER.
-//	然后就可以使用LOG_DEBUG/LOG_INFO/LOG_WARNING/LOG_ERROR这几个宏来输出日志信息.
-// @begin example
-//  #include "avhttp.hpp" // avhttp.hpp 已经包含 logging.hpp, 也可单独包含logging.hpp.
-//  int main()
-//  {
-//     INIT_LOGGER(".", "example.log");	// 在当前目录创建日志文件为example.log.
-//     // 也可 INIT_LOGGER("", ""); 空串为参数来禁止输出日志到文件, 仅输出到控制台.
-//     LOG_DEBUG("Initialized.");
-//     std::string result = do_something();
-//     LOG_DEBUG("do_something return : " << result);	// 输出do_something返回结果到日志.
-//     ...
-//     UNINIT_LOGGER();	// 卸载日志模块.
-//  }
-// @end example
 
-class logger : public boost::noncopyable
-{
-public:
-	logger(fs::path const& logpath, fs::path const& filename, bool append = true, bool inited = false)
+#ifndef AVHTTP_LOG_FILE_NUM
+#	define AVHTTP_LOG_FILE_NUM 3
+#endif
+
+#ifndef AVHTTP_LOG_FILE_BUFFER
+#	define AVHTTP_LOG_FILE_BUFFER -1
+#endif
+
+	class auto_logger_file
 	{
-		try
+	public:
+		auto_logger_file()
+			: m_auto_mode(false)
+		{}
+		~auto_logger_file()
+		{}
+
+		typedef boost::shared_ptr<std::ofstream> ofstream_ptr;
+		typedef std::map<std::string, ofstream_ptr> loglist;
+
+		void open(const char * filename, std::ios_base::openmode flag)
 		{
-			m_inited = inited;
-			if (!inited)
-				return;
-			if (filename.empty())
-				return;
-			if (!fs::exists(logpath)) fs::create_directories(logpath);
-			m_file.open((logpath / filename).string().c_str(),
-				std::ios_base::out | (append ? std::ios_base::app : std::ios_base::out));
-			*this << "\n\n\n*** starting log ***\n\n\n";
+			m_auto_mode = false;
+			const char* pos = std::strstr(filename, "*");
+			if (pos)
+			{
+				m_auto_mode = true;
+				char save_path[65536] = { 0 };
+				std::ptrdiff_t len = pos - filename;
+				if (len < 0 || len > 65536)
+					return;
+				strncpy(save_path, filename, pos - filename);
+				m_log_path = save_path;
+			}
+			else
+			{
+				m_file.open(filename, flag);
+			}
+			std::string start_string = "\n\n\n*** starting log ***\n\n\n";
+			write(start_string.c_str(), start_string.size());
 		}
-		catch (std::exception& e)
+
+		bool is_open() const
 		{
-			std::cerr << "failed to create log '" << filename.string() << "': " << e.what() << std::endl;
+			if (m_auto_mode) return true;
+			return m_file.is_open();
 		}
-	}
-	~logger() {}
 
-public:
-
-	template <class T>
-	logger& operator<<(T const& v)
-	{
-		if (!m_inited)
-			return *this;
-
-		std::cout << v;
-		std::cout.flush();
-
-		if (m_file.is_open())
+		void write(const char* str, std::streamsize size)
 		{
-			m_file << v;
+			if (!m_auto_mode)
+			{
+				if (m_file.is_open())
+					m_file.write(str, size);
+				return;
+			}
+
+			ofstream_ptr of;
+			std::string fn = make_filename(m_log_path.string());
+			loglist::iterator iter = m_log_list.find(fn);
+			if (iter == m_log_list.end())
+			{
+				of.reset(new std::ofstream);
+				of->open(fn.c_str(), std::ios_base::out | std::ios_base::app);
+				if (AVHTTP_LOG_FILE_BUFFER != -1)
+					of->rdbuf()->pubsetbuf(NULL, AVHTTP_LOG_FILE_BUFFER);
+				m_log_list.insert(std::make_pair(fn, of));
+				if (m_log_list.size() > AVHTTP_LOG_FILE_NUM)
+				{
+					iter = m_log_list.begin();
+					fn = iter->first;
+					ofstream_ptr f = iter->second;
+					m_log_list.erase(iter);
+					f->close();
+					f.reset();
+					boost::system::error_code ignore_ec;
+					boost::filesystem::remove(fn, ignore_ec);
+					if (ignore_ec)
+						std::cout << "delete log failed: " << fn <<
+							", error code: " << ignore_ec.message() << std::endl;
+				}
+			}
+			else
+			{
+				of = iter->second;
+			}
+
+			if (of->is_open())
+			{
+				(*of).write(str, size);
+				(*of).flush();
+			}
+		}
+
+		void flush()
+		{
 			m_file.flush();
 		}
 
-#if defined(WIN32) && defined(LOGGER_DBG_VIEW)
-		std::ostringstream oss;
-		oss << v;
-		m_dbg_view += oss.str();
-#endif
-		return *this;
+		std::string make_filename(const std::string &p = "") const
+		{
+			boost::posix_time::ptime time = boost::posix_time::second_clock::local_time();
+			if (m_last_day != boost::posix_time::not_a_date_time && m_last_day.date().day() == time.date().day())
+				return m_last_filename;
+			m_last_day = time;
+			std::ostringstream oss;
+			boost::posix_time::time_facet* _facet = new boost::posix_time::time_facet("%Y%m%d");
+			oss.imbue(std::locale(std::locale::classic(), _facet));
+			oss << boost::posix_time::second_clock::local_time();
+			if (!boost::filesystem::exists(p)) {
+				boost::system::error_code ignore_ec;
+				boost::filesystem::create_directories(p, ignore_ec);
+			}
+			m_last_filename = (boost::filesystem::path(p) / (oss.str() + ".log")).string();
+			return m_last_filename;
+		}
+
+	private:
+		std::fstream m_file;
+		bool m_auto_mode;
+		boost::filesystem::path m_log_path;
+		loglist m_log_list;
+		mutable boost::posix_time::ptime m_last_day;
+		mutable std::string m_last_filename;
+	};
+
+	namespace aux {
+		template<class Lock>
+		Lock& lock_single()
+		{
+			static Lock lock_instance;
+			return lock_instance;
+		}
+
+		template<class Writer>
+		Writer& writer_single()
+		{
+			static Writer writer_instance;
+			return writer_instance;
+		}
+
+		inline char const* time_now_string()
+		{
+			static std::ostringstream oss;
+			if (oss.str().empty())
+			{
+				boost::posix_time::time_facet* _facet = new boost::posix_time::time_facet("%Y-%m-%d %H:%M:%S.%f");
+				oss.imbue(std::locale(std::locale::classic(), _facet));
+			}
+			oss.str("");
+			oss << boost::posix_time::microsec_clock::local_time();
+			std::string s = oss.str();
+			if (s.size() > 3)
+				s = std::string(s.substr(0, s.size() - 3));
+			static char str[200];
+			std::sprintf(str, "%s ", s.c_str());
+			return str;
+		}
 	}
 
-	const std::string& dbg_view() const
-	{
-		return m_dbg_view;
-	}
-
-	void clear_dbg_view()
-	{
-		m_dbg_view = "";
-	}
-
-	bool inited() const
-	{
-		return m_inited;
-	}
-
-private:
-	std::ofstream m_file;
-	std::string m_dbg_view;
-	bool m_inited;
-};
-
-inline char const* time_now_string()
-{
-	time_t t = std::time(0);
-	tm* timeinfo = std::localtime(&t);
-	static char str[200];
-	std::strftime(str, 200, " %b %d %X ", timeinfo);
-	return str;
-}
-
-namespace aux {
-
-template<class Lock>
-Lock& lock_single()
-{
-	static Lock lock_instance;
-	return lock_instance;
-}
-
-template<class Log, class Logger_ptr>
-Logger_ptr& logger_single(std::string path = ".",
-	std::string filename = "avhttp.log", bool append = true, bool binit = false)
-{
-	static Logger_ptr logger_instance(new Log(path, filename, append, binit));
-	if (logger_instance && !binit)
-		return logger_instance;
-	if (logger_instance)
-	{
-		if (logger_instance->inited())
-			return logger_instance;
-	}
-	logger_instance.reset(new Log(path, filename, append, binit));
-	return logger_instance;
-}
-
-}
-
-//////////////////////////////////////////////////////////////////////////
-// 日志相关内部实现定义.
-
-#define _LOGS_ (*(avhttp::aux::logger_single<avhttp::logger, boost::shared_ptr<avhttp::logger> >()))
-
-#ifdef LOGGER_THREAD_SAFE
-#define _LOCKS_() boost::mutex::scoped_lock lock(avhttp::aux::lock_single<boost::mutex>())
+#ifndef DISABLE_LOGGER_THREAD_SAFE
+#	define LOGGER_LOCKS_() boost::mutex::scoped_lock lock(aux::lock_single<boost::mutex>())
 #else
-#define _LOCKS_() ((void)0)
-#endif // LOGGER_THREAD_SAFE
+#	define LOGGER_LOCKS_() ((void)0)
+#endif // DISABLE_LOGGER_THREAD_SAFE
 
 #if defined(WIN32) && defined(LOGGER_DBG_VIEW)
-#define _DBG_VIEW_() do { OutputDebugStringA(_LOGS_.dbg_view().c_str()); _LOGS_.clear_dbg_view(); } while (0)
+#	define LOGGER_DBG_VIEW_(x) do { ::OutputDebugStringA(x.c_str()); } while (0)
 #else
-#define _DBG_VIEW_() ((void)0)
-#endif // WIN32 && LOGGER_DEBUG_VIEW
+#	define LOGGER_DBG_VIEW_(x) ((void)0)
+#endif // WIN32 && LOGGER_DBG_VIEW
 
-//////////////////////////////////////////////////////////////////////////
-// 日志相关外部接口定义.
+	static std::string LOGGER_DEBUG_STR = "DEBUG";
+	static std::string LOGGER_INFO_STR = "INFO";
+	static std::string LOGGER_WARN_STR = "WARNING";
+	static std::string LOGGER_ERR_STR = "ERROR";
+	static std::string LOGGER_FILE_STR = "FILE";
 
-///初始化日志接口.
-// @param path指定了日志文件保存的路径.
-// @param file指定了日志文件名.
-// 备注: 如果file为空串, 则不产生日志文件, 仅仅输出日志到屏幕.
-#define INIT_LOGGER(path, file) do {\
-	_LOCKS_();\
-	avhttp::aux::logger_single<avhttp::logger, boost::shared_ptr<avhttp::logger> >(path, file, true, true);\
-} while (0)
+	inline void output_console(std::string& level, const std::string& prefix, const std::string& message)
+	{
+#ifdef WIN32
+		HANDLE handle_stdout = GetStdHandle(STD_OUTPUT_HANDLE);
+		CONSOLE_SCREEN_BUFFER_INFO csbi;
+		GetConsoleScreenBufferInfo(handle_stdout, &csbi);
+		if (level == LOGGER_INFO_STR)
+			SetConsoleTextAttribute(handle_stdout, FOREGROUND_GREEN);
+		else if (level == LOGGER_DEBUG_STR)
+			SetConsoleTextAttribute(handle_stdout, FOREGROUND_GREEN | FOREGROUND_INTENSITY);
+		else if (level == LOGGER_WARN_STR)
+			SetConsoleTextAttribute(handle_stdout, FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_INTENSITY);
+		else if (level == LOGGER_ERR_STR)
+			SetConsoleTextAttribute(handle_stdout, FOREGROUND_RED | FOREGROUND_INTENSITY);
+		std::wstring l = avhttp::detail::utf8_wide(prefix);
+		WriteConsoleW(GetStdHandle(STD_OUTPUT_HANDLE), l.data(), (DWORD)l.length(), nullptr, nullptr);
 
-///卸载日志模块接口.
-#define UNINIT_LOGGER() do {\
-	_LOCKS_();\
-	avhttp::aux::logger_single<avhttp::logger, boost::shared_ptr<avhttp::logger> >().reset();\
-} while (0)
+		SetConsoleTextAttribute(handle_stdout, FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_BLUE);
+		l = avhttp::detail::utf8_wide(message);
+		WriteConsoleW(GetStdHandle(STD_OUTPUT_HANDLE), l.data(), (DWORD)l.length(), nullptr, nullptr);
+		SetConsoleTextAttribute(handle_stdout, csbi.wAttributes);
+#else
+		if (level == LOGGER_INFO_STR)
+			std::cout << "\033[32m" << prefix << "\033[0m" << message;
+		else if (level == LOGGER_DEBUG_STR)
+			std::cout << "\033[1;32m" << prefix << "\033[0m" << message;
+		else if (level == LOGGER_WARN_STR)
+			std::cout << "\033[1;33m" << prefix << "\033[0m" << message;
+		else if (level == LOGGER_ERR_STR)
+			std::cout << "\033[1;31m" << prefix << "\033[0m" << message;
+#endif
+		std::cout.flush();
+	}
 
-#if defined(DEBUG) || defined(_DEBUG)
-#define LOG_DEBUG(message) do { \
-	_LOCKS_(); \
-	_LOGS_ << avhttp::time_now_string() << "[DEBUG]: " << message << "\n"; \
-	_DBG_VIEW_(); \
-} while (0)
+	inline void logger_writer(std::string& level, std::string& message, bool disable_cout = false)
+	{
+		LOGGER_LOCKS_();
+		std::string prefix = aux::time_now_string() + std::string("[") + level + std::string("]: ");
+		std::string tmp = message + "\n";
+		std::string whole = prefix + tmp;
+		if (aux::writer_single<auto_logger_file>().is_open())
+		{
+			aux::writer_single<auto_logger_file>().write(whole.c_str(), whole.size());
+			aux::writer_single<auto_logger_file>().flush();
+		}
+		LOGGER_DBG_VIEW_(whole);
+#ifndef AVHTTP_DISABLE_LOGGER_TO_CONSOLE
+		if (!disable_cout)
+			output_console(level, prefix, tmp);
+#endif
+	}
 
-#define LOG_INFO(message) do { \
-	_LOCKS_(); \
-	_LOGS_ << avhttp::time_now_string() << "[INFO]: " << message << "\n"; \
-	_DBG_VIEW_(); \
-} while (0)
+	class logger : boost::noncopyable
+	{
+	public:
+		logger(std::string& level)
+			: level_(level)
+			, m_disable_cout(false)
+		{}
+		logger(std::string& level, bool disable_cout)
+			: level_(level)
+			, m_disable_cout(disable_cout)
+		{}
+		~logger()
+		{
+			std::string message = oss_.str();
+			logger_writer(level_, message, m_disable_cout);
+		}
 
-#define LOG_WARNING(message) do { \
-	_LOCKS_(); \
-	_LOGS_ << avhttp::time_now_string() << "[WARNING]: " << message << "\n"; \
-	_DBG_VIEW_(); \
-} while (0)
+		template <class T>
+		logger& operator << (T const& v)
+		{
+			oss_ << v;
+			return *this;
+		}
 
-#define LOG_ERROR(message) do { \
-	_LOCKS_(); \
-	_LOGS_ << avhttp::time_now_string() << "[ERROR]: " << message << "\n"; \
-	_DBG_VIEW_(); \
-} while (0)
+		std::ostringstream oss_;
+		std::string& level_;
+		bool m_disable_cout;
+	};
+
+	class empty_logger : boost::noncopyable
+	{
+	public:
+		template <class T>
+		empty_logger& operator << (T const& v)
+		{
+			return *this;
+		}
+	};
+} // namespace avhttp
+
+#define AVHTTP_INIT_LOGGER(logfile) do \
+	{ \
+		avhttp::auto_logger_file& file = avhttp::aux::writer_single<avhttp::auto_logger_file>(); \
+		std::string filename = logfile; \
+		if (!filename.empty()) \
+			file.open(filename.c_str(), std::ios::in | std::ios::out | std::ios::app); \
+	} while (0)
+
+#define AVHTTP_AUTO_LOGGER(path) do \
+	{ \
+		avhttp::auto_logger_file& file = avhttp::aux::writer_single<avhttp::auto_logger_file>(); \
+		std::string filename = "*"; \
+		filename = std::string(path) + filename; \
+		if (!filename.empty()) \
+			file.open(filename.c_str(), std::ios::in | std::ios::out | std::ios::app); \
+	} while (0)
+
+
+#if (defined(DEBUG) || defined(_DEBUG) || defined(ENABLE_LOGGER)) && !defined(DISABLE_LOGGER)
+
+#define AVHTTP_LOG_DBG avhttp::logger(avhttp::LOGGER_DEBUG_STR)
+#define AVHTTP_LOG_INFO avhttp::logger(avhttp::LOGGER_INFO_STR)
+#define AVHTTP_LOG_WARN avhttp::logger(avhttp::LOGGER_WARN_STR)
+#define AVHTTP_LOG_ERR avhttp::logger(avhttp::LOGGER_ERR_STR)
+#define AVHTTP_LOG_FILE avhttp::logger(avhttp::LOGGER_FILE_STR, true)
 
 #else
-#define LOG_DEBUG(message) ((void)0)
-#define LOG_INFO(message) ((void)0)
-#define LOG_WARNING(message) ((void)0)
-#define LOG_ERROR(message) ((void)0)
+
+#define AVHTTP_LOG_DBG avhttp::empty_logger()
+#define AVHTTP_LOG_INFO avhttp::empty_logger()
+#define AVHTTP_LOG_WARN avhttp::empty_logger()
+#define AVHTTP_LOG_ERR avhttp::empty_logger()
+#define AVHTTP_LOG_OUT avhttp::empty_logger()
+#define AVHTTP_LOG_FILE avhttp::empty_logger()
+
 #endif
 
-}
-
-#endif // __LOGGING_H__
+#endif // AVHTTP_LOGGING_HPP

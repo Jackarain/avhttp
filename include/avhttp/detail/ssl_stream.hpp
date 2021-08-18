@@ -1,4 +1,4 @@
-//
+﻿//
 // ssl_stream.hpp
 // ~~~~~~~~~~~~~~
 //
@@ -9,8 +9,8 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef __SSL_STREAM_HPP__
-#define __SSL_STREAM_HPP__
+#ifndef AVHTTP_SSL_STREAM_HPP
+#define AVHTTP_SSL_STREAM_HPP
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
@@ -30,8 +30,8 @@ class ssl_stream
 {
 public:
 
-	explicit ssl_stream(boost::asio::io_service &io_service)
-		: m_context(io_service, boost::asio::ssl::context::sslv23_client)
+	explicit ssl_stream(boost::asio::io_context& io_service)
+		: m_context(boost::asio::ssl::context::sslv23_client)
 		, m_sock(io_service, m_context)
 	{
 		boost::system::error_code ec;
@@ -40,8 +40,8 @@ public:
 	}
 
 	template <typename Arg>
-	explicit ssl_stream(Arg &arg, boost::asio::io_service &io_service)
-		: m_context(io_service, boost::asio::ssl::context::sslv23_client)
+	explicit ssl_stream(Arg& arg, boost::asio::io_context& io_service)
+		: m_context(boost::asio::ssl::context::sslv23_client)
 		, m_sock(arg, m_context)
 	{
 		boost::system::error_code ec;
@@ -56,28 +56,45 @@ public:
 	typedef typename lowest_layer_type::endpoint_type endpoint_type;
 	typedef typename lowest_layer_type::protocol_type protocol_type;
 	typedef typename boost::asio::ssl::stream<Stream> sock_type;
-	typedef typename boost::asio::ssl::stream<Stream>::impl_type impl_type;
 
 	typedef boost::function<void(boost::system::error_code const&)> handler_type;
 
-	void add_verify_path(const std::string &path, boost::system::error_code &ec)
+	void add_verify_path(const std::string& path, boost::system::error_code& ec)
 	{
 		m_context.add_verify_path(path, ec);
 	}
 
-	void load_verify_file(const std::string &filename, boost::system::error_code &ec)
+	void load_verify_file(const std::string& filename, boost::system::error_code& ec)
 	{
 		m_context.load_verify_file(filename, ec);
 	}
 
 	template <typename VerifyCallback>
-	void set_verify_callback(VerifyCallback callback, boost::system::error_code &ec)
+	void set_verify_callback(VerifyCallback callback, boost::system::error_code& ec)
 	{
 		m_sock.set_verify_callback(callback, ec);
 	}
 
+
+	template <typename VerifyMode>
+	void set_verify_mode(VerifyMode m)
+	{
+		m_sock.set_verify_mode(m);
+	}
+
+	template <typename VerifyMode>
+	void set_verify_mode(VerifyMode m, boost::system::error_code& ec)
+	{
+		m_sock.set_verify_mode(m, ec);
+	}
+
+	typename boost::asio::ssl::stream<Stream>::native_handle_type native_handle()
+	{
+		return m_sock.native_handle();
+	}
+
 #ifndef BOOST_NO_EXCEPTIONS
-	void connect(endpoint_type const &endpoint)
+	void connect(endpoint_type const& endpoint)
 	{
 		// 1. connect to peer
 		// 2. perform SSL client handshake
@@ -87,7 +104,7 @@ public:
 	}
 #endif
 
-	void connect(endpoint_type const &endpoint, boost::system::error_code &ec)
+	void connect(endpoint_type const& endpoint, boost::system::error_code& ec)
 	{
 		// 1. connect to peer
 		// 2. perform SSL client handshake
@@ -99,7 +116,7 @@ public:
 	}
 
 	template <class Handler>
-	void async_connect(endpoint_type &endpoint, Handler handler)
+	void async_connect(endpoint_type& endpoint, Handler handler)
 	{
 		// the connect is split up in the following steps:
 		// 1. connect to peer
@@ -120,7 +137,7 @@ public:
 	}
 #endif
 
-	void handshake(boost::system::error_code &ec)
+	void handshake(boost::system::error_code& ec)
 	{
 		m_sock.handshake(boost::asio::ssl::stream_base::client, ec);
 	}
@@ -134,75 +151,75 @@ public:
 	}
 
 	template <class Mutable_Buffers, class Handler>
-	void async_read_some(Mutable_Buffers const &buffers, Handler handler)
+	void async_read_some(Mutable_Buffers const& buffers, Handler handler)
 	{
 		m_sock.async_read_some(buffers, handler);
 	}
 
 	template <class Mutable_Buffers>
-	std::size_t read_some(Mutable_Buffers const &buffers, boost::system::error_code &ec)
+	std::size_t read_some(Mutable_Buffers const& buffers, boost::system::error_code& ec)
 	{
 		return m_sock.read_some(buffers, ec);
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
 	template <class Mutable_Buffers>
-	std::size_t read_some(Mutable_Buffers const &buffers)
+	std::size_t read_some(Mutable_Buffers const& buffers)
 	{
 		return m_sock.read_some(buffers);
 	}
 
 	template <class IO_Control_Command>
-	void io_control(IO_Control_Command &ioc)
+	void io_control(IO_Control_Command& ioc)
 	{
 		m_sock.next_layer().io_control(ioc);
 	}
 #endif
 
 	template <class IO_Control_Command>
-	void io_control(IO_Control_Command &ioc, boost::system::error_code &ec)
+	void io_control(IO_Control_Command& ioc, boost::system::error_code& ec)
 	{
 		m_sock.next_layer().io_control(ioc, ec);
 	}
 
 	template <class Const_Buffers, class Handler>
-	void async_write_some(Const_Buffers const &buffers, Handler handler)
+	void async_write_some(Const_Buffers const& buffers, Handler handler)
 	{
 		m_sock.async_write_some(buffers, handler);
 	}
 
 	template <class Const_Buffers>
-	std::size_t write_some(Const_Buffers const &buffers, boost::system::error_code &ec)
+	std::size_t write_some(Const_Buffers const& buffers, boost::system::error_code& ec)
 	{
 		return m_sock.write_some(buffers, ec);
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
 	template <class Const_Buffers>
-	std::size_t write_some(Const_Buffers const &buffers)
+	std::size_t write_some(Const_Buffers const& buffers)
 	{
 		return m_sock.write_some(buffers);
 	}
 
-	void bind(endpoint_type const &endpoint)
+	void bind(endpoint_type const& endpoint)
 	{
 		m_sock.next_layer().bind(endpoint);
 	}
 #endif
 
-	void bind(endpoint_type const &endpoint, boost::system::error_code &ec)
+	void bind(endpoint_type const& endpoint, boost::system::error_code& ec)
 	{
 		m_sock.next_layer().bind(endpoint, ec);
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
-	void open(protocol_type const &p)
+	void open(protocol_type const& p)
 	{
 		m_sock.next_layer().open(p);
 	}
 #endif
 
-	void open(protocol_type const &p, boost::system::error_code &ec)
+	void open(protocol_type const& p, boost::system::error_code& ec)
 	{
 		m_sock.next_layer().open(p, ec);
 	}
@@ -219,7 +236,7 @@ public:
 	}
 #endif
 
-	void close(boost::system::error_code &ec)
+	void close(boost::system::error_code& ec)
 	{
 		m_sock.next_layer().close(ec);
 	}
@@ -231,7 +248,7 @@ public:
 	}
 #endif
 
-	endpoint_type remote_endpoint(boost::system::error_code &ec) const
+	endpoint_type remote_endpoint(boost::system::error_code& ec) const
 	{
 		return const_cast<sock_type&>(m_sock).next_layer().remote_endpoint(ec);
 	}
@@ -243,12 +260,12 @@ public:
 	}
 #endif
 
-	endpoint_type local_endpoint(boost::system::error_code &ec) const
+	endpoint_type local_endpoint(boost::system::error_code& ec) const
 	{
 		return const_cast<sock_type&>(m_sock).next_layer().local_endpoint(ec);
 	}
 
-	boost::asio::io_service& get_io_service()
+	boost::asio::io_context& get_io_service()
 	{
 		return m_sock.get_io_service();
 	}
@@ -263,21 +280,21 @@ public:
 		return m_sock.next_layer();
 	}
 
-	impl_type impl()
-	{
-		return m_sock.impl();
-	}
+// 	impl_type impl()
+// 	{
+// 		return m_sock.impl();
+// 	}
 
 	template <typename SettableSocketOption>
-	boost::system::error_code set_option(const SettableSocketOption &option,
-		boost::system::error_code &ec)
+	boost::system::error_code set_option(const SettableSocketOption& option,
+		boost::system::error_code& ec)
 	{
 		return m_sock.next_layer().set_option(option, ec);
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
 	template <typename SettableSerialPortOption>
-	void set_option(const SettableSerialPortOption &option)
+	void set_option(const SettableSerialPortOption& option)
 	{
 		m_sock.next_layer().set_option(option);
 	}
@@ -285,7 +302,7 @@ public:
 
 private:
 
-	void connected(boost::system::error_code const &e, boost::shared_ptr<handler_type> h)
+	void connected(boost::system::error_code const& e, boost::shared_ptr<handler_type> h)
 	{
 		if (e)
 		{
@@ -297,7 +314,7 @@ private:
 			, boost::bind(&ssl_stream::handle_handshake, this, _1, h));
 	}
 
-	void handle_handshake(boost::system::error_code const &e, boost::shared_ptr<handler_type> h)
+	void handle_handshake(boost::system::error_code const& e, boost::shared_ptr<handler_type> h)
 	{
 		(*h)(e);
 	}
@@ -309,4 +326,4 @@ private:
 }
 }
 
-#endif // __SSL_STREAM_HPP__
+#endif // AVHTTP_SSL_STREAM_HPP

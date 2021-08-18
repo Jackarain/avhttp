@@ -1,4 +1,4 @@
-//
+﻿//
 // avhttp.hpp
 // ~~~~~~~~~~
 //
@@ -8,8 +8,8 @@
 // path LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef __AVHTTP_HPP__
-#define __AVHTTP_HPP__
+#ifndef AVHTTP_HPP
+#define AVHTTP_HPP
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
@@ -35,33 +35,51 @@ namespace
 #include <boost/function.hpp>
 #include <boost/noncopyable.hpp>
 
-// 仅限于header only, 如果avhttp支持单独编译时或编译成动态库, AVHTTP_DECL应该
-// 相应支持其它定义.
-#ifndef AVHTTP_DECL
-# ifndef AVHTTP_SEPARATE_COMPILATION
-#  define AVHTTP_DECL inline
+
+// Default to a header-only implementation.
+#if !defined(AVHTTP_HEADER_ONLY)
+#	if !defined(AVHTTP_SEPARATE_COMPILATION)
+#		define AVHTTP_HEADER_ONLY 1
+#	endif // !defined(AVHTTP_SEPARATE_COMPILATION)
+#endif // !defined(AVHTTP_HEADER_ONLY)
+
+#if defined(AVHTTP_HEADER_ONLY)
+#	define AVHTTP_DECL inline
 # else
-#  define AVHTTP_DECL
-# endif
-#endif
+#	define AVHTTP_DECL
+#endif // defined(AVHTTP_HEADER_ONLY)
+
+// If AVHTTP_DECL isn't defined yet define it now.
+#if !defined(AVHTTP_DECL)
+# define AVHTTP_DECL
+#endif // !defined(AVHTTP_DECL)
 
 #include "avhttp/version.hpp"
 #include "avhttp/logging.hpp"
 #include "avhttp/detail/error_codec.hpp"
 #include "avhttp/url.hpp"
 #include "avhttp/http_stream.hpp"
+#ifndef AVHTTP_DISABLE_FILE_UPLOAD
+# if (BOOST_VERSION >= 105400)
+#  include "avhttp/file_upload.hpp"
+# endif
+#endif
 #ifndef AVHTTP_DISABLE_MULTI_DOWNLOAD
-#include "avhttp/entry.hpp"
-#include "avhttp/bencode.hpp"
-#include "avhttp/rangefield.hpp"
-#include "avhttp/bitfield.hpp"
-#include "avhttp/multi_download.hpp"
+# include "avhttp/entry.hpp"
+# include "avhttp/bencode.hpp"
+# include "avhttp/rangefield.hpp"
+# include "avhttp/bitfield.hpp"
+# include "avhttp/multi_download.hpp"
 #endif
 #if (BOOST_VERSION >= 105400)
-#include "avhttp/async_read_body.hpp"
+# include "avhttp/async_read_body.hpp"
 #endif
+
+#include "avhttp/read_body.hpp"
+
+#include "avhttp/post_form.hpp"
 
 #include "avhttp/detail/abi_suffix.hpp"
 
 
-#endif // __AVHTTP_HPP__
+#endif // AVHTTP_HPP

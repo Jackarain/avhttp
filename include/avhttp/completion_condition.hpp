@@ -1,4 +1,4 @@
-//
+﻿//
 // async_read_body.hpp
 // ~~~~~~~~~~~~~~~~~~~
 //
@@ -8,8 +8,8 @@
 // path LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef __AVHTTP_COMPLETION_CONDITION_HPP__
-#define __AVHTTP_COMPLETION_CONDITION_HPP__
+#ifndef AVHTTP_COMPLETION_CONDITION_HPP
+#define AVHTTP_COMPLETION_CONDITION_HPP
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
@@ -23,7 +23,7 @@
 
 namespace avhttp {
 
-namespace detail{
+namespace detail {
 // match condition!
 struct transfer_response_body_t
 {
@@ -40,7 +40,7 @@ struct transfer_response_body_t
 		if(m_content_length > 0 )
 		{
 			// just the same boost::asio::transfer_exactly
-			return (!!err || bytes_transferred >= m_content_length) ? 0 :
+			return (!!err || static_cast<boost::int64_t>(bytes_transferred) >= m_content_length) ? 0 :
 			(m_content_length - bytes_transferred < default_max_transfer_size
 				? m_content_length - bytes_transferred : std::size_t(default_max_transfer_size));
 		}
@@ -94,4 +94,4 @@ inline detail::transfer_response_body_t transfer_response_body(boost::int64_t co
 
 #include <boost/asio/detail/pop_options.hpp>
 
-#endif // __AVHTTP_COMPLETION_CONDITION_HPP__
+#endif // AVHTTP_COMPLETION_CONDITION_HPP

@@ -69,7 +69,7 @@ int main()
 
 	return 0;
 }
-``` 
+```
 
 OK，上面已经展示了一个简单却功能完善的示例用于同步方式HTTP下载，下面我来介绍异步并发下载多个URL的示范。
 
@@ -171,7 +171,7 @@ int main(int argc, char* argv[])
 
 	return 0;
 }
-``` 
+```
 
 到现在为止，您已经了解了AVHTTP的同步和异步的基本用法，但事实上有时您还需要定制自己的HTTP请求，请继续往下看，下面介绍HTTP参数相关的设置。
 
@@ -194,7 +194,7 @@ h.request_options(opt);
 // 然后再发起其它相关操作.
 h.open("http://www.boost.org/LICENSE_1_0.txt");
 // ...
-``` 
+```
 
 avhttp::request_opts 在发起HTTP请求之前的设定HTTP选项，它可以实现让您定制自己的http header。
 
@@ -217,7 +217,7 @@ h.proxy(p); // 设置代理.
 // 然后再发起其它相关操作.
 h.open("http://www.boost.org/LICENSE_1_0.txt");
 // ...
-``` 
+```
 
 想了解更多的关于avhttp的使用(断点续传并发下载等)，请参考avhttp的example代码。
 
@@ -229,4 +229,4 @@ h.open("http://www.boost.org/LICENSE_1_0.txt");
 * 如果需要支持https，它依赖openssl，请自行编译openssl或到 http://sourceforge.net/projects/avplayer/files/develop/OpenSSL-dev/ 下载已经编译好的ssl开发包，并在项目中设置，启用AVHTTP_ENABLE_OPENSSL。
 * 如果需要支持gzip，它依赖zlib，需要在项目中启用AVHTTP_ENABLE_ZLIB，当然您还需要使用avhttp::request_opts指定相应Accept-Encoding。
 * 如果您只有一个线程运行io_service，那么定义AVHTTP_DISABLE_THREAD可以避免锁来提高工作效率。
-* 如果您还有其它任何问题，请加QQ群：3597082或IRC #avplayer @ irc.freenode.net，或直接mailto：jack.wgm@gmail.com。
+* 如果您还有其它任何问题，请加[telegram群组](https://telegram.me/joinchat/C3WytT4RMvLgPZ92_Txq8g)或IRC #avplayer @ irc.freenode.net，或直接mailto：jack.wgm@gmail.com。

@@ -1,4 +1,4 @@
-//
+﻿//
 // utf8.hpp
 // ~~~~~~~~
 //
@@ -8,8 +8,8 @@
 // path LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef __UTF8_HPP__
-#define __UTF8_HPP__
+#ifndef AVHTTP_UTF8_HPP
+#define AVHTTP_UTF8_HPP
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
@@ -27,39 +27,39 @@ namespace detail {
 // 字符集编码转换接口声明.
 
 // wide string to utf8 string.
-inline std::string wide_utf8(const std::wstring &source);
+inline std::string wide_utf8(const std::wstring& source);
 
 // utf8 string to wide string.
-inline std::wstring utf8_wide(std::string const &source);
+inline std::wstring utf8_wide(std::string const& source);
 
 // ansi string to utf8 string.
-inline std::string ansi_utf8(std::string const &source);
+inline std::string ansi_utf8(std::string const& source);
 inline std::string ansi_utf8(
-	std::string const &source, const std::string &characters);
+	std::string const& source, const std::string& characters);
 
 // utf8 string to ansi string.
-inline std::string utf8_ansi(std::string const &source);
+inline std::string utf8_ansi(std::string const& source);
 inline std::string utf8_ansi(
-	std::string const &source, const std::string &characters);
+	std::string const& source, const std::string& characters);
 
 // wide string to ansi string.
-inline std::string wide_ansi(const std::wstring &source);
+inline std::string wide_ansi(const std::wstring& source);
 inline std::string wide_ansi(
-	std::wstring const &source, const std::string &characters);
+	std::wstring const& source, const std::string& characters);
 
 // ansi string to wide string.
-inline std::wstring ansi_wide(const std::string &source);
+inline std::wstring ansi_wide(const std::string& source);
 inline std::wstring ansi_wide(
-	const std::string &source, const std::string &characters);
+	const std::string& source, const std::string& characters);
 
 // 字符集编码转换接口实现, 使用boost实现.
 inline std::wstring ansi_wide(
-	const std::string &source, const std::string &characters)
+	const std::string& source, const std::string& characters)
 {
 	return boost::locale::conv::utf_to_utf<wchar_t>(ansi_utf8(source, characters));
 }
 
-inline std::wstring ansi_wide(const std::string &source)
+inline std::wstring ansi_wide(const std::string& source)
 {
 	std::wstring wide;
 	wchar_t dest;
@@ -84,45 +84,45 @@ inline std::wstring ansi_wide(const std::string &source)
 }
 
 inline std::string ansi_utf8(
-	std::string const &source, const std::string &characters)
+	std::string const& source, const std::string& characters)
 {
 	return boost::locale::conv::between(source, "UTF-8", characters);
 }
 
-inline std::string ansi_utf8(std::string const &source)
+inline std::string ansi_utf8(std::string const& source)
 {
 	std::wstring wide = ansi_wide(source);
 	return wide_utf8(wide);
 }
 
-inline std::string wide_utf8(const std::wstring &source)
+inline std::string wide_utf8(const std::wstring& source)
 {
 	return boost::locale::conv::utf_to_utf<char>(source);
 }
 
-inline std::wstring utf8_wide(std::string const &source)
+inline std::wstring utf8_wide(std::string const& source)
 {
 	return boost::locale::conv::utf_to_utf<wchar_t>(source);
 }
 
 inline std::string utf8_ansi(
-	std::string const &source, const std::string &characters)
+	std::string const& source, const std::string& characters)
 {
 	return boost::locale::conv::between(source, characters, "UTF-8");
 }
 
-inline std::string utf8_ansi(std::string const &source)
+inline std::string utf8_ansi(std::string const& source)
 {
 	return wide_ansi(utf8_wide(source));
 }
 
 inline std::string wide_ansi(
-	std::wstring const &source, const std::string &characters)
+	std::wstring const& source, const std::string& characters)
 {
 	return utf8_ansi(wide_utf8(source), characters);
 }
 
-inline std::string wide_ansi(const std::wstring &source)
+inline std::string wide_ansi(const std::wstring& source)
 {
 	std::size_t buffer_size = MB_CUR_MAX;
 	std::vector<char> buffer(buffer_size, 0);
@@ -148,4 +148,4 @@ inline std::string wide_ansi(const std::wstring &source)
 } // namespace detail
 } // namespace avhttp
 
-#endif // __UTF8_HPP__
+#endif // AVHTTP_UTF8_HPP

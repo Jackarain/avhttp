@@ -1,4 +1,4 @@
-#include <iostream>
+﻿#include <iostream>
 #include <boost/array.hpp>
 #include <cmath>
 
@@ -67,8 +67,11 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 
+#if WIN32
 	std::locale::global(std::locale(""));
-	INIT_LOGGER(".", "multi_download.log");
+#endif
+
+	AVHTTP_INIT_LOGGER("multi_download.log");
 
 	try {
 		boost::asio::io_service io;
@@ -115,13 +118,11 @@ int main(int argc, char* argv[])
 
 		std::cout << "\n*** download completed! ***\n";
 	}
-	catch (std::exception &e)
+	catch (std::exception& e)
 	{
 		std::cerr << e.what() << std::endl;
 		return -1;
 	}
-
-	UNINIT_LOGGER();
 
 	return 0;
 }

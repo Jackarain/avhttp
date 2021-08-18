@@ -1,4 +1,4 @@
-//
+﻿//
 // http_stream.hpp
 // ~~~~~~~~~~~~~~~
 //
@@ -9,8 +9,8 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef __ERROR_CODEC_HPP__
-#define __ERROR_CODEC_HPP__
+#ifndef AVHTTP_ERROR_CODEC_HPP
+#define AVHTTP_ERROR_CODEC_HPP
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
@@ -216,7 +216,10 @@ enum errc_t
 	socks_no_identd,
 
 	/// SOCKS no identd running.
-	socks_identd_error
+	socks_identd_error,
+
+	/// Fake continue!
+	fake_continue
 };
 
 /// Converts a value of type @c errc_t to a corresponding object of type
@@ -367,6 +370,8 @@ class error_category_impl
 			return "SOCKS no identd running";
 		case errc::socks_identd_error:
 			return "SOCKS no identd running";
+		case errc::fake_continue:
+			return "Fake continue";
 		default:
 			return "Unknown HTTP error";
 		}
@@ -391,4 +396,4 @@ class error_category_impl
 
 } // namespace avhttp
 
-#endif // __ERROR_CODEC_HPP__
+#endif // AVHTTP_ERROR_CODEC_HPP

@@ -1,15 +1,16 @@
-//
+﻿//
 // escape_string.hpp
 // ~~~~~~~~~~~~~~~~~
 //
 // Copyright (c) 2009 Christopher M. Kohlhoff (chris at kohlhoff dot com)
+// Copyright (c) 2013 Jack (jack dot wgm at gmail dot com)
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // path LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef __ESCAPE_STRING_HPP__
-#define __ESCAPE_STRING_HPP__
+#ifndef AVHTTP_ESCAPE_STRING_HPP
+#define AVHTTP_ESCAPE_STRING_HPP
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
@@ -47,6 +48,12 @@ inline bool is_ctl(int c)
 	return (c >= 0 && c <= 31) || c == 127;
 }
 
+// Check if character is unreserved. List of unreserved characters is here: http://en.wikipedia.org/wiki/Percent-encoding
+inline bool is_unreserved_char(const char c)
+{
+	return (c >= 'A' && c<= 'Z') || (c >= 'a' && c<= 'z') || (c >= '0' && c <= '9') || ('-' == c) || ('_' == c) || ('.' == c) || ('~' == c);
+}
+
 inline bool is_tspecial(int c)
 {
 	switch (c)
@@ -58,7 +65,7 @@ inline bool is_tspecial(int c)
 	}
 }
 
-inline std::string to_hex(std::string const &s)
+inline std::string to_hex(std::string const& s)
 {
 	std::string ret;
 	for (std::string::const_iterator i = s.begin(); i != s.end(); ++i)
@@ -69,9 +76,9 @@ inline std::string to_hex(std::string const &s)
 	return ret;
 }
 
-inline void to_hex(char const *in, int len, char *out)
+inline void to_hex(char const* in, int len, char* out)
 {
-	for (char const *end = in + len; in < end; ++in)
+	for (char const* end = in + len; in < end; ++in)
 	{
 		*out++ = hex_chars[((unsigned char)*in) >> 4];
 		*out++ = hex_chars[((unsigned char)*in) & 0xf];
@@ -89,7 +96,9 @@ inline bool tolower_compare(char a, char b)
 	return std::tolower(a) == std::tolower(b);
 }
 
-inline std::string escape_path(const std::string &s)
+// convert path string to percent-encoded string.
+// ATTENTION: Only some "reserved characters" are transformed to percent-encoded form. Some characters like 0x02 are not transformed too.
+inline std::string escape_path(const std::string& s)
 {
 	std::string ret;
 	std::string h;
@@ -105,7 +114,25 @@ inline std::string escape_path(const std::string &s)
 	return ret;
 }
 
-inline bool unescape_path(const std::string &in, std::string &out)
+// convert any string to percent-encoded string. All characters except Unreserved onces are percent encoded.
+// List of reserved and unreserved characters is taken from http://en.wikipedia.org/wiki/Percent-encoding
+inline std::string escape_string(const std::string& s)
+{
+	std::string ret;
+	std::string h;
+
+	for (std::string::const_iterator i = s.begin(); i != s.end(); i++)
+	{
+		h = *i;
+		if (!is_unreserved_char(*i))
+			h = "%" + to_hex(h);
+		ret += h;
+	}
+
+	return ret;
+}
+
+inline bool unescape_path(const std::string& in, std::string& out)
 {
 	out.clear();
 	out.reserve(in.size());
@@ -119,6 +146,8 @@ inline bool unescape_path(const std::string &in, std::string &out)
 				unsigned int value = 0;
 				for (std::size_t j = i + 1; j < i + 3; ++j)
 				{
+					value <<= 4;
+
 					switch (in[j])
 					{
 					case '0': case '1': case '2': case '3': case '4':
@@ -134,8 +163,6 @@ inline bool unescape_path(const std::string &in, std::string &out)
 					default:
 						return false;
 					}
-					if (j == i + 1)
-						value <<= 4;
 				}
 				out += static_cast<char>(value);
 				i += 2;
@@ -143,9 +170,10 @@ inline bool unescape_path(const std::string &in, std::string &out)
 			else
 				return false;
 			break;
-		case '-': case '_': case '.': case '!': case '~': case '*':
-		case '\'': case '(': case ')': case ':': case '@': case '&':
-		case '=': case '+': case '$': case ',': case '/': case ';':
+		case '-': case '_': case '.': case '~': // unreserved characters. Do not encode them at any case
+		// Reserved characters. In some special cases this characters might stay escaped.
+		case '!': case '*': case '\'': case '(': case ')': case ';': case ':': case '@': case '&':
+		case '=': case '+': case '$': case ',': case '/': case '?': case '#': case '[': case ']':
 			out += in[i];
 			break;
 		default:
@@ -159,7 +187,7 @@ inline bool unescape_path(const std::string &in, std::string &out)
 }
 
 template <typename Source>
-std::string encode_base64(const Source &s)
+std::string encode_base64(const Source& s)
 {
 	using namespace boost::archive::iterators;
 	typedef typename Source::const_iterator source_const_iterator;
@@ -170,10 +198,11 @@ std::string encode_base64(const Source &s)
 			8
 		>
 	> base64_text;
-	std::stringstream os;
-	std::copy(base64_text(s.begin()), base64_text(s.end()), ostream_iterator<char>(os));
-	std::string result = os.str();
-	int padding = 4 - result.size() % 4;
+	std::stringstream ss;
+	std::copy(base64_text(s.begin()), base64_text(s.end()),
+		boost::archive::iterators::ostream_iterator<char>(ss));
+	std::string result = ss.str();
+	int padding = result.size() % 4 ? 4 - result.size() % 4 : 0;
 	for (int i = 0; i < padding; i++)
 		result += "=";
 	return result;
@@ -182,4 +211,4 @@ std::string encode_base64(const Source &s)
 }
 }
 
-#endif // __ESCAPE_STRING_HPP__
+#endif // AVHTTP_ESCAPE_STRING_HPP

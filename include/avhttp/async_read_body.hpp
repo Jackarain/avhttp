@@ -1,4 +1,4 @@
-//
+﻿//
 // async_read_body.hpp
 // ~~~~~~~~~~~~~~~~~~~
 //
@@ -9,8 +9,8 @@
 // path LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef __AVHTTP_MISC_HTTP_READBODY_HPP__
-#define __AVHTTP_MISC_HTTP_READBODY_HPP__
+#ifndef AVHTTP_MISC_HTTP_ASYNC_READBODY_HPP
+#define AVHTTP_MISC_HTTP_ASYNC_READBODY_HPP
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
@@ -21,6 +21,8 @@ BOOST_STATIC_ASSERT_MSG(BOOST_VERSION >= 105400, "You must use boost-1.54 or lat
 #include "avhttp/http_stream.hpp"
 #include "avhttp/completion_condition.hpp"
 
+#include <boost/asio/yield.hpp>
+
 namespace avhttp {
 namespace detail {
 
@@ -28,8 +30,8 @@ template <typename AsyncReadStream, typename MutableBufferSequence, typename Han
 class read_body_op : boost::asio::coroutine
 {
 public:
-	read_body_op(AsyncReadStream &stream, const avhttp::url &url,
-		MutableBufferSequence &buffers, Handler handler)
+	read_body_op(AsyncReadStream& stream, const avhttp::url& url,
+		MutableBufferSequence& buffers, Handler handler)
 		: m_stream(stream)
 		, m_buffers(buffers)
 		, m_handler(BOOST_ASIO_MOVE_CAST(Handler)(handler))
@@ -37,11 +39,11 @@ public:
 		m_stream.async_open(url, *this);
 	}
 
-	void operator()(const boost::system::error_code &ec, std::size_t bytes_transferred = 0)
+	void operator()(const boost::system::error_code& ec, std::size_t bytes_transferred = 0)
 	{
-		BOOST_ASIO_CORO_REENTER(this)
+		reenter(this)
 		{
-			if(!ec)
+			if(!ec || ec == avhttp::errc::accepted)
 			{
 				BOOST_ASIO_CORO_YIELD boost::asio::async_read(
 					m_stream, m_buffers, transfer_response_body(m_stream.content_length()), *this);
@@ -64,15 +66,15 @@ public:
 	}
 
 // private:
-	AsyncReadStream &m_stream;
-	MutableBufferSequence &m_buffers;
+	AsyncReadStream& m_stream;
+	MutableBufferSequence& m_buffers;
 	Handler m_handler;
 };
 
 template <typename AsyncReadStream, typename MutableBufferSequence, typename Handler>
 read_body_op<AsyncReadStream, MutableBufferSequence, Handler>
-	make_read_body_op(AsyncReadStream &stream,
-	const avhttp::url &url, MutableBufferSequence &buffers, Handler handler)
+	make_read_body_op(AsyncReadStream& stream,
+	const avhttp::url& url, MutableBufferSequence& buffers, Handler handler)
 {
 	return read_body_op<AsyncReadStream, MutableBufferSequence, Handler>(
 		stream, url, buffers, handler);
@@ -95,12 +97,12 @@ read_body_op<AsyncReadStream, MutableBufferSequence, Handler>
 // @param handler在读取操作完成或出现错误时, 将被回调, 它满足以下条件:
 // @begin code
 //  void handler(
-//    const boost::system::error_code &ec,	// 用于返回操作状态.
+//    const boost::system::error_code& ec,	// 用于返回操作状态.
 //    std::size_t bytes_transferred			// 返回读取的数据字节数.
 //  );
 // @end code
 // @begin example
-//  void handler(const boost::system::error_code &ec, std::size_t bytes_transferred)
+//  void handler(const boost::system::error_code& ec, std::size_t bytes_transferred)
 //  {
 //      // 处理异步回调.
 //  }
@@ -112,12 +114,14 @@ read_body_op<AsyncReadStream, MutableBufferSequence, Handler>
 //  ...
 // @end example
 template<typename AsyncReadStream, typename MutableBufferSequence, typename Handler>
-AVHTTP_DECL void async_read_body(AsyncReadStream &stream,
-	const avhttp::url &url, MutableBufferSequence &buffers, Handler handler)
+AVHTTP_DECL void async_read_body(AsyncReadStream& stream,
+	const avhttp::url& url, MutableBufferSequence& buffers, Handler handler)
 {
 	detail::make_read_body_op(stream, url, buffers, handler);
 }
 
 } // namespace avhttp
 
-#endif // __AVHTTP_MISC_HTTP_READBODY_HPP__
+#include <boost/asio/unyield.hpp>
+
+#endif // AVHTTP_MISC_HTTP_ASYNC_READBODY_HPP

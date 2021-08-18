@@ -1,4 +1,4 @@
-//
+﻿//
 // socket_type.hpp
 // ~~~~~~~~~~~~~~~
 //
@@ -9,8 +9,8 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef __SOCKET_TYPE_HPP__
-#define __SOCKET_TYPE_HPP__
+#ifndef AVHTTP_SOCKET_TYPE_HPP
+#define AVHTTP_SOCKET_TYPE_HPP
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 # pragma once
@@ -58,7 +58,7 @@ namespace aux
 	template<class IO_Control_Command>
 	struct io_control_visitor_ec: boost::static_visitor<>
 	{
-		io_control_visitor_ec(IO_Control_Command &io, boost::system::error_code &e)
+		io_control_visitor_ec(IO_Control_Command& io, boost::system::error_code& e)
 			: ioc(io), ec(e) {}
 
 		template <class T>
@@ -70,15 +70,15 @@ namespace aux
 		void operator()(boost::blank) const
 		{}
 
-		IO_Control_Command &ioc;
-		boost::system::error_code &ec;
+		IO_Control_Command& ioc;
+		boost::system::error_code& ec;
 	};
 
 	template<class IO_Control_Command>
 	struct io_control_visitor
 		: boost::static_visitor<>
 	{
-		io_control_visitor(IO_Control_Command &io)
+		io_control_visitor(IO_Control_Command& io)
 			: ioc(io) {}
 
 		template <class T>
@@ -90,7 +90,7 @@ namespace aux
 		void operator()(boost::blank) const
 		{}
 
-		IO_Control_Command &ioc;
+		IO_Control_Command& ioc;
 	};
 
 	// -------------- connect -----------
@@ -100,7 +100,7 @@ namespace aux
 	struct connect_visitor
 		: public boost::static_visitor<>
 	{
-		connect_visitor(EndpointType const &ep)
+		connect_visitor(EndpointType const& ep)
 			: endpoint(ep)
 		{}
 
@@ -113,7 +113,7 @@ namespace aux
 		void operator()(boost::blank) const
 		{}
 
-		EndpointType const &endpoint;
+		EndpointType const& endpoint;
 	};
 #endif
 
@@ -121,7 +121,7 @@ namespace aux
 	struct connect_visitor_ec
 		: public boost::static_visitor<>
 	{
-		connect_visitor_ec(EndpointType const &ep, boost::system::error_code &ec_)
+		connect_visitor_ec(EndpointType const& ep, boost::system::error_code& ec_)
 			: endpoint(ep)
 			, ec(ec_)
 		{}
@@ -135,8 +135,8 @@ namespace aux
 		void operator()(boost::blank) const
 		{}
 
-		EndpointType const &endpoint;
-		boost::system::error_code &ec;
+		EndpointType const& endpoint;
+		boost::system::error_code& ec;
 	};
 
 	// -------------- async_connect -----------
@@ -145,7 +145,7 @@ namespace aux
 	struct async_connect_visitor
 		: boost::static_visitor<>
 	{
-		async_connect_visitor(EndpointType &ep, Handler h)
+		async_connect_visitor(EndpointType& ep, Handler h)
 			: endpoint(ep)
 			, handler(h)
 		{}
@@ -158,7 +158,7 @@ namespace aux
 
 		void operator()(boost::blank) const	{}
 
-		EndpointType &endpoint;
+		EndpointType& endpoint;
 		Handler handler;
 	};
 
@@ -168,7 +168,7 @@ namespace aux
 	struct bind_visitor_ec
 		: boost::static_visitor<>
 	{
-		bind_visitor_ec(EndpointType const &ep, boost::system::error_code &ec_)
+		bind_visitor_ec(EndpointType const& ep, boost::system::error_code& ec_)
 			: endpoint(ep)
 			, ec(ec_)
 		{}
@@ -179,15 +179,15 @@ namespace aux
 
 		void operator()(boost::blank) const {}
 
-		EndpointType const &endpoint;
-		boost::system::error_code &ec;
+		EndpointType const& endpoint;
+		boost::system::error_code& ec;
 	};
 
 	template <class EndpointType>
 	struct bind_visitor
 		: boost::static_visitor<>
 	{
-		bind_visitor(EndpointType const &ep)
+		bind_visitor(EndpointType const& ep)
 			: endpoint(ep)
 		{}
 
@@ -197,7 +197,7 @@ namespace aux
 
 		void operator()(boost::blank) const {}
 
-		EndpointType const &endpoint;
+		EndpointType const& endpoint;
 	};
 
 	// -------------- open -----------
@@ -206,7 +206,7 @@ namespace aux
 	struct open_visitor_ec
 		: boost::static_visitor<>
 	{
-		open_visitor_ec(Protocol const &p, boost::system::error_code &ec_)
+		open_visitor_ec(Protocol const& p, boost::system::error_code& ec_)
 			: proto(p)
 			, ec(ec_)
 		{}
@@ -217,15 +217,15 @@ namespace aux
 
 		void operator()(boost::blank) const {}
 
-		Protocol const &proto;
-		boost::system::error_code &ec;
+		Protocol const& proto;
+		boost::system::error_code& ec;
 	};
 
 	template <class Protocol>
 	struct open_visitor
 		: boost::static_visitor<>
 	{
-		open_visitor(Protocol const &p)
+		open_visitor(Protocol const& p)
 			: proto(p)
 		{}
 
@@ -235,7 +235,7 @@ namespace aux
 
 		void operator()(boost::blank) const {}
 
-		Protocol const &proto;
+		Protocol const& proto;
 	};
 
 	// -------------- is_open -----------
@@ -257,7 +257,7 @@ namespace aux
 	struct close_visitor_ec
 		: boost::static_visitor<>
 	{
-		close_visitor_ec(boost::system::error_code &ec_)
+		close_visitor_ec(boost::system::error_code& ec_)
 			: ec(ec_)
 		{}
 
@@ -267,7 +267,7 @@ namespace aux
 
 		void operator()(boost::blank) const {}
 
-		boost::system::error_code &ec;
+		boost::system::error_code& ec;
 	};
 
 #ifndef BOOST_NO_EXCEPTIONS
@@ -288,7 +288,7 @@ namespace aux
 	struct remote_endpoint_visitor_ec
 		: boost::static_visitor<EndpointType>
 	{
-		remote_endpoint_visitor_ec(boost::system::error_code &ec_)
+		remote_endpoint_visitor_ec(boost::system::error_code& ec_)
 			: ec(ec_)
 		{}
 
@@ -299,7 +299,7 @@ namespace aux
 		EndpointType operator()(boost::blank) const
 		{ return EndpointType(); }
 
-		boost::system::error_code &ec;
+		boost::system::error_code& ec;
 	};
 
 #ifndef BOOST_NO_EXCEPTIONS
@@ -323,7 +323,7 @@ namespace aux
 	struct set_option_visitor
 		: boost::static_visitor<>
 	{
-		set_option_visitor(SettableSocketOption const &opt)
+		set_option_visitor(SettableSocketOption const& opt)
 			: opt_(opt)
 		{}
 
@@ -333,7 +333,7 @@ namespace aux
 
 		void operator()(boost::blank) const {}
 
-		SettableSocketOption const &opt_;
+		SettableSocketOption const& opt_;
 	};
 #endif
 
@@ -341,7 +341,7 @@ namespace aux
 	struct set_option_visitor_ec
 		: boost::static_visitor<boost::system::error_code>
 	{
-		set_option_visitor_ec(SettableSocketOption const &opt, boost::system::error_code &ec)
+		set_option_visitor_ec(SettableSocketOption const& opt, boost::system::error_code& ec)
 			: opt_(opt)
 			, ec_(ec)
 		{}
@@ -353,8 +353,8 @@ namespace aux
 		boost::system::error_code operator()(boost::blank) const
 		{ return ec_; }
 
-		SettableSocketOption const &opt_;
-		boost::system::error_code &ec_;
+		SettableSocketOption const& opt_;
+		boost::system::error_code& ec_;
 	};
 
 	// -------------- local_endpoint -----------
@@ -363,7 +363,7 @@ namespace aux
 	struct local_endpoint_visitor_ec
 		: boost::static_visitor<EndpointType>
 	{
-		local_endpoint_visitor_ec(boost::system::error_code &ec_)
+		local_endpoint_visitor_ec(boost::system::error_code& ec_)
 			: ec(ec_)
 		{}
 
@@ -378,7 +378,7 @@ namespace aux
 			return EndpointType();
 		}
 
-		boost::system::error_code &ec;
+		boost::system::error_code& ec;
 	};
 
 #ifndef BOOST_NO_EXCEPTIONS
@@ -405,7 +405,7 @@ namespace aux
 	struct async_read_some_visitor
 		: boost::static_visitor<>
 	{
-		async_read_some_visitor(Mutable_Buffers const &bufs, Handler &h)
+		async_read_some_visitor(Mutable_Buffers const& bufs, Handler& h)
 			: buffers(bufs)
 			, handler(h)
 		{}
@@ -418,7 +418,7 @@ namespace aux
 		void operator()(boost::blank) const
 		{}
 
-		Mutable_Buffers const &buffers;
+		Mutable_Buffers const& buffers;
 		Handler handler;
 	};
 
@@ -429,7 +429,7 @@ namespace aux
 	struct read_some_visitor
 		: boost::static_visitor<std::size_t>
 	{
-		read_some_visitor(Mutable_Buffers const &bufs)
+		read_some_visitor(Mutable_Buffers const& bufs)
 			: buffers(bufs)
 		{}
 
@@ -440,7 +440,7 @@ namespace aux
 		std::size_t operator()(boost::blank) const
 		{ return 0; }
 
-		Mutable_Buffers const &buffers;
+		Mutable_Buffers const& buffers;
 	};
 #endif
 
@@ -448,7 +448,7 @@ namespace aux
 	struct read_some_visitor_ec
 		: boost::static_visitor<std::size_t>
 	{
-		read_some_visitor_ec(Mutable_Buffers const &bufs, boost::system::error_code &e)
+		read_some_visitor_ec(Mutable_Buffers const& bufs, boost::system::error_code& e)
 			: buffers(bufs)
 			, ec(e)
 		{}
@@ -460,8 +460,8 @@ namespace aux
 		std::size_t operator()(boost::blank) const
 		{ return 0; }
 
-		Mutable_Buffers const &buffers;
-		boost::system::error_code &ec;
+		Mutable_Buffers const& buffers;
+		boost::system::error_code& ec;
 	};
 
 	// -------------- async_write_some -----------
@@ -470,7 +470,7 @@ namespace aux
 	struct async_write_some_visitor
 		: boost::static_visitor<>
 	{
-		async_write_some_visitor(Const_Buffers const &bufs, Handler &h)
+		async_write_some_visitor(Const_Buffers const& bufs, Handler& h)
 			: buffers(bufs)
 			, handler(h)
 		{}
@@ -484,7 +484,7 @@ namespace aux
 		void operator()(boost::blank) const
 		{}
 
-		Const_Buffers const &buffers;
+		Const_Buffers const& buffers;
 		Handler handler;
 	};
 
@@ -495,7 +495,7 @@ namespace aux
 	struct write_some_visitor
 		: boost::static_visitor<std::size_t>
 	{
-		write_some_visitor(ConstBufferSequence const &bufs)
+		write_some_visitor(ConstBufferSequence const& bufs)
 			: buffers(bufs)
 		{}
 
@@ -506,7 +506,7 @@ namespace aux
 		std::size_t operator()(boost::blank) const
 		{ return 0; }
 
-		ConstBufferSequence const &buffers;
+		ConstBufferSequence const& buffers;
 	};
 #endif
 
@@ -514,7 +514,7 @@ namespace aux
 	struct write_some_visitor_ec
 		: boost::static_visitor<std::size_t>
 	{
-		write_some_visitor_ec(ConstBufferSequence const &bufs, boost::system::error_code &e)
+		write_some_visitor_ec(ConstBufferSequence const& bufs, boost::system::error_code& e)
 			: buffers(bufs)
 			, ec(e)
 		{}
@@ -526,8 +526,8 @@ namespace aux
 		std::size_t operator()(boost::blank) const
 		{ return 0; }
 
-		ConstBufferSequence const &buffers;
-		boost::system::error_code &ec;
+		ConstBufferSequence const& buffers;
+		boost::system::error_code& ec;
 	};
 
 	// -------------- in_avail -----------
@@ -535,7 +535,7 @@ namespace aux
 	struct in_avail_visitor_ec
 		: boost::static_visitor<std::size_t>
 	{
-		in_avail_visitor_ec(boost::system::error_code &ec_)
+		in_avail_visitor_ec(boost::system::error_code& ec_)
 			: ec(ec_)
 		{}
 
@@ -550,7 +550,7 @@ namespace aux
 			return 0;
 		}
 
-		boost::system::error_code &ec;
+		boost::system::error_code& ec;
 	};
 
 #ifndef BOOST_NO_EXCEPTIONS
@@ -575,14 +575,16 @@ namespace aux
 		: boost::static_visitor<IOService&>
 	{
 		template <class T>
-		IOService& operator()(T *p) const
+		IOService& operator()(T* p) const
 		{
 			return p->get_io_service();
 		}
 
 		IOService& operator()(boost::blank) const
 		{
-			return *(IOService*)0;
+			BOOST_ASSERT(false && "logic error");
+			static IOService io;
+			return io;
 		}
 	};
 
@@ -590,7 +592,9 @@ namespace aux
 
 	template <class LowestLayer>
 	struct lowest_layer_visitor
+#ifdef BOOST_NO_CXX14_GENERIC_LAMBDAS
 		: boost::static_visitor<LowestLayer&>
+#endif
 	{
 		template <class T>
 		LowestLayer& operator()(T* p) const
@@ -633,27 +637,24 @@ public:
 	typedef typename lowest_layer_type::endpoint_type endpoint_type;
 	typedef typename lowest_layer_type::protocol_type protocol_type;
 
-	explicit variant_stream(boost::asio::io_service &ios)
-		: m_io_service(ios), m_variant(boost::blank()) {}
+	explicit variant_stream(boost::asio::io_context& ios)
+		: m_io_service(ios), m_variant(boost::blank())
+	{}
 
 	template <class S>
-	void instantiate(boost::asio::io_service &ios)
+	void instantiate(boost::asio::io_context& ios)
 	{
-		BOOST_ASSERT(&ios == &m_io_service);
-		std::auto_ptr<S> owned(new S(ios));
+		BOOST_ASSERT(&ios ==& m_io_service);
 		boost::apply_visitor(aux::delete_visitor(), m_variant);
-		m_variant = owned.get();
-		owned.release();
+		m_variant = new S(ios);
 	}
 
 	template <class S>
-	void instantiate(boost::asio::ip::tcp::socket &socket)
+	void instantiate(boost::asio::ip::tcp::socket& socket)
 	{
-		BOOST_ASSERT(&socket.get_io_service() == &m_io_service);
-		std::auto_ptr<S> owned(new S(socket, m_io_service));
+		BOOST_ASSERT(&socket.get_io_service() ==& m_io_service);
 		boost::apply_visitor(aux::delete_visitor(), m_variant);
-		m_variant = owned.get();
-		owned.release();
+		m_variant = new S(socket, m_io_service);
 	}
 
 	template <class S>
@@ -675,7 +676,7 @@ public:
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
-	void connect(endpoint_type const &endpoint)
+	void connect(endpoint_type const& endpoint)
 	{
 		BOOST_ASSERT(instantiated());
 		boost::apply_visitor(
@@ -685,7 +686,7 @@ public:
 	}
 #endif
 
-	void connect(endpoint_type const &endpoint, boost::system::error_code &ec)
+	void connect(endpoint_type const& endpoint, boost::system::error_code& ec)
 	{
 		BOOST_ASSERT(instantiated());
 		boost::apply_visitor(
@@ -695,7 +696,7 @@ public:
 	}
 
 	template <class Mutable_Buffers>
-	std::size_t read_some(Mutable_Buffers const &buffers, boost::system::error_code &ec)
+	std::size_t read_some(Mutable_Buffers const& buffers, boost::system::error_code& ec)
 	{
 		BOOST_ASSERT(instantiated());
 		return boost::apply_visitor(
@@ -706,7 +707,7 @@ public:
 
 #ifndef BOOST_NO_EXCEPTIONS
 	template <class Mutable_Buffers>
-	std::size_t read_some(Mutable_Buffers const &buffers)
+	std::size_t read_some(Mutable_Buffers const& buffers)
 	{
 		BOOST_ASSERT(instantiated());
 		return boost::apply_visitor(
@@ -717,8 +718,8 @@ public:
 #endif
 
 	template <typename ConstBufferSequence>
-	std::size_t write_some(const ConstBufferSequence &buffers,
-		boost::system::error_code &ec)
+	std::size_t write_some(const ConstBufferSequence& buffers,
+		boost::system::error_code& ec)
 	{
 		BOOST_ASSERT(instantiated());
 		return boost::apply_visitor(
@@ -729,7 +730,7 @@ public:
 
 #ifndef BOOST_NO_EXCEPTIONS
 	template <class ConstBufferSequence>
-	std::size_t write_some(ConstBufferSequence const &buffers)
+	std::size_t write_some(ConstBufferSequence const& buffers)
 	{
 		BOOST_ASSERT(instantiated());
 		return boost::apply_visitor(
@@ -740,7 +741,7 @@ public:
 #endif
 
 	template <class Mutable_Buffers, class Handler>
-	void async_read_some(Mutable_Buffers const &buffers, Handler handler)
+	void async_read_some(Mutable_Buffers const& buffers, Handler handler)
 	{
 		BOOST_ASSERT(instantiated());
 		boost::apply_visitor(
@@ -750,7 +751,7 @@ public:
 	}
 
 	template <class Const_Buffers, class Handler>
-	void async_write_some(Const_Buffers const &buffers, Handler handler)
+	void async_write_some(Const_Buffers const& buffers, Handler handler)
 	{
 		BOOST_ASSERT(instantiated());
 		boost::apply_visitor(
@@ -770,7 +771,7 @@ public:
 
 #ifndef BOOST_NO_EXCEPTIONS
 	template <class IO_Control_Command>
-	void io_control(IO_Control_Command &ioc)
+	void io_control(IO_Control_Command& ioc)
 	{
 		BOOST_ASSERT(instantiated());
 		boost::apply_visitor(
@@ -780,7 +781,7 @@ public:
 #endif
 
 	template <class IO_Control_Command>
-	void io_control(IO_Control_Command &ioc, boost::system::error_code &ec)
+	void io_control(IO_Control_Command& ioc, boost::system::error_code& ec)
 	{
 		BOOST_ASSERT(instantiated());
 		boost::apply_visitor(
@@ -790,14 +791,14 @@ public:
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
-	void bind(endpoint_type const &endpoint)
+	void bind(endpoint_type const& endpoint)
 	{
 		BOOST_ASSERT(instantiated());
 		boost::apply_visitor(aux::bind_visitor<endpoint_type>(endpoint), m_variant);
 	}
 #endif
 
-	void bind(endpoint_type const &endpoint, boost::system::error_code &ec)
+	void bind(endpoint_type const& endpoint, boost::system::error_code& ec)
 	{
 		BOOST_ASSERT(instantiated());
 		boost::apply_visitor(
@@ -806,14 +807,14 @@ public:
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
-	void open(protocol_type const &p)
+	void open(protocol_type const& p)
 	{
 		BOOST_ASSERT(instantiated());
 		boost::apply_visitor(aux::open_visitor<protocol_type>(p), m_variant);
 	}
 #endif
 
-	void open(protocol_type const &p, boost::system::error_code &ec)
+	void open(protocol_type const& p, boost::system::error_code& ec)
 	{
 		BOOST_ASSERT(instantiated());
 		boost::apply_visitor(
@@ -834,7 +835,7 @@ public:
 	}
 #endif
 
-	void close(boost::system::error_code &ec)
+	void close(boost::system::error_code& ec)
 	{
 		if (!instantiated()) return;
 		boost::apply_visitor(
@@ -850,7 +851,7 @@ public:
 	}
 #endif
 
-	std::size_t in_avail(boost::system::error_code &ec) const
+	std::size_t in_avail(boost::system::error_code& ec) const
 	{
 		BOOST_ASSERT(instantiated());
 		return boost::apply_visitor(
@@ -866,7 +867,7 @@ public:
 	}
 #endif
 
-	endpoint_type remote_endpoint(boost::system::error_code &ec) const
+	endpoint_type remote_endpoint(boost::system::error_code& ec) const
 	{
 		BOOST_ASSERT(instantiated());
 		return boost::apply_visitor(
@@ -876,7 +877,7 @@ public:
 
 #ifndef BOOST_NO_EXCEPTIONS
 	template <class SettableSocketOption>
-	void set_option(SettableSocketOption const &opt)
+	void set_option(SettableSocketOption const& opt)
 	{
 		BOOST_ASSERT(instantiated());
 		boost::apply_visitor(aux::set_option_visitor<SettableSocketOption>(opt)
@@ -885,7 +886,7 @@ public:
 #endif
 
 	template <class SettableSocketOption>
-	boost::system::error_code set_option(SettableSocketOption const &opt, boost::system::error_code &ec)
+	boost::system::error_code set_option(SettableSocketOption const& opt, boost::system::error_code& ec)
 	{
 		BOOST_ASSERT(instantiated());
 		return boost::apply_visitor(aux::set_option_visitor_ec<SettableSocketOption>(opt, ec)
@@ -900,7 +901,7 @@ public:
 	}
 #endif
 
-	endpoint_type local_endpoint(boost::system::error_code &ec) const
+	endpoint_type local_endpoint(boost::system::error_code& ec) const
 	{
 		BOOST_ASSERT(instantiated());
 		return boost::apply_visitor(
@@ -908,7 +909,7 @@ public:
 			);
 	}
 
-	boost::asio::io_service& get_io_service()
+	boost::asio::io_context& get_io_service()
 	{
 		return m_io_service;
 	}
@@ -920,13 +921,12 @@ public:
 			aux::lowest_layer_visitor<lowest_layer_type>(), m_variant
 			);
 	}
-
 private:
-	boost::asio::io_service& m_io_service;
+	boost::asio::io_context& m_io_service;
 	variant_type m_variant;
 };
 
 }
 }
 
-#endif // __SOCKET_TYPE_HPP__
+#endif // AVHTTP_SOCKET_TYPE_HPP
