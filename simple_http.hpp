@@ -538,6 +538,7 @@ namespace avhttp
 			}
 
 			do {
+				beast::get_lowest_layer(stream).expires_after(std::chrono::seconds(30));
 				auto bytes = http::async_read_some(stream, buffer, p, yield[ec]);
 				boost::ignore_unused(bytes);
 				if (ec)
@@ -554,7 +555,8 @@ namespace avhttp
 					m_content_lentgh = *length;
 					m_content_lentgh_remaining = *p.content_length_remaining();
 
-					m_download_percent = 1.0 - (*m_content_lentgh_remaining / static_cast<double>(*length));
+					if (*length > 0)
+						m_download_percent = 1.0 - (*m_content_lentgh_remaining / static_cast<double>(*length));
 				}
 
 				if (p.is_header_done() && !dump_to_file)
