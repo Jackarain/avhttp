@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <boost/asio/any_io_executor.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/spawn.hpp>
 #include <boost/asio/ssl/rfc2818_verification.hpp>
@@ -86,7 +87,7 @@ namespace avhttp
 	static const std::string ie_user_agent = R"(Mozilla/5.0 (Windows NT 10.0; WOW64; Trident/7.0; rv:11.0) like Gecko)";
 	static const std::string curl_user_agent = R"(curl/7.64.0)";
 
-	template <typename Executor = boost::asio::io_context::executor_type>
+	template <typename Executor = boost::asio::any_io_executor>
 	class basic_simple_http
 	{
 		using ssl_stream = beast::ssl_stream<beast::tcp_stream>;
