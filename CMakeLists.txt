@@ -1,7 +1,7 @@
 ﻿cmake_minimum_required(VERSION 3.10.2)
 cmake_policy(SET CMP0091 NEW) # for CMAKE_MSVC_RUNTIME_LIBRARY
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-project("simplehttp")
+project("avhttp")
 
 set(CMAKE_CXX_STANDARD 17)
 include(CheckCXXCompilerFlag)
@@ -86,7 +86,7 @@ set(DEPEND_LIBRARYS
 			${ZLIB_LIBRARIES}
 )
 
-file(GLOB simplehttp_SRCS
+file(GLOB avhttp_SRCS
 			avhttp.cpp
 
 			async_connect.hpp
@@ -111,11 +111,11 @@ if (WIN32)
 	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/bin/release)
 endif()
 
-add_library(simplehttp SHARED ${simplehttp_SRCS})
-add_library(simplehttp-static STATIC ${simplehttp_SRCS})
+add_library(avhttp SHARED ${avhttp_SRCS})
+add_library(avhttp-static STATIC ${avhttp_SRCS})
 
-target_include_directories(simplehttp PRIVATE ${DEPEND_INCLUDES})
-target_include_directories(simplehttp-static PRIVATE ${DEPEND_INCLUDES})
+target_include_directories(avhttp PRIVATE ${DEPEND_INCLUDES})
+target_include_directories(avhttp-static PRIVATE ${DEPEND_INCLUDES})
 
 if (ANDROID)
 	find_library(
@@ -129,8 +129,8 @@ if (ANDROID)
 	endif()
 endif()
 
-target_link_libraries(simplehttp ${DEPEND_LIBRARYS})
-target_link_libraries(simplehttp-static ${DEPEND_LIBRARYS})
+target_link_libraries(avhttp ${DEPEND_LIBRARYS})
+target_link_libraries(avhttp-static ${DEPEND_LIBRARYS})
 
 if (ANDROID)
 	find_package(SWIG)
